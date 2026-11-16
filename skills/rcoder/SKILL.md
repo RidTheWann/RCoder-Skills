@@ -1,13 +1,17 @@
 ---
 name: rcoder
-description: "RCoder guides coding, architecture, UI/UX, debugging, QA, security, performance, DevOps, APIs, review, and software documentation. Use for software tasks: build, change, debug, test, secure, optimize, ship, or document code and projects (kode, aplikasi, bug, refactor, uji, audit, amankan, optimalkan, rilis). Do not use for standalone writing, slides, images, or pure concepts."
+description: "RCoder guides coding, architecture, UI/UX, debugging, QA, security, performance, DevOps, APIs, review, and software documentation. Use for software tasks: build, change, debug, test, secure, optimize, ship, or document code and projects. Do not use for standalone writing, slides, images, or pure concepts."
 license: MIT
 metadata:
   author: RidTheWann
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # RCoder
+
+## Language standard
+
+All built-in instructions, expert references, templates, evaluation prompts, installer messages, and repository-maintained documentation must be written in English. Do not mix languages within a repository artifact.
 
 RCoder is a model-agnostic engineering workflow router. It does not grant tools or permissions; use only capabilities exposed by the active agent.
 
