@@ -90,4 +90,4 @@ Untuk instalasi personal, gunakan `--scope user`. Installer mendukung dry-run, b
 
 ### Batas verifikasi
 
-Lingkungan build tersedia Linux x86-64, Python 3.13, Node 22, dan Git 2.47. PowerShell, `skills-ref`, Claude Code, Codex, Cursor, Gemini CLI, Copilot, dan runtime model tidak tersedia untuk pengujian langsung. Status setiap gerbang ada di `docs/HANDOFF.md`; semua klaim instalasi/runtime yang belum dicoba tetap `NOT VERIFIED`.
+Lingkungan build tersedia Linux x86-64, Python 3.13, Node 22, dan Git 2.47. PowerShell lokal serta CLI/runtime produk tidak terpasang, tetapi simulasi installer POSIX dan PowerShell berjalan pada runner Linux/Windows GitHub Actions. `skills-ref` dan aktivasi model live masih belum diverifikasi langsung. Status setiap gerbang ada di `docs/HANDOFF.md`.
