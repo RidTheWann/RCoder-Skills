@@ -4,7 +4,7 @@
 - [x] Phase 0 — Recon/research: target GitHub repository confirmed empty before work; Linux x86-64, Python 3.13, Node 22, and Git 2.47 inspected; official format and target-path documentation reviewed.
 - [x] Phase 1 — Design: architecture and nine decisions recorded.
 - [x] Phase 2 — Vertical slice: portable router, twelve core expert modules, extension guide, read-only stack detector, and six templates.
-- [x] Phase 3 — Installers/adapters: POSIX + PowerShell installers, six targets, project/user scopes, Claude/Codex adapters, and AGENTS/CLAUDE bootstrap files.
+- [x] Phase 3 — Installers/adapters: POSIX + PowerShell installers, six targets, project/user scopes, Claude plugin manifest plus portable Agent Plugins manifest with Codex compatibility fallback, and AGENTS/CLAUDE bootstrap files.
 - [x] Phase 4 — Evaluation: 24 trigger prompts and ten scenario rubrics with separate scenario files; live-model gaps recorded.
 - [x] Phase 5 — Documentation/package: bilingual README and handoff, MIT license, SemVer changelog, static validator, pinned CI, and ZIP package builder.
 - [x] Phase 6 — Handoff/publication: local source and generated archives verified; GitHub main branch populated and remote tree read back.
@@ -21,7 +21,7 @@
 ## Remote publication evidence
 - Repository: `RidTheWann/RCoder-Skills`, branch: `main`.
 - Connector readback: 60 files, including 13 expert references, six templates, ten scenario files, all development scripts, docs, manifests, and workflow.
-- Latest verified tree SHA before this documentation refresh: `bdd8e525bfd9c59e7d4739eacf6e3e7680980597`.
+- Latest verified source-tree readback: 60 tracked files on `main`; use the repository link for the live commit and tree.
 - Generated dist ZIPs/checksums remain build outputs, not tracked source.
 
 ## Gates
