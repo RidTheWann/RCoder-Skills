@@ -80,7 +80,7 @@ def main():
   changelog=(ROOT/'CHANGELOG.md').read_text(encoding='utf-8')
   check(f'[{version}]' in changelog,'G7: plugin version missing from CHANGELOG')
   skill_text=(ROOT/'skills/rcoder/SKILL.md').read_text(encoding='utf-8')
-  check(re.search(r'(?m)^  version: "'+re.escape(version)+r'"
+  check(f'version: "{version}"' in skill_text,'G7: skill version differs from package metadata')
  except Exception as e: check(False,f'G1: portable plugin validation failed: {e}')
  executables=list((ROOT/'scripts').glob('*'))+[ROOT/'install.ps1',SKILL/'scripts'/'detect_stack.py']
  secrets=[re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'),re.compile(r'\bAKIA[0-9A-Z]{16}\b'),re.compile(r'\bgh[pousr]_[A-Za-z0-9]{20,}\b'),re.compile(r'\bgithub_pat_[A-Za-z0-9_]{20,}\b')]
