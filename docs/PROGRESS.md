@@ -22,18 +22,19 @@
 
 ## Remote publication evidence
 - Repository: `RidTheWann/RCoder-Skills`, branch: `main`.
-- The new Node, PowerShell, and English-only changes are being committed now; read back the remote tree and latest CI run before considering remote publication complete.
+- GitHub readback verified the Node CLI, npm metadata, root PowerShell bootstrap, skill, prompts, docs, manifests, tests, and workflow.
+- GitHub Actions run `43871519315` — PASS on `ubuntu-latest` and `windows-latest`. Both platforms passed 261-check static validation, 12 Node installer simulations, and npm pack dry-run. Linux also passed 12 POSIX simulations; Windows passed 12 PowerShell simulations including parsing the root `install.ps1` script. Both built the v1.1.0 ZIP packages.
 
 ## Gates
 | Gate | Status | Evidence / limitation |
 |---|---|---|
-| G1 Structural | VERIFIED (local static) | 261 checks; official `skills-ref` validator remains unavailable. |
+| G1 Structural | VERIFIED (local + CI static) | 261 checks passed; official `skills-ref` validator remains unavailable. |
 | G2 Trigger | VERIFIED (dataset only) | 24 prompts, 12 positive and 12 negative; every prompt is English-only. Live model activation remains NOT VERIFIED. |
 | G3 Behavior | VERIFIED (scenario design) | Ten objective scenarios; live model ablation remains NOT VERIFIED. |
-| G4 Installation | VERIFIED (local Node/POSIX simulation) | Twelve Node and twelve POSIX combinations pass locally; PowerShell bootstrap syntax and Windows compatibility are covered by the next Windows CI run. Native application discovery remains NOT VERIFIED. |
+| G4 Installation | VERIFIED (cross-platform simulation) | Twelve Node and twelve POSIX combinations pass on Linux; twelve PowerShell combinations pass on Windows CI. Native application discovery remains NOT VERIFIED. |
 | G5 Security / license | VERIFIED (static scope) | Selected secret/risky-command checks and MIT license; not a full security audit. |
 | G6 Documentation | VERIFIED (static) | README, handoff, instructions, prompts, templates, and installer messages are English-only. |
-| G7 Consistency | VERIFIED (local) | Versions synchronized, links and manifests validated, and package archives/checksums verified. Remote readback and CI are still required. |
+| G7 Consistency | VERIFIED (remote tree + CI) | Versions synchronized, links and manifests validated, and package archives/checksums verified. |
 
 ## Remaining verification
 The official `skills-ref` validator, native product discovery, live model activation/ablation, and authenticated ZIP-import UI remain external verification tasks.
