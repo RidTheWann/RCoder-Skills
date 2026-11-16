@@ -1,4 +1,8 @@
 $ErrorActionPreference='Stop'
+$rootInstall = Join-Path (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)) 'install.ps1'
+$tokens = $null; $parseErrors = $null
+[System.Management.Automation.Language.Parser]::ParseFile($rootInstall, [ref]$tokens, [ref]$parseErrors) | Out-Null
+if ($parseErrors.Count -gt 0) { throw "Root PowerShell bootstrap syntax error: $($parseErrors[0].Message)" }
 $root=Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path); $installer=Join-Path $root 'scripts/install.ps1'
 $temp=Join-Path ([IO.Path]::GetTempPath()) ('rcoder-test-'+[guid]::NewGuid().ToString('N')); New-Item -ItemType Directory -Path $temp|Out-Null
 try {
