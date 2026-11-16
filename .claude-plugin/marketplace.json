@@ -1,0 +1,16 @@
+{
+  "name": "rcoder-skills",
+  "description": "Portable engineering skills maintained by RidTheWann.",
+  "owner": {
+    "name": "RidTheWann",
+    "url": "https://github.com/RidTheWann"
+  },
+  "plugins": [
+    {
+      "name": "rcoder",
+      "source": "./",
+      "description": "A model-agnostic engineering skill for software projects.",
+      "version": "1.0.0"
+    }
+  ]
+}
