@@ -9,7 +9,7 @@ RCoder is an instruction package, not a runtime, model, sandbox, or permission s
 3. **Experts:** focused `references/*.md` with decision procedures, checks, anti-patterns, verification, and output format; links are one level deep.
 4. **Deterministic helper:** `scripts/detect_stack.py` is read-only and has no network calls.
 5. **Extension:** reusable templates under `assets/templates/`; project-specific rules under `.rcoder/`.
-6. **Adapters/distribution:** AGENTS/CLAUDE bootstrap files, Claude/Codex manifests, target installers, ZIP packages.
+6. **Adapters/distribution:** AGENTS/CLAUDE bootstrap files, Claude manifest, portable root Agent Plugins manifest plus Codex compatibility fallback, target installers, ZIP packages.
 
 ## Runtime flow
 ```text
