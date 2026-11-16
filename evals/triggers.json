@@ -1,26 +1,170 @@
 [
-  {"id":"trig-01","prompt":"Add refresh-token rotation to this FastAPI service and test replay handling.","should_trigger":true,"category":"API/security","language":"EN"},
-  {"id":"trig-02","prompt":"Perbaiki test parser Rust yang gagal; cari akar masalah dan tambahkan regression test.","should_trigger":true,"category":"debugging/coding","language":"ID"},
-  {"id":"trig-03","prompt":"Review this React settings screen for keyboard navigation and WCAG 2.2 AA gaps.","should_trigger":true,"category":"UI/accessibility","language":"EN"},
-  {"id":"trig-04","prompt":"Profiling shows a hot loop in this C++ renderer. Measure it and reduce frame time.","should_trigger":true,"category":"performance","language":"EN"},
-  {"id":"trig-05","prompt":"Buat workflow CI untuk build, test, dan release aplikasi ini dengan permission minimum.","should_trigger":true,"category":"DevOps","language":"ID"},
-  {"id":"trig-06","prompt":"Design a backward-compatible PostgreSQL migration for the new account status field.","should_trigger":true,"category":"data/API","language":"EN"},
-  {"id":"trig-07","prompt":"Cari penyebab deadlock yang muncul sesekali di worker Go ini.","should_trigger":true,"category":"debugging","language":"ID"},
-  {"id":"trig-08","prompt":"Audit endpoint upload ini terhadap path traversal, SSRF, dan kebocoran data.","should_trigger":true,"category":"security","language":"ID"},
-  {"id":"trig-09","prompt":"Refactor the legacy Java payment module without changing its public behavior.","should_trigger":true,"category":"refactor","language":"EN"},
-  {"id":"trig-10","prompt":"Tambahkan state empty, loading, error, dan success pada layar pencarian Android.","should_trigger":true,"category":"mobile/UI","language":"ID"},
-  {"id":"trig-11","prompt":"Write deterministic integration tests for this CMake C++ library.","should_trigger":true,"category":"testing/QA","language":"EN"},
-  {"id":"trig-12","prompt":"Bandingkan dua arsitektur service realtime ini dan tulis ADR sebelum implementasi.","should_trigger":true,"category":"architecture","language":"ID"},
-  {"id":"trig-13","prompt":"Create a 10-slide presentation about the history of jazz.","should_trigger":false,"category":"slides","language":"EN"},
-  {"id":"trig-14","prompt":"Buatkan undangan pernikahan dengan nada hangat dan formal.","should_trigger":false,"category":"standalone writing","language":"ID"},
-  {"id":"trig-15","prompt":"Explain the difference between metaphors and similes without using a code example.","should_trigger":false,"category":"pure concept","language":"EN"},
-  {"id":"trig-16","prompt":"Buat logo vektor untuk kedai kopi bergaya minimalis.","should_trigger":false,"category":"image creation","language":"ID"},
-  {"id":"trig-17","prompt":"Summarize today's headlines about international football.","should_trigger":false,"category":"news summary","language":"EN"},
-  {"id":"trig-18","prompt":"Rekomendasikan tempat makan malam di Kudus.","should_trigger":false,"category":"local discovery","language":"ID"},
-  {"id":"trig-19","prompt":"Translate this paragraph from Indonesian to English and preserve its tone.","should_trigger":false,"category":"translation","language":"EN"},
-  {"id":"trig-20","prompt":"Buat spreadsheet pengeluaran bulanan dan rumus total otomatis.","should_trigger":false,"category":"spreadsheet","language":"ID"},
-  {"id":"trig-21","prompt":"What is the Pythagorean theorem? Give a simple explanation.","should_trigger":false,"category":"pure concept","language":"EN"},
-  {"id":"trig-22","prompt":"Tolong poles surat lamaran kerja ini agar lebih profesional.","should_trigger":false,"category":"standalone writing","language":"ID"},
-  {"id":"trig-23","prompt":"Plan a five-day holiday itinerary in Kyoto with food and transit stops.","should_trigger":false,"category":"travel","language":"EN"},
-  {"id":"trig-24","prompt":"Buat poster PDF untuk acara komunitas tanpa kode aplikasi.","should_trigger":false,"category":"document design","language":"ID"}
+  {
+    "id": "trig-01",
+    "prompt": "Add refresh-token rotation to this FastAPI service and test replay handling.",
+    "should_trigger": true,
+    "category": "API/security",
+    "language": "EN"
+  },
+  {
+    "id": "trig-02",
+    "prompt": "Fix the failing Rust parser test; identify the root cause and add a regression test.",
+    "should_trigger": true,
+    "category": "debugging/coding",
+    "language": "EN"
+  },
+  {
+    "id": "trig-03",
+    "prompt": "Review this React settings screen for keyboard navigation and WCAG 2.2 AA gaps.",
+    "should_trigger": true,
+    "category": "UI/accessibility",
+    "language": "EN"
+  },
+  {
+    "id": "trig-04",
+    "prompt": "Profiling shows a hot loop in this C++ renderer. Measure it and reduce frame time.",
+    "should_trigger": true,
+    "category": "performance",
+    "language": "EN"
+  },
+  {
+    "id": "trig-05",
+    "prompt": "Create a CI workflow to build, test, and release this application with minimal permissions.",
+    "should_trigger": true,
+    "category": "DevOps",
+    "language": "EN"
+  },
+  {
+    "id": "trig-06",
+    "prompt": "Design a backward-compatible PostgreSQL migration for the new account status field.",
+    "should_trigger": true,
+    "category": "data/API",
+    "language": "EN"
+  },
+  {
+    "id": "trig-07",
+    "prompt": "Find the cause of the intermittent deadlock in this Go worker.",
+    "should_trigger": true,
+    "category": "debugging",
+    "language": "EN"
+  },
+  {
+    "id": "trig-08",
+    "prompt": "Audit this upload endpoint for path traversal, SSRF, and data exposure.",
+    "should_trigger": true,
+    "category": "security",
+    "language": "EN"
+  },
+  {
+    "id": "trig-09",
+    "prompt": "Refactor the legacy Java payment module without changing its public behavior.",
+    "should_trigger": true,
+    "category": "refactor",
+    "language": "EN"
+  },
+  {
+    "id": "trig-10",
+    "prompt": "Add empty, loading, error, and success states to this Android search screen.",
+    "should_trigger": true,
+    "category": "mobile/UI",
+    "language": "EN"
+  },
+  {
+    "id": "trig-11",
+    "prompt": "Write deterministic integration tests for this CMake C++ library.",
+    "should_trigger": true,
+    "category": "testing/QA",
+    "language": "EN"
+  },
+  {
+    "id": "trig-12",
+    "prompt": "Compare two real-time service architectures and write an ADR before implementation.",
+    "should_trigger": true,
+    "category": "architecture",
+    "language": "EN"
+  },
+  {
+    "id": "trig-13",
+    "prompt": "Create a 10-slide presentation about the history of jazz.",
+    "should_trigger": false,
+    "category": "slides",
+    "language": "EN"
+  },
+  {
+    "id": "trig-14",
+    "prompt": "Write a warm, formal wedding invitation.",
+    "should_trigger": false,
+    "category": "standalone writing",
+    "language": "EN"
+  },
+  {
+    "id": "trig-15",
+    "prompt": "Explain the difference between metaphors and similes without using a code example.",
+    "should_trigger": false,
+    "category": "pure concept",
+    "language": "EN"
+  },
+  {
+    "id": "trig-16",
+    "prompt": "Create a minimalist vector logo for a coffee shop.",
+    "should_trigger": false,
+    "category": "image creation",
+    "language": "EN"
+  },
+  {
+    "id": "trig-17",
+    "prompt": "Summarize today's headlines about international football.",
+    "should_trigger": false,
+    "category": "news summary",
+    "language": "EN"
+  },
+  {
+    "id": "trig-18",
+    "prompt": "Recommend dinner restaurants in Kudus.",
+    "should_trigger": false,
+    "category": "local discovery",
+    "language": "EN"
+  },
+  {
+    "id": "trig-19",
+    "prompt": "Translate this paragraph from Indonesian to English and preserve its tone.",
+    "should_trigger": false,
+    "category": "translation",
+    "language": "EN"
+  },
+  {
+    "id": "trig-20",
+    "prompt": "Create a monthly expense spreadsheet with an automatic total formula.",
+    "should_trigger": false,
+    "category": "spreadsheet",
+    "language": "EN"
+  },
+  {
+    "id": "trig-21",
+    "prompt": "What is the Pythagorean theorem? Give a simple explanation.",
+    "should_trigger": false,
+    "category": "pure concept",
+    "language": "EN"
+  },
+  {
+    "id": "trig-22",
+    "prompt": "Polish this job application letter to make it more professional.",
+    "should_trigger": false,
+    "category": "standalone writing",
+    "language": "EN"
+  },
+  {
+    "id": "trig-23",
+    "prompt": "Plan a five-day holiday itinerary in Kyoto with food and transit stops.",
+    "should_trigger": false,
+    "category": "travel",
+    "language": "EN"
+  },
+  {
+    "id": "trig-24",
+    "prompt": "Create a PDF poster for a community event without application code.",
+    "should_trigger": false,
+    "category": "document design",
+    "language": "EN"
+  }
 ]
