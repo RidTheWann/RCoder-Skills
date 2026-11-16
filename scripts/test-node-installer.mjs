@@ -43,7 +43,7 @@ try {
       assert.equal(existsSync(path.join(destination, 'SKILL.md')), true, `${target.id}/${scope}: install failed`);
 
       const targetRoot = path.dirname(path.dirname(destination));
-      const backupRoot = path.join(targetRoot, '.rcoder-backups', target.id);
+      const backupRoot = path.join(targetRoot, '.rcoder-backups', 'rcoder');
       const backups = readdirSync(backupRoot).filter((name) => name.startsWith('install-'));
       assert.equal(backups.length, 1, `${target.id}/${scope}: expected one backup`);
       assert.equal(readFileSync(path.join(backupRoot, backups[0], 'previous-install.txt'), 'utf8'), 'preserve this backup');
@@ -98,6 +98,20 @@ try {
   run(['--target', 'zed', ...sharedArgs]);
   run(['--target', 'zed', ...sharedArgs, '--uninstall']);
   assert.equal(readFileSync(path.join(sharedSkill, 'pre-rcoder.txt'), 'utf8'), 'restore through another host ID');
+  const legacyProject = path.join(temp, 'legacy-backup-project');
+  const legacyHome = path.join(temp, 'legacy-backup-home');
+  mkdirSync(legacyProject, { recursive: true });
+  mkdirSync(legacyHome, { recursive: true });
+  const legacyTargetRoot = path.join(legacyProject, '.claude');
+  const legacyActive = path.join(legacyTargetRoot, 'skills', 'rcoder');
+  const legacyBackup = path.join(legacyTargetRoot, '.rcoder-backups', 'claude-code', 'install-20261116T000000000Z');
+  mkdirSync(legacyActive, { recursive: true });
+  mkdirSync(legacyBackup, { recursive: true });
+  writeFileSync(path.join(legacyActive, 'active.txt'), 'current RCoder');
+  writeFileSync(path.join(legacyBackup, 'original.txt'), 'v1.1.0 user content');
+  run(['--target', 'claude-code', '--scope', 'project', '--project-dir', legacyProject, '--home-dir', legacyHome, '--no-launcher', '--uninstall']);
+  assert.equal(readFileSync(path.join(legacyActive, 'original.txt'), 'utf8'), 'v1.1.0 user content');
+  console.log('PASS legacy v1.1.0 backup restoration');
   console.log('PASS shared Agent Skills root: cross-host backup restoration');
   console.log('PASS global RCoder command, bundled manager, launcher idempotence, and interactive menu');
   console.log(`PASS all ${targets.length * 2} Node installer target/scope combinations`);
