@@ -70,7 +70,9 @@ Reverse-engineering references cover executable/binary analysis, evidence-led se
 
 ## Validation
 
-The feature branch must pass its Linux/Windows GitHub Actions matrix before merge. CI covers static validation, context-snapshot regression, Node syntax and installer tests, npm package dry-run, 40 POSIX target/scope cases, 40 PowerShell target/scope cases, and reproducible packages.
+<badge>CI passed</badge> GitHub Actions run [43937693813](https://github.com/RidTheWann/RCoder-Skills/actions/runs/43937693813) completed successfully on both Linux and Windows for commit `a19eed4f466d2231779a2c230a364ff773ad4554`.
+
+The run verified 644 static checks, context-snapshot regression, Node syntax, 40 Node target/scope cases per OS, launcher and interactive-menu behavior, npm package dry-run, 40 POSIX target/scope cases, 40 Windows PowerShell target/scope cases on both PowerShell 5.1 and 7, and reproducible skill/plugin/source package builds.
 
 Do not claim native model activation in all hosts from path simulations alone. Native discovery and live model triggering remain separate verification gates.
 

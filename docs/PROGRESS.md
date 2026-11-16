@@ -15,8 +15,8 @@ Build v1.2.0 as a safe extension of v1.1.0. Preserve both installers, the Agent 
 - [x] Add programming, cybersecurity, reverse-engineering, and smart-contract specialists.
 - [x] Add a read-only metadata-only context snapshot helper and context-capsule template.
 - [x] Expand trigger evaluations to 42 prompts and behavioral scenarios to 14.
-- [ ] Run the Linux and Windows GitHub Actions matrix on the feature branch.
-- [ ] Inspect CI logs and fix every failure before merge.
+- [x] Run the Linux and Windows GitHub Actions matrix on the feature branch.
+- [x] Inspect CI logs and fix the validator, Node test, POSIX test, and PowerShell launcher issues found during CI.
 - [ ] Merge only after required checks pass.
 
 ## Verification design
@@ -31,6 +31,17 @@ Build v1.2.0 as a safe extension of v1.1.0. Preserve both installers, the Agent 
 | Packaging | `npm pack --dry-run --json`, reproducible ZIP packages, and checksums |
 | Live activation | Separate native verification in each host; not inferred from file-copy tests |
 
+## Verified CI evidence
+
+- Workflow run: [43937693813](https://github.com/RidTheWann/RCoder-Skills/actions/runs/43937693813) — **PASS** on both `ubuntu-latest` and `windows-latest` for commit `a19eed4f466d2231779a2c230a364ff773ad4554`.
+- Static validator: 644 checks passed.
+- Context snapshot regression and Node syntax check passed on both platforms.
+- Node installer/launcher matrix: 20 hosts × 2 scopes passed on Linux and Windows, including launcher setup, idempotence, shared-root restore, legacy backup restore, and interactive-menu smoke test.
+- npm package dry-run passed on both platforms.
+- POSIX adapter: 20 hosts × 2 scopes passed on Linux.
+- Windows PowerShell 5.1 and PowerShell 7: parser checks and 20 hosts × 2 scopes passed.
+- Reproducible skill/plugin/source package build passed on Linux and Windows.
+
 ## Evidence boundary
 
-No CI result is claimed until the feature-branch workflow finishes and its logs have been inspected. Static checks and path simulations do not prove that a host model autonomously selects RCoder.
+CI validates static structure, packaging, and simulated file-system behavior. It does not prove that a host model autonomously selects RCoder; native discovery, live activation, and with/without-skill model evaluation remain separate verification tasks.
