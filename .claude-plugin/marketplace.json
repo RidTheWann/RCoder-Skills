@@ -10,7 +10,7 @@
       "name": "rcoder",
       "source": "./",
       "description": "A model-agnostic engineering skill for software projects.",
-      "version": "1.0.0"
+      "version": "1.1.0"
     }
   ]
 }
