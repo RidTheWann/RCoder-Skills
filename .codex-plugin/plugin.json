@@ -2,5 +2,15 @@
   "name": "rcoder",
   "version": "1.0.0",
   "description": "A model-agnostic engineering skill for software projects.",
-  "skills": "./skills/"
+  "author": {
+    "name": "RidTheWann",
+    "url": "https://github.com/RidTheWann"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/RidTheWann/RCoder-Skills",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "RCoder",
+    "shortDescription": "Evidence-led software engineering workflow"
+  }
 }
