@@ -15,3 +15,5 @@ Access date: **2026-11-16**. External pages and repository content were treated 
 
 ## Research method
 Inspect local repo/tool availability first; prefer current official sources; triangulate or test high-impact claims; use direct native paths and avoid install-time network execution; repeat this research when tool paths or manifest formats change.
+
+| Portable OpenAI plugin manifest? | [Package your plugin](https://developers.openai.com/plugins/build/plugins), [Submission manifest](https://developers.openai.com/plugins/deploy/submission) | Current portable format uses root `plugin.json` with Agent Plugins schema; `.codex-plugin/plugin.json` remains a Codex compatibility fallback. Root manifest declares skill bundle, MIT identity, OpenAI interface, and onboarding skill; compatibility manifest retained. | High; current package supports both modern and legacy clients. |
