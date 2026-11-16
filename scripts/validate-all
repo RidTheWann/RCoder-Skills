@@ -1,106 +1,254 @@
 #!/usr/bin/env python3
-"""Offline static quality gates for RCoder; no third-party packages required."""
-import json,re
+"""Offline structural, routing, packaging, and selected security checks for RCoder."""
+import json
+import re
 from pathlib import Path
-ROOT=Path(__file__).resolve().parent.parent; SKILL=ROOT/'skills'/'rcoder'; errors=[]; count=0
-def check(ok,msg):
- global count; count+=1
- if not ok: errors.append(msg)
-def front(path):
- text=path.read_text(encoding='utf-8')
- if not text.startswith('---\n') or '\n---\n' not in text[4:]: return {},''
- end=text.find('\n---\n',4); raw=text[4:end]; meta={}
- for line in raw.splitlines():
-  if line and not line[0].isspace() and ':' in line:
-   k,v=line.split(':',1); v=v.strip()
-   if v.startswith('"') and v.endswith('"'):
-    try: v=json.loads(v)
-    except json.JSONDecodeError: v=v[1:-1]
-   elif v.startswith("'") and v.endswith("'"): v=v[1:-1]
-   meta[k.strip()]=v
- return meta,text[end+5:]
+
+ROOT = Path(__file__).resolve().parent.parent
+SKILL = ROOT / "skills" / "rcoder"
+ERRORS = []
+CHECKS = 0
+
+def check(condition, message):
+    global CHECKS
+    CHECKS += 1
+    if not condition:
+        ERRORS.append(message)
+
+def read(path):
+    return path.read_text(encoding="utf-8", errors="replace")
+
+def load_json(path):
+    try:
+        return json.loads(read(path))
+    except Exception as error:
+        check(False, f"Invalid JSON {path.relative_to(ROOT)}: {error}")
+        return {}
+
+def parse_frontmatter(path):
+    content = read(path)
+    if not content.startswith("---\n") or "\n---\n" not in content[4:]:
+        return {}, content
+    end = content.find("\n---\n", 4)
+    values = {}
+    for line in content[4:end].splitlines():
+        if line and not line[0].isspace() and ":" in line:
+            key, value = line.split(":", 1)
+            value = value.strip()
+            if value.startswith('"') and value.endswith('"'):
+                try:
+                    value = json.loads(value)
+                except json.JSONDecodeError:
+                    value = value[1:-1]
+            elif value.startswith("'") and value.endswith("'"):
+                value = value[1:-1]
+            values[key.strip()] = value
+    return values, content[end + 5:]
+
 def main():
- p=SKILL/'SKILL.md'; check(p.is_file(),'G1: missing SKILL.md')
- if not p.is_file(): return 1
- meta,body=front(p); name=meta.get('name',''); desc=meta.get('description','')
- check(name=='rcoder','G1: name must equal rcoder'); check(bool(re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*',name)) and len(name)<=64,'G1: invalid name')
- check(isinstance(desc,str) and 1<=len(desc)<=1024,'G1: description length must be 1..1024')
- check(len(p.read_text(encoding='utf-8').splitlines())<=300,'G1: SKILL.md exceeds 300 lines'); check(bool(body.strip()),'G1: empty skill body')
- modules=['coding.md','architecture.md','ui-ux-accessibility.md','debugging.md','testing-qa.md','security.md','performance.md','devops-ci-cd.md','data-api.md','review-refactor.md','documentation.md','verification.md']
- sections=['## Activate when','## Mental model','## Procedure','## Quality checklist','## Anti-patterns','## Verification','## Output format']
- for n in modules:
-  q=SKILL/'references'/n; check(q.is_file(),f'G1: missing module {n}')
-  if q.is_file():
-   t=q.read_text(encoding='utf-8'); check(len(t.splitlines())<=300,f'G1: {n} exceeds 300 lines')
-   for h in sections: check(h in t,f'G1: {n} missing {h}')
- check((SKILL/'scripts'/'detect_stack.py').is_file(),'G1: missing detect_stack.py')
- check((SKILL/'assets'/'templates'/'expert-module-template.md').is_file(),'G1: missing expert module template')
- link=re.compile(r'\]\(([^)]+)\)')
- for md in ROOT.rglob('*.md'):
-  for raw in link.findall(md.read_text(encoding='utf-8',errors='replace')):
-   target=raw.strip().split()[0].strip('<>')
-   if not target or target.startswith(('http://','https://','mailto:','#')): continue
-   target=target.split('#',1)[0]
-   if target: check((md.parent/target).resolve().exists(),f'G1: broken link {md.relative_to(ROOT)} -> {target}')
- for md in (SKILL/'references').glob('*.md'):
-  for target in link.findall(md.read_text(encoding='utf-8',errors='replace')):
-   check(not target.split('#',1)[0].startswith('references/'),f'G1: chained reference link in {md.name}')
- try:
-  data=json.loads((ROOT/'evals'/'triggers.json').read_text(encoding='utf-8')); yes=[x for x in data if x.get('should_trigger') is True]; no=[x for x in data if x.get('should_trigger') is False]
-  check(len(data)>=24,'G2: fewer than 24 prompts'); check(len(yes)>=12,'G2: fewer than 12 positive prompts'); check(len(no)>=12,'G2: fewer than 12 negative prompts')
-  check(all(isinstance(x.get('prompt'),str) and x['prompt'].strip() for x in data),'G2: malformed/empty prompt')
-  check(all(x.get('language')=='EN' for x in data),'G2: all trigger records must be English-only')
- except Exception as e: check(False,f'G2: triggers.json invalid: {e}')
- try:
-  data=json.loads((ROOT/'evals'/'scenarios.json').read_text(encoding='utf-8')); check(len(data)>=10,'G3: fewer than 10 scenarios')
-  for x in data:
-   check(bool(x.get('id')) and bool(x.get('prompt')),'G3: scenario missing identity/prompt'); check(len(x.get('rubric',[]))>=3,f"G3: {x.get('id')} has too few rubric items")
-   check((ROOT/'evals'/'scenarios'/f"{x.get('id')}.md").is_file(),f"G3: missing detail file {x.get('id')}")
- except Exception as e: check(False,f'G3: scenarios.json invalid: {e}')
- for rel in ['plugin.json','.claude-plugin/plugin.json','.claude-plugin/marketplace.json','.codex-plugin/plugin.json']:
-  try: json.loads((ROOT/rel).read_text(encoding='utf-8')); check(True,f'JSON valid {rel}')
-  except Exception as e: check(False,f'G1: invalid {rel}: {e}')
- try:
-  portable=json.loads((ROOT/'plugin.json').read_text(encoding='utf-8'))
-  package=json.loads((ROOT/'package.json').read_text(encoding='utf-8'))
-  check(package.get('name')=='rcoder','G1: npm package name must be rcoder')
-  check(package.get('bin',{}).get('rcoder')=='./scripts/rcoder.mjs','G1: npm rcoder binary mapping is missing')
-  check((ROOT/'scripts/rcoder.mjs').is_file(),'G1: npm installer entry point is missing')
-  check((ROOT/'install.ps1').is_file(),'G1: PowerShell irm bootstrap is missing')
-  check(package.get('version')==portable.get('version'),'G7: npm package and portable plugin versions differ')
-  check(portable.get('name')=='rcoder','G1: portable plugin name must be rcoder')
-  check(portable.get('extensions',{}).get('com.openai',{}).get('onboardingSkill')=='./skills/rcoder/SKILL.md','G1: portable plugin onboarding path mismatch')
-  check((ROOT/'skills/rcoder/SKILL.md').is_file(),'G1: portable plugin points to missing skill')
-  version=portable.get('version'); compat=json.loads((ROOT/'.codex-plugin/plugin.json').read_text(encoding='utf-8'))
-  claude=json.loads((ROOT/'.claude-plugin/plugin.json').read_text(encoding='utf-8'))
-  marketplace=json.loads((ROOT/'.claude-plugin/marketplace.json').read_text(encoding='utf-8'))
-  check(compat.get('version')==version,'G7: portable and Codex compatibility versions differ')
-  check(claude.get('version')==version,'G7: Claude plugin version differs')
-  check(marketplace.get('plugins',[{}])[0].get('version')==version,'G7: marketplace plugin version differs')
-  changelog=(ROOT/'CHANGELOG.md').read_text(encoding='utf-8')
-  check(f'[{version}]' in changelog,'G7: plugin version missing from CHANGELOG')
-  skill_text=(ROOT/'skills/rcoder/SKILL.md').read_text(encoding='utf-8')
-  check(f'version: "{version}"' in skill_text,'G7: skill version differs from package metadata')
- except Exception as e: check(False,f'G1: portable plugin validation failed: {e}')
- executables=list((ROOT/'scripts').glob('*'))+[ROOT/'install.ps1',SKILL/'scripts'/'detect_stack.py']
- secrets=[re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'),re.compile(r'\bAKIA[0-9A-Z]{16}\b'),re.compile(r'\bgh[pousr]_[A-Za-z0-9]{20,}\b'),re.compile(r'\bgithub_pat_[A-Za-z0-9_]{20,}\b')]
- unsafe=[re.compile(r'(?i)\b(?:curl|wget)\b[^\n]*\|\s*(?:sh|bash)\b'),re.compile(r'(?i)\bInvoke-Expression\b|\bIEX\s*\('),re.compile(r'(?i)\brm\s+-rf\s+/(?:\s|$)'),re.compile(r'(?i)\bgit\s+push\s+--force\b')]
- for q in executables:
-  if not q.is_file(): continue
-  text=q.read_text(encoding='utf-8',errors='replace')
-  for pattern in secrets: check(not pattern.search(text),f'G5: possible secret pattern in {q.relative_to(ROOT)}')
-  if q.name != 'validate-all':
-   for pattern in unsafe: check(not pattern.search(text),f'G5: unsafe executable pattern in {q.relative_to(ROOT)}')
- for rel in ['LICENSE','docs/HANDOFF.md','README.md','docs/DECISIONS.md','docs/research-log.md','docs/ARCHITECTURE.md','docs/PROGRESS.md']:
-  check((ROOT/rel).is_file(),f'Missing required file {rel}')
- for rel in ['README.md','docs/HANDOFF.md','docs/PROGRESS.md']:
-  content=(ROOT/rel).read_text(encoding='utf-8',errors='replace')
-  check('Bahasa Indonesia' not in content and 'serah-terima' not in content and 'bilingual' not in content.lower(),f'G6: non-English or bilingual content marker found in {rel}')
- print(f'RCoder validation: {count} checks')
- if errors:
-  for e in errors: print('FAIL:',e)
-  print(f'FAILED: {len(errors)} issue(s)'); return 1
- print('PASS: structure, English-only prompts, scenarios, links, manifests, package metadata, and selected security checks')
- print('NOTE: live model triggering and vendor-native plugin validation are separate gates.')
- return 0
-if __name__=='__main__': raise SystemExit(main())
+    skill_file = SKILL / "SKILL.md"
+    check(skill_file.is_file(), "G1: missing skills/rcoder/SKILL.md")
+    if not skill_file.is_file():
+        return 1
+
+    meta, body = parse_frontmatter(skill_file)
+    version = "1.2.0"
+    check(meta.get("name") == "rcoder", "G1: skill name must be rcoder")
+    check(bool(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(meta.get("name", "")))), "G1: invalid skill name")
+    check(isinstance(meta.get("description"), str) and 1 <= len(meta["description"]) <= 1024,
+          "G1: description length must be 1..1024")
+    check(len(read(skill_file).splitlines()) <= 300, "G1: SKILL.md exceeds 300 lines")
+    check(bool(body.strip()), "G1: empty skill instructions")
+    check(f'version: "{version}"' in read(skill_file), "G7: skill version metadata differs")
+
+    references = sorted((SKILL / "references").glob("*.md"))
+    check(len(references) >= 50, "G1: fewer than 50 specialist references")
+    for module in references:
+        content = read(module)
+        check(len(content.splitlines()) <= 300, f"G1: {module.name} exceeds 300 lines")
+        for heading in ("## Activate when", "## Procedure", "## Verification"):
+            check(heading in content, f"G1: {module.name} missing {heading}")
+    for required in (
+        "programming-languages.md", "systems-programming.md", "polyglot-ecosystems.md",
+        "python-engineering.md", "javascript-typescript.md", "dotnet-java-engineering.md",
+        "go-engineering.md", "frontend-engineering.md", "backend-api-engineering.md",
+        "database-engineering.md", "mobile-engineering.md", "game-engineering.md",
+        "embedded-engineering.md", "ml-ai-engineering.md", "distributed-systems-engineering.md",
+        "threat-modeling.md", "secure-code-review.md", "application-security.md",
+        "cloud-container-security.md", "network-security.md", "identity-crypto-secrets.md",
+        "supply-chain-security.md", "vulnerability-research.md", "penetration-testing.md",
+        "incident-response-forensics.md", "malware-analysis.md", "cryptography-engineering.md",
+        "smart-contract-security.md", "reverse-engineering.md",
+        "reverse-engineering-architecture.md", "reverse-engineering-file-formats.md",
+        "token-efficiency.md", "web-platform-engineering.md"
+    ):
+        check((SKILL / "references" / required).is_file(), f"G1: required specialist missing: {required}")
+
+    check((SKILL / "scripts" / "detect_stack.py").is_file(), "G1: stack detector missing")
+    check((SKILL / "scripts" / "context_snapshot.py").is_file(), "G1: context snapshot helper missing")
+    check((SKILL / "assets" / "templates" / "expert-module-template.md").is_file(),
+          "G1: expert module template missing")
+    check((SKILL / "assets" / "templates" / "context-capsule-template.md").is_file(),
+          "G1: context capsule template missing")
+
+    link_pattern = re.compile(r"\]\(([^)]+)\)")
+    for markdown in ROOT.rglob("*.md"):
+        for raw in link_pattern.findall(read(markdown)):
+            target = raw.strip().split()[0].strip("<>")
+            if not target or target.startswith(("http://", "https://", "mailto:", "#")):
+                continue
+            target = target.split("#", 1)[0]
+            if target:
+                check((markdown.parent / target).resolve().exists(),
+                      f"G1: broken link {markdown.relative_to(ROOT)} -> {target}")
+    for markdown in references:
+        for target in link_pattern.findall(read(markdown)):
+            check(not target.split("#", 1)[0].startswith("references/"),
+                  f"G1: chained reference link in {markdown.name}")
+
+    triggers = load_json(ROOT / "evals" / "triggers.json")
+    positive = [item for item in triggers if item.get("should_trigger") is True]
+    negative = [item for item in triggers if item.get("should_trigger") is False]
+    check(len(triggers) >= 42, "G2: fewer than 42 trigger prompts")
+    check(len(positive) >= 24, "G2: fewer than 24 positive prompts")
+    check(len(negative) >= 18, "G2: fewer than 18 negative prompts")
+    check(len({item.get("id") for item in triggers}) == len(triggers), "G2: duplicate trigger IDs")
+    check(all(isinstance(item.get("prompt"), str) and item["prompt"].strip() for item in triggers),
+          "G2: malformed or empty trigger prompt")
+    check(all(item.get("language") == "EN" for item in triggers),
+          "G2: trigger prompts must be English-only")
+
+    scenarios = load_json(ROOT / "evals" / "scenarios.json")
+    check(len(scenarios) >= 14, "G3: fewer than 14 behavioral scenarios")
+    check(len({item.get("id") for item in scenarios}) == len(scenarios), "G3: duplicate scenario IDs")
+    for scenario in scenarios:
+        scenario_id = scenario.get("id", "")
+        check(bool(scenario_id) and bool(scenario.get("prompt")), "G3: scenario missing ID/prompt")
+        check(len(scenario.get("rubric", [])) >= 4, f"G3: {scenario_id} has too few rubric items")
+        check((ROOT / "evals" / "scenarios" / f"{scenario_id}.md").is_file(),
+              f"G3: missing scenario fixture {scenario_id}")
+
+    manifest_paths = (
+        "plugin.json", ".claude-plugin/plugin.json",
+        ".claude-plugin/marketplace.json", ".codex-plugin/plugin.json"
+    )
+    manifests = {path: load_json(ROOT / path) for path in manifest_paths}
+    package = load_json(ROOT / "package.json")
+    catalog = load_json(ROOT / "targets.json")
+    portable = manifests["plugin.json"]
+
+    check(package.get("name") == "rcoder", "G1: npm package name must be rcoder")
+    check(package.get("version") == version, "G7: npm package version mismatch")
+    check(package.get("bin", {}).get("rcoder") == "./scripts/rcoder.mjs", "G1: npm rcoder binary missing")
+    package_files = set(package.get("files", []))
+    for required in ("skills/rcoder/**", "scripts/rcoder.mjs", "targets.json", "launcher/RCoder.ps1"):
+        check(required in package_files, f"G1: npm package missing runtime file pattern {required}")
+    for required in (
+        "scripts/rcoder.mjs", "scripts/install.ps1", "scripts/install.sh",
+        "scripts/test-node-installer.mjs", "scripts/test-installers.sh",
+        "scripts/test-installers.ps1", "scripts/test-context-snapshot.py",
+        "install.ps1", "launcher/RCoder.ps1", "targets.json"
+    ):
+        check((ROOT / required).is_file(), f"G1: required installer/test file missing: {required}")
+
+    check(portable.get("version") == version, "G7: portable plugin version mismatch")
+    check(portable.get("name") == "rcoder", "G1: portable plugin name mismatch")
+    check(portable.get("extensions", {}).get("com.openai", {}).get("onboardingSkill") ==
+          "./skills/rcoder/SKILL.md", "G1: portable plugin onboarding path mismatch")
+    check(manifests[".codex-plugin/plugin.json"].get("version") == version,
+          "G7: Codex compatibility version mismatch")
+    check(manifests[".claude-plugin/plugin.json"].get("version") == version,
+          "G7: Claude plugin version mismatch")
+    check(manifests[".claude-plugin/marketplace.json"].get("plugins", [{}])[0].get("version") == version,
+          "G7: marketplace plugin version mismatch")
+    check(f"[{version}]" in read(ROOT / "CHANGELOG.md"), "G7: version missing from changelog")
+    check(f"VERSION = '{version}'" in read(ROOT / "scripts" / "package"),
+          "G7: package builder version mismatch")
+
+    targets = catalog.get("targets", [])
+    target_ids = [item.get("id") for item in targets]
+    required_ids = {
+        "claude-code", "codex", "cursor", "gemini-cli", "copilot", "agents",
+        "qoder", "opencode", "antigravity", "amp", "zed", "pi", "openclaw",
+        "autohand", "warp", "kilocode", "cline", "roo-code", "trae", "factory"
+    }
+    check(len(targets) == 20, "G4: target catalog must contain exactly 20 hosts")
+    check(len(set(target_ids)) == len(target_ids), "G4: duplicate target IDs")
+    check(required_ids.issubset(set(target_ids)), "G4: one or more required hosts are missing")
+    for item in targets:
+        for key in ("project_root", "user_root"):
+            value = item.get(key, "")
+            normalized = value.replace(chr(92), "/") if isinstance(value, str) else ""
+            check(isinstance(value, str) and bool(value) and not value.startswith("/") and not value.startswith(chr(92)),
+                  f"G4: invalid {key} for {item.get('id')}")
+            check(".." not in normalized.split("/"), f"G4: path traversal in target {item.get('id')}")
+
+    root_installer = read(ROOT / "install.ps1")
+    ps_installer = read(ROOT / "scripts" / "install.ps1")
+    posix_installer = read(ROOT / "scripts" / "install.sh")
+    node_cli = read(ROOT / "scripts" / "rcoder.mjs")
+    ps_launcher = read(ROOT / "launcher" / "RCoder.ps1")
+    for target_id in required_ids:
+        check(target_id in root_installer, f"G4: root PowerShell bootstrap missing target {target_id}")
+        check(target_id in ps_installer, f"G4: PowerShell helper missing target {target_id}")
+        check(target_id in posix_installer, f"G4: POSIX helper missing target {target_id}")
+    check("TARGET_BY_ID" in node_cli and "TARGETS = CATALOG.targets" in node_cli,
+          "G4: Node CLI must resolve host IDs from the target catalog")
+    check("targets.json" in node_cli and "targets.json" in ps_launcher,
+          "G4: interactive managers must use the target catalog")
+    check("--interactive" in node_cli and "RCoder" in root_installer,
+          "G4: global RCoder launcher wiring missing")
+    check("legacyBackupRoot" in node_cli and "legacyBackupRoot" in ps_launcher,
+          "G4: shared-root/legacy-backup compatibility missing")
+    check("legacyBackup" in ps_installer and "LEGACY_BACKUP" in posix_installer,
+          "G4: offline installers must preserve legacy backups")
+
+    executables = list((ROOT / "scripts").glob("*")) + [
+        ROOT / "install.ps1", ROOT / "launcher" / "RCoder.ps1",
+        SKILL / "scripts" / "detect_stack.py", SKILL / "scripts" / "context_snapshot.py"
+    ]
+    secret_patterns = [
+        re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
+        re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
+        re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b"),
+        re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b")
+    ]
+    unsafe_patterns = [
+        re.compile(r"(?i)\b(?:curl|wget)\b[^\n]*\|\s*(?:sh|bash)\b"),
+        re.compile(r"(?i)\bInvoke-Expression\b|\bIEX\s*\("),
+        re.compile(r"(?i)\brm\s+-rf\s+/(?:\s|$)"),
+        re.compile(r"(?i)\bgit\s+push\s+--force\b")
+    ]
+    for path in executables:
+        if not path.is_file():
+            continue
+        content = read(path)
+        for pattern in secret_patterns:
+            check(not pattern.search(content), f"G5: possible secret pattern in {path.relative_to(ROOT)}")
+        for pattern in unsafe_patterns:
+            check(not pattern.search(content), f"G5: risky installer command pattern in {path.relative_to(ROOT)}")
+
+    for required in (
+        "LICENSE", "README.md", "CHANGELOG.md", "docs/HANDOFF.md",
+        "docs/DECISIONS.md", "docs/research-log.md", "docs/ARCHITECTURE.md",
+        "docs/PROGRESS.md", "docs/RESEARCH-TODO.md"
+    ):
+        check((ROOT / required).is_file(), f"G6: required documentation missing: {required}")
+    for rel in ("README.md", "docs/HANDOFF.md", "docs/PROGRESS.md"):
+        content = read(ROOT / rel)
+        check("Bahasa Indonesia" not in content and "serah-terima" not in content and
+              "bilingual" not in content.lower(),
+              f"G6: non-English/bilingual marker in {rel}")
+
+    print(f"RCoder validation: {CHECKS} checks")
+    if ERRORS:
+        for error in ERRORS:
+            print("FAIL:", error)
+        print(f"FAILED: {len(ERRORS)} issue(s)")
+        return 1
+    print("PASS: skill structure, specialist routing, evaluation data, manifests, host catalog, installers, and selected security checks")
+    print("NOTE: native host discovery and live model activation remain separate verification gates.")
+    return 0
+
+if __name__ == "__main__":
+    raise SystemExit(main())

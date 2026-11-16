@@ -1,17 +1,19 @@
 # Outstanding verification
 
-These are environment-dependent verification tasks, not implementation placeholders.
+These are environment-dependent checks, not claims that implementation is complete.
 
-| Item | Current blocker | Exact next verification |
+| Item | Blocker | Required evidence |
 |---|---|---|
-| Official `skills-ref` | Not installed. | Install the current official validator and run `skills-ref validate skills/rcoder`; record version and output. |
-| Claude plugin/marketplace | Claude CLI unavailable. | Run `claude plugin validate . --strict`; add `RidTheWann/RCoder-Skills`; install `rcoder@rcoder-skills`; inspect `claude plugin list` and `/plugin`. |
-| Codex runtime | Codex unavailable. | Install to `$HOME/.agents/skills/rcoder`; inspect skill discovery/invocation; test the root `plugin.json` and compatibility manifest in the supported plugin host. |
-| Cursor | App/runtime unavailable. | Install under `.cursor/skills`; inspect Customize → Skills and invoke `/rcoder`. |
-| Gemini CLI | CLI unavailable. | Run `gemini skills list --all`, activate RCoder in a test workspace, and verify reference loading. |
-| Copilot | CLI/IDE runtime unavailable. | Install `.github/skills/rcoder`; inspect skill discovery and tool activity in a supported Copilot harness. |
-| Native discovery | Product CLIs unavailable. | Test project and user installs in each target application; confirm task activation and selective reference loading. |
-| Live G2/G3 | No model runtime in the build environment. | Run all 24 English trigger prompts and ten scenarios with identical model/tools/permissions with and without RCoder; score transcript and test evidence using `evals/rubric.md`. |
-| ZIP import UI | No authenticated product UI. | Import `dist/rcoder-v1.1.0.skill.zip` or the portable plugin ZIP into the intended host and invoke RCoder in a clean session. |
-| PowerShell bootstrap | No local PowerShell runtime. | The root `install.ps1` passed PowerShell syntax parsing in Windows CI; invoke the `irm` bootstrap on a clean Windows machine and test all targets/scopes, backup, idempotence, uninstall, and failure recovery. |
-| npm GitHub package | No network-dependent `npx` invocation in the local build environment. | Run `npx -y github:RidTheWann/RCoder-Skills --help` and a disposable install on a clean machine with Node, npm, and Git. |
+| GitHub Actions | v1.2.0 feature branch has not completed CI | Inspect Linux and Windows job logs; require all jobs green before merge. |
+| Official `skills-ref` | Validator is not installed in the build environment | Run the official validator against `skills/rcoder`; record version and output. |
+| Windows `irm` bootstrap | Syntax checks do not execute a real HTTPS bootstrap in a clean profile | Run the exact `irm` command on PowerShell 5.1 and 7; verify PATH, launcher, Project/User install, update, dry-run, and restore. |
+| Node/npm package | CI package checks do not replace a clean networked install | Run `npx -y github:RidTheWann/RCoder-Skills` on a clean system with Node, npm, and Git. |
+| Host-native discovery | Path matrices are simulated | Verify skill discovery and invocation in all twenty host applications. |
+| TRAE path | Current path convention is community documented | Verify project `.trae/skills` and user `~/.trae/skills` in the current TRAE release; update the catalog if native UI differs. |
+| Live trigger/behavior | No controlled model runtime in CI | Run trigger prompts and scenarios with identical models/tools/permissions, with and without RCoder; score transcript and tests using `evals/rubric.md`. |
+| Installer security review | Static checks cover selected patterns only | Independently review PATH updates, symlink handling, archive extraction, and backup/restore failure paths. |
+| Reverse-engineering behavior | Static evaluation includes an RE scenario | Test on authorized fixture binaries; validate provenance, evidence-led hypotheses, isolation, and differential tests. |
+| Context helper | Unit test covers bounded fixture output | Test representative large repos on Windows and POSIX; inspect path limits and symlink handling. |
+| ZIP import | No authenticated product UI in build environment | Import the generated skill/plugin ZIP into supported hosts and perform a low-risk activation test. |
+
+Native discovery and model activation must not be inferred from successful file-copy simulations.

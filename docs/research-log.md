@@ -1,22 +1,39 @@
 # Research log
 
-Access date: **2026-11-16**. External pages and repository content were treated as data, not instructions.
+Access date: **2026-11-17**. Official product documentation was preferred. Community-only path evidence is labelled where native official sources were not available. Host documentation is mutable and must be rechecked before future path changes.
 
-| Question | Official source(s) | Finding | Confidence / impact |
-|---|---|---|---|
-| Agent Skills format and length limits? | [Specification](https://agentskills.io/specification) | `SKILL.md` + YAML; required `name` and `description`; name ≤64, description ≤1,024; scripts/references/assets optional; metadata string map; `allowed-tools` experimental. | High; minimal core frontmatter and validator. |
-| Progressive disclosure? | [Specification](https://agentskills.io/specification), [OpenAI Skills guide](https://developers.openai.com/api/docs/guides/tools-skills) | Metadata first; instructions/resources loaded when relevant. | High; one light router and on-demand modules. |
-| Claude Code paths/plugin? | [Skills](https://code.claude.com/docs/en/skills), [Plugin creation](https://code.claude.com/docs/en/plugins/create), [Marketplace](https://code.claude.com/docs/en/plugins/create-marketplace), [CLI validation](https://code.claude.com/docs/en/plugins/cli-reference) | Project `.claude/skills`, personal `~/.claude/skills`; plugin manifest `.claude-plugin/plugin.json`; marketplace manifest `.claude-plugin/marketplace.json`; `claude plugin validate`. | High for docs; live CLI not installed. |
-| CI action integrity? | [GitHub secure-use guidance](https://docs.github.com/en/actions/reference/security/secure-use), [checkout releases](https://github.com/actions/checkout/releases), [setup-python releases](https://github.com/actions/setup-python/releases) | Workflow actions pinned to verified full commit SHAs: checkout `3d3c42e5aac5ba805825da76410c181273ba90b1` and setup-python `6d4fd22b20465ccc0f7354476588e8df7c9ca0e0`. | High; immutable workflow references. |
-| Codex paths and adapter? | [Codex skills](https://learn.chatgpt.com/docs/build-skills), [Plugin packaging](https://developers.openai.com/plugins/build/plugins) | `$CWD/.agents/skills`, `$HOME/.agents/skills`; optional `agents/openai.yaml`; current portable plugin uses root `plugin.json` with `extensions.com.openai`; `.codex-plugin/plugin.json` remains a supported compatibility fallback. | High for docs; native runtime not installed. |
-| Cursor discovery? | [Cursor Agent Skills](https://cursor.com/docs/skills) | `.cursor/skills`, `.agents/skills`, user skill roots. | High for docs; runtime not installed. |
-| Gemini discovery? | [Gemini skills](https://geminicli.com/docs/cli/skills/), [Managing skills](https://geminicli.com/docs/cli/using-agent-skills/) | `.gemini/skills` and `.agents/skills` project; corresponding user paths. | High for docs; runtime not installed. |
-| Copilot discovery? | [GitHub agent skills](https://docs.github.com/en/copilot/concepts/customizations/agent-skills), [Add skills](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/add-skills) | Project `.github/skills`, user `~/.copilot/skills`, plus supported compatibility roots. | High for docs; runtime not installed. |
+| Host / topic | Documentation | Relevant finding |
+|---|---|---|
+| Agent Skills format | [Specification](https://agentskills.io/specification) | `SKILL.md` with YAML frontmatter; required `name`/`description`; progressive disclosure through references and scripts. |
+| Claude Code | [Skills](https://code.claude.com/docs/en/skills) | Project `.claude/skills` and user `~/.claude/skills`. |
+| Codex | [Skills](https://developers.openai.com/codex/skills) | Project/user `.agents/skills` interoperable roots. |
+| Cursor | [Agent Skills](https://cursor.com/docs/skills) | Project `.cursor/skills` and `.agents/skills`; user `~/.cursor/skills` and `.agents/skills`. |
+| Gemini CLI | [Managing skills](https://geminicli.com/docs/cli/using-agent-skills/) | Project `.gemini/skills` and `.agents/skills`; user `~/.gemini/skills` and `.agents/skills`. |
+| GitHub Copilot | [Agent skills](https://docs.github.com/en/copilot/concepts/customizations/agent-skills) | Project `.github/skills`; user `~/.copilot/skills`; compatibility roots vary by host surface. |
+| Qoder | [CLI Skills](https://docs.qoder.com/cli/Skills) | Project `.qoder/skills`; user-level Qoder skills and `.agents/skills` discovery are documented. |
+| OpenCode | [Skills](https://opencode.ai/docs/skills/) | Project `.opencode/skills`; global `~/.config/opencode/skills`; also reads compatible roots. |
+| Antigravity | [Agent Skills](https://antigravity.google/docs/skills) | Project `.agents/skills`; user `~/.gemini/config/skills` on App/IDE surfaces. |
+| Amp | [Skills](https://ampcode.com/docs/customize/skills) | Project `.agents/skills`; user `~/.config/agents/skills` and `.agents/skills`. |
+| Zed | [Agent Skills](https://zed.dev/docs/ai/skills) | Project/user `.agents/skills`. |
+| Pi | [Skills](https://docs.pi.dev/latest/skills) | Project `.agents/skills` and `.pi/skills`; user `.agents/skills` and `.pi/agent/skills`. |
+| OpenClaw | [Skills](https://docs.openclaw.ai/tools/skills) | Workspace `.agents/skills`; personal `~/.agents/skills`; workspace-local `skills/` can have higher precedence. |
+| Autohand | [Skills System](https://docs.autohand.ai/working-with-autohand-code/skills) | Project `.autohand/skills`; user `~/.autohand/skills`. |
+| Warp | [Skills for agents](https://docs.warp.dev/agents/capabilities/skills) | Project `.warp/skills` and `.agents/skills`; global `~/.warp/skills` and `.agents/skills`. |
+| Kilo Code | [Skills](https://kilo.ai/docs/customize/skills) | Project/user `.kilo/skills`; supports `.agents/skills` compatibility. |
+| Cline | [Skills](https://github.com/cline/cline/blob/main/docs/customization/skills.mdx) | Project `.cline/skills`; user `~/.cline/skills`; `.claude/skills` compatibility. |
+| Roo Code | [Skills](https://roocodeinc.github.io/Roo-Code/features/skills/) | Project/user `.roo/skills`; shared `.agents/skills` compatibility. |
+| TRAE | [TRAE skills guidance](https://www.trae.ai/blog/trae_tutorial_0115) and [community path guide](https://github.com/trae-community/trae-skills) | Agent Skills support is described; `.trae/skills` and `~/.trae/skills` are community conventions and need current native verification. |
+| Factory Droid | [Factory AI Skills examples](https://github.com/Factory-AI/skills) | Project `.factory/skills`; user `~/.factory/skills`. |
+
+## Engineering and security references
+
+- [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/) — application-security control baseline.
+- [OWASP WSTG](https://owasp.org/www-project-web-security-testing-guide/) — web-security testing methodology.
+- [OWASP MASVS](https://mas.owasp.org/MASVS/) — mobile application security verification.
+- [NIST SSDF](https://csrc.nist.gov/Projects/ssdf) — secure software development framework.
+- [MITRE ATT&CK](https://attack.mitre.org/) — defensive behavior and incident-analysis knowledge base.
+- [Agent Skills specification](https://agentskills.io/specification) — portable skill format and progressive-disclosure design.
 
 ## Research method
-Inspect local repository and tool availability first; prefer current official sources; triangulate or test high-impact claims; keep network use explicit and HTTPS-only; do not execute downloaded skill content as a second-stage installer; repeat this research when tool paths or manifest formats change.
 
-| Portable OpenAI plugin manifest? | [Package your plugin](https://developers.openai.com/plugins/build/plugins), [Submission manifest](https://developers.openai.com/plugins/deploy/submission) | Current portable format uses root `plugin.json` with Agent Plugins schema; `.codex-plugin/plugin.json` remains a Codex compatibility fallback. Root manifest declares skill bundle, MIT identity, OpenAI interface, and onboarding skill; compatibility manifest retained. | High; current package supports both modern and legacy clients. |
-
-| Simple Node.js installer entry point? | [npm `npx` documentation](https://docs.npmjs.com/commands/npx/), [npm package spec](https://docs.npmjs.com/cli/using-npm/package-spec/), [Git dependencies](https://docs.npmjs.com/cli/install/) | npm accepts GitHub package specs; `npx` runs the package binary and forwards arguments after the package specifier. RCoder exposes one `rcoder` bin and includes its skill folder in package files. Git is required for npm to retrieve Git-based dependencies. | High; used for the primary Node.js install command. |
-| PowerShell `irm` alias and web bootstrap? | [Microsoft Invoke-RestMethod](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/invoke-restmethod?view=powershell-7.5) | `irm` is the built-in alias for `Invoke-RestMethod`; the bootstrap uses `Invoke-WebRequest` to download a temporary source archive, copies the skill files, and removes the archive without running downloaded project scripts. | High; used for the PowerShell one-liner with an explicit security note. |
+Inspect the repository and actual host surfaces first; prefer official current documentation; label community-only path evidence; test installer behavior; do not execute downloaded skill content as a second-stage installer; and mark native model activation NOT VERIFIED until tested in the corresponding product.

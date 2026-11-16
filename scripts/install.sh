@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-usage(){ echo 'Usage: install.sh [--target claude-code|codex|cursor|gemini-cli|copilot|agents] [--scope project|user] [--project-dir PATH] [--home-dir PATH] [--dry-run] [--uninstall]'; }
+usage(){ echo 'Usage: install.sh [--target ID] [--scope project|user] [--project-dir PATH] [--home-dir PATH] [--dry-run] [--uninstall]'; }
 TARGET=agents; SCOPE=project; PROJECT_DIR=$(pwd); HOME_DIR=${HOME:-}; DRY=0; REMOVE=0
 while [ "$#" -gt 0 ]; do case "$1" in
   --target) [ "$#" -ge 2 ] || { usage >&2; exit 2; }; TARGET=$2; shift 2;;
@@ -9,26 +9,41 @@ while [ "$#" -gt 0 ]; do case "$1" in
   --home-dir) [ "$#" -ge 2 ] || { usage >&2; exit 2; }; HOME_DIR=$2; shift 2;;
   --dry-run) DRY=1; shift;; --uninstall) REMOVE=1; shift;; -h|--help) usage; exit 0;;
   *) echo "Unknown argument: $1" >&2; usage >&2; exit 2;; esac; done
-case "$TARGET" in claude-code|codex|cursor|gemini-cli|copilot|agents) ;; *) echo "Unsupported target: $TARGET" >&2; exit 2;; esac
-case "$SCOPE" in project) BASE=$PROJECT_DIR;; user) [ -n "$HOME_DIR" ] || { echo 'HOME is not set; pass --home-dir' >&2; exit 1; }; BASE=$HOME_DIR;; *) echo 'Scope must be project or user' >&2; exit 2;; esac
+case "$TARGET" in
+  claude-code) PROJECT_ROOT=.claude; USER_ROOT=.claude;; codex|agents|zed|openclaw) PROJECT_ROOT=.agents; USER_ROOT=.agents;;
+  cursor) PROJECT_ROOT=.cursor; USER_ROOT=.cursor;; gemini-cli) PROJECT_ROOT=.gemini; USER_ROOT=.gemini;;
+  copilot) PROJECT_ROOT=.github; USER_ROOT=.copilot;; qoder) PROJECT_ROOT=.qoder; USER_ROOT=.qoder;;
+  opencode) PROJECT_ROOT=.opencode; USER_ROOT=.config/opencode;; antigravity) PROJECT_ROOT=.agents; USER_ROOT=.gemini/config;;
+  amp) PROJECT_ROOT=.agents; USER_ROOT=.config/agents;; pi) PROJECT_ROOT=.pi; USER_ROOT=.pi/agent;;
+  openclaw) PROJECT_ROOT=.agents; USER_ROOT=.agents;; autohand) PROJECT_ROOT=.autohand; USER_ROOT=.autohand;;
+  warp) PROJECT_ROOT=.warp; USER_ROOT=.warp;; kilocode) PROJECT_ROOT=.kilo; USER_ROOT=.kilo;;
+  cline) PROJECT_ROOT=.cline; USER_ROOT=.cline;; roo-code) PROJECT_ROOT=.roo; USER_ROOT=.roo;;
+  trae) PROJECT_ROOT=.trae; USER_ROOT=.trae;; factory) PROJECT_ROOT=.factory; USER_ROOT=.factory;;
+  *) echo "Unsupported target: $TARGET" >&2; exit 2;;
+esac
+case "$SCOPE" in project) BASE=$PROJECT_DIR; ROOT=$PROJECT_ROOT;; user) [ -n "$HOME_DIR" ] || { echo 'HOME is not set; pass --home-dir' >&2; exit 1; }; BASE=$HOME_DIR; ROOT=$USER_ROOT;; *) echo 'Scope must be project or user' >&2; exit 2;; esac
+[ -d "$BASE" ] || { echo "Selected directory does not exist: $BASE" >&2; exit 1; }
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd); SOURCE="$SCRIPT_DIR/../skills/rcoder"
-[ -f "$SOURCE/SKILL.md" ] || { echo "Skill source not found: $SOURCE/SKILL.md" >&2; exit 1; }
-case "$TARGET" in claude-code) ROOT="$BASE/.claude";; codex|agents) ROOT="$BASE/.agents";; cursor) ROOT="$BASE/.cursor";; gemini-cli) ROOT="$BASE/.gemini";; copilot) if [ "$SCOPE" = user ]; then ROOT="$BASE/.copilot"; else ROOT="$BASE/.github"; fi;; esac
-DEST="$ROOT/skills/rcoder"; BACKUP="$ROOT/.rcoder-backups/$TARGET"; STAMP=$(date -u '+%Y%m%dT%H%M%SZ')-$$
+[ -f "$SOURCE/SKILL.md" ] || { echo "Skill source missing: $SOURCE/SKILL.md" >&2; exit 1; }
+TARGET_ROOT="$BASE/$ROOT"; DEST="$TARGET_ROOT/skills/rcoder"; BACKUP="$TARGET_ROOT/.rcoder-backups/rcoder"; LEGACY_BACKUP="$TARGET_ROOT/.rcoder-backups/$TARGET"; STAMP=$(date -u '+%Y%m%dT%H%M%SZ')-$$
+check_links(){ base=$1; target=$2; case "$target" in "$base"/*) rel=${target#"$base"/};; *) echo "Refusing path outside selected scope: $target" >&2; exit 1;; esac; current=$base; oldIFS=$IFS; IFS=/; for part in $rel; do current="$current/$part"; [ ! -L "$current" ] || { echo "Refusing symbolic link: $current" >&2; exit 1; }; done; IFS=$oldIFS; }
+check_links "$BASE" "$DEST"; check_links "$BASE" "$BACKUP"; check_links "$BASE" "$LEGACY_BACKUP"
 if [ "$REMOVE" -eq 1 ]; then
-  echo "Uninstall target: $DEST"
-  if [ "$DRY" -eq 1 ]; then echo "DRY RUN: preserve current install and restore newest backup under $BACKUP"; exit 0; fi
+  echo "Uninstall target: $TARGET -> $DEST"
+  if [ "$DRY" -eq 1 ]; then echo "DRY RUN: preserve active install and restore latest backup under $BACKUP"; exit 0; fi
   if [ -d "$DEST" ]; then mkdir -p "$BACKUP"; mv "$DEST" "$BACKUP/uninstalled-$STAMP"; else echo 'No active RCoder installation found.'; fi
   RESTORE=''; for candidate in "$BACKUP"/install-*; do [ -d "$candidate" ] && RESTORE=$candidate; done
+  if [ -z "$RESTORE" ]; then for candidate in "$LEGACY_BACKUP"/install-*; do [ -d "$candidate" ] && RESTORE=$candidate; done; fi
   if [ -n "$RESTORE" ]; then mkdir -p "$(dirname "$DEST")"; mv "$RESTORE" "$DEST"; echo "Restored previous installation: $DEST"; fi
   exit 0
 fi
 if [ -d "$DEST" ] && diff -qr "$SOURCE" "$DEST" >/dev/null 2>&1; then echo "RCoder is already current at $DEST"; exit 0; fi
-echo "Install target: $DEST"
-if [ "$DRY" -eq 1 ]; then [ ! -d "$DEST" ] || echo "DRY RUN: backup existing folder to $BACKUP/install-$STAMP"; echo "DRY RUN: copy $SOURCE to $DEST"; exit 0; fi
-mkdir -p "$(dirname "$DEST")" "$BACKUP"; STAGE="$(dirname "$DEST")/.rcoder-stage-$STAMP"
+echo "Install target: $TARGET ($SCOPE) -> $DEST"
+if [ "$DRY" -eq 1 ]; then [ ! -d "$DEST" ] || echo "DRY RUN: backup existing folder to $BACKUP/install-$STAMP"; echo "DRY RUN: copy skill bundle to $DEST"; exit 0; fi
+mkdir -p "$(dirname "$DEST")" "$BACKUP"; STAGE="$(dirname "$DEST")/.rcoder-stage-$STAMP"; SAVED=''
 cleanup(){ [ ! -d "$STAGE" ] || rm -rf "$STAGE"; }; trap cleanup EXIT HUP INT TERM
 cp -R "$SOURCE" "$STAGE"
-if [ -d "$DEST" ]; then mv "$DEST" "$BACKUP/install-$STAMP"; echo "Backed up previous installation: $BACKUP/install-$STAMP"; fi
-mv "$STAGE" "$DEST"; trap - EXIT HUP INT TERM
-echo "Installed RCoder for $TARGET ($SCOPE): $DEST"
+if [ -d "$DEST" ]; then SAVED="$BACKUP/install-$STAMP"; mv "$DEST" "$SAVED"; fi
+if ! mv "$STAGE" "$DEST"; then [ -z "$SAVED" ] || mv "$SAVED" "$DEST"; exit 1; fi
+trap - EXIT HUP INT TERM
+echo "Installed RCoder for $TARGET: $DEST"

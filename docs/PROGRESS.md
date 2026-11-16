@@ -1,40 +1,36 @@
-# RCoder build progress — 2026-11-16
+# RCoder build progress — 2026-11-17
 
-## Phases
-- [x] Phase 0 — Recon/research: repository and build environment inspected; official Agent Skills, npm Git package, `npx`, and PowerShell `irm` documentation reviewed.
-- [x] Phase 1 — Design: architecture and ten decisions recorded.
-- [x] Phase 2 — Vertical slice: portable router, twelve expert modules, domain extension guide, read-only stack detector, and six templates.
-- [x] Phase 3 — Installer entry points: Node.js/npm CLI and PowerShell `irm` bootstrap added; offline POSIX and PowerShell helpers retained; six targets and two scopes supported.
-- [x] Phase 4 — Evaluation: 24 English-only trigger prompts and ten behavioral scenarios with separate rubric/fixture files.
-- [x] Phase 5 — Documentation/package: English-only documentation, MIT license, SemVer changelog, 261-check static validator, pinned CI, and five reproducible ZIP packages.
-- [x] Phase 6 — Handoff/publication: local packages and tests verified; GitHub `main` updated and read back.
+## Release objective
 
-## Local verification evidence
-- `node --check scripts/rcoder.mjs` — PASS.
-- `node scripts/rcoder.mjs --help` — PASS.
-- `node scripts/test-node-installer.mjs` — PASS, all twelve target/scope combinations including dry-run, backup, idempotent repeat, uninstall, and restore.
-- `npm pack --dry-run --json` — PASS; package contains the `rcoder` executable and complete skill folder.
-- `python3 scripts/validate-all` — PASS, 261 checks.
-- `bash scripts/test-installers.sh` — PASS, all twelve POSIX target/scope combinations.
-- `python3 scripts/package` — PASS; five reproducible v1.1.0 archives built.
-- `sha256sum -c dist/SHA256SUMS` — PASS for all five archives.
-- ZIP integrity and internal paths — PASS.
+Build v1.2.0 as a safe extension of v1.1.0. Preserve both installers, the Agent Skill format, plugin manifests, and existing engineering references.
 
-## Remote publication evidence
-- Repository: `RidTheWann/RCoder-Skills`, branch: `main`.
-- GitHub readback verified the Node CLI, npm metadata, root PowerShell bootstrap, skill, prompts, docs, manifests, tests, and workflow.
-- GitHub Actions run `43871519315` — PASS on `ubuntu-latest` and `windows-latest`. Both platforms passed 261-check static validation, 12 Node installer simulations, and npm pack dry-run. Linux also passed 12 POSIX simulations; Windows passed 12 PowerShell simulations including parsing the root `install.ps1` script. Both built the v1.1.0 ZIP packages.
+## Implementation checklist
 
-## Gates
-| Gate | Status | Evidence / limitation |
-|---|---|---|
-| G1 Structural | VERIFIED (local + CI static) | 261 checks passed; official `skills-ref` validator remains unavailable. |
-| G2 Trigger | VERIFIED (dataset only) | 24 prompts, 12 positive and 12 negative; every prompt is English-only. Live model activation remains NOT VERIFIED. |
-| G3 Behavior | VERIFIED (scenario design) | Ten objective scenarios; live model ablation remains NOT VERIFIED. |
-| G4 Installation | VERIFIED (cross-platform simulation) | Twelve Node and twelve POSIX combinations pass on Linux; twelve PowerShell combinations pass on Windows CI. Native application discovery remains NOT VERIFIED. |
-| G5 Security / license | VERIFIED (static scope) | Selected secret/risky-command checks and MIT license; not a full security audit. |
-| G6 Documentation | VERIFIED (static) | README, handoff, instructions, prompts, templates, and installer messages are English-only. |
-| G7 Consistency | VERIFIED (remote tree + CI) | Versions synchronized, links and manifests validated, and package archives/checksums verified. |
+- [x] Audit the repository and preserve PowerShell `irm` and Node/npm installation methods.
+- [x] Add a global terminal manager invoked by typing `RCoder`.
+- [x] Add multi-target and Project/User selection, shared-root deduplication, install/update, uninstall, backup, and restore.
+- [x] Add a Windows-native PowerShell launcher independent of Node.js.
+- [x] Add a Node/npm global launcher and include its runtime files in package metadata.
+- [x] Expand the target catalog to twenty hosts.
+- [x] Add programming, cybersecurity, reverse-engineering, and smart-contract specialists.
+- [x] Add a read-only metadata-only context snapshot helper and context-capsule template.
+- [x] Expand trigger evaluations to 42 prompts and behavioral scenarios to 14.
+- [ ] Run the Linux and Windows GitHub Actions matrix on the feature branch.
+- [ ] Inspect CI logs and fix every failure before merge.
+- [ ] Merge only after required checks pass.
 
-## Remaining verification
-The official `skills-ref` validator, native product discovery, live model activation/ablation, and authenticated ZIP-import UI remain external verification tasks.
+## Verification design
+
+| Area | Required checks |
+|---|---|
+| Static structure | Skill frontmatter, specialist headings/line limits, links, manifests, versions, target registry, and selected security checks |
+| Context helper | Metadata-only output, bounded paths/depth, dependency/build exclusions, and symlink handling |
+| Node CLI | Syntax, help/list, 40 target/scope cases, dry-run, backup/restore, idempotence, launcher and interactive menu |
+| POSIX adapter | 40 target/scope cases, dry-run, backup/restore, repeated install |
+| PowerShell | Parse bootstrap and manager; 40 target/scope cases on Windows PowerShell 5.1 and PowerShell 7 |
+| Packaging | `npm pack --dry-run --json`, reproducible ZIP packages, and checksums |
+| Live activation | Separate native verification in each host; not inferred from file-copy tests |
+
+## Evidence boundary
+
+No CI result is claimed until the feature-branch workflow finishes and its logs have been inspected. Static checks and path simulations do not prove that a host model autonomously selects RCoder.

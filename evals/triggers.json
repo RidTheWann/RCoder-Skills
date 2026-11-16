@@ -166,5 +166,131 @@
     "should_trigger": false,
     "category": "document design",
     "language": "EN"
+  },
+  {
+    "id": "trig-25",
+    "prompt": "Analyze this owned executable with Ghidra and validate the recovered function behavior against a reference build.",
+    "should_trigger": true,
+    "category": "reverse engineering",
+    "language": "EN"
+  },
+  {
+    "id": "trig-26",
+    "prompt": "Perform an authorized penetration test of our staging API using the attached written scope and test accounts.",
+    "should_trigger": true,
+    "category": "cybersecurity",
+    "language": "EN"
+  },
+  {
+    "id": "trig-27",
+    "prompt": "Audit this Solidity vault for reentrancy, access-control, and accounting invariants using a local fork.",
+    "should_trigger": true,
+    "category": "smart contract security",
+    "language": "EN"
+  },
+  {
+    "id": "trig-28",
+    "prompt": "Fix a Swift concurrency data race while preserving the app's deployment target.",
+    "should_trigger": true,
+    "category": "Swift/mobile",
+    "language": "EN"
+  },
+  {
+    "id": "trig-29",
+    "prompt": "Reduce Flutter cold-start latency using profile data and retain lifecycle and accessibility behavior.",
+    "should_trigger": true,
+    "category": "Dart/mobile/performance",
+    "language": "EN"
+  },
+  {
+    "id": "trig-30",
+    "prompt": "Review Terraform and Kubernetes changes for excessive IAM permissions, exposed services, and secret leakage.",
+    "should_trigger": true,
+    "category": "cloud security",
+    "language": "EN"
+  },
+  {
+    "id": "trig-31",
+    "prompt": "Triage a suspicious PE file in an isolated lab and produce defensive indicators without executing it on the host.",
+    "should_trigger": true,
+    "category": "malware analysis",
+    "language": "EN"
+  },
+  {
+    "id": "trig-32",
+    "prompt": "Infer an undocumented save-file format from several authorized samples and build a bounds-checked parser with fuzz tests.",
+    "should_trigger": true,
+    "category": "reverse engineering",
+    "language": "EN"
+  },
+  {
+    "id": "trig-33",
+    "prompt": "Prepare a digital-forensics incident timeline with hashes, acquisition notes, and chain-of-custody evidence.",
+    "should_trigger": true,
+    "category": "incident response",
+    "language": "EN"
+  },
+  {
+    "id": "trig-34",
+    "prompt": "Implement a C++20 binary decoder and compare its behavior against a reference implementation using differential tests.",
+    "should_trigger": true,
+    "category": "systems programming",
+    "language": "EN"
+  },
+  {
+    "id": "trig-35",
+    "prompt": "Optimize a large Rust monorepo task for agent context cost without skipping the required regression and security checks.",
+    "should_trigger": true,
+    "category": "token efficiency",
+    "language": "EN"
+  },
+  {
+    "id": "trig-36",
+    "prompt": "Trace a Next.js SSR hydration mismatch and validate the fix across server and browser runtime boundaries.",
+    "should_trigger": true,
+    "category": "web platform",
+    "language": "EN"
+  },
+  {
+    "id": "trig-37",
+    "prompt": "Write a short poem about a rainy afternoon.",
+    "should_trigger": false,
+    "category": "creative writing",
+    "language": "EN"
+  },
+  {
+    "id": "trig-38",
+    "prompt": "Create a portrait image of a fictional astronaut.",
+    "should_trigger": false,
+    "category": "image creation",
+    "language": "EN"
+  },
+  {
+    "id": "trig-39",
+    "prompt": "Translate this restaurant menu into Indonesian without changing its meaning.",
+    "should_trigger": false,
+    "category": "translation",
+    "language": "EN"
+  },
+  {
+    "id": "trig-40",
+    "prompt": "Find today's weather forecast for Jakarta.",
+    "should_trigger": false,
+    "category": "weather",
+    "language": "EN"
+  },
+  {
+    "id": "trig-41",
+    "prompt": "Create a personal monthly budget spreadsheet with formulas and charts.",
+    "should_trigger": false,
+    "category": "spreadsheet",
+    "language": "EN"
+  },
+  {
+    "id": "trig-42",
+    "prompt": "Plan a weekend trip to Yogyakarta with hotels and restaurants.",
+    "should_trigger": false,
+    "category": "travel planning",
+    "language": "EN"
   }
 ]

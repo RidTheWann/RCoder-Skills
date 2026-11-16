@@ -1,70 +1,51 @@
 # RCoder decisions
 
 ## D-001 — One router, on-demand experts
-- Context: broad engineering coverage with low activation cost.
-- Options: monolithic instructions; many standalone skills; one router with modules.
-- Criteria: portability, context efficiency, maintenance, composability.
-- Decision: one `rcoder` skill links focused `references/`.
-- Confidence: high.
-- Change: split only after trigger measurements prove better routing.
+- Decision: use one `rcoder` Agent Skill with focused references rather than injecting a large monolithic prompt.
+- Criteria: portability, context efficiency, composability, and maintenance.
+- Change: split/recombine only when trigger/evaluation evidence justifies it.
 
 ## D-002 — Minimal portable frontmatter
-- Context: vendor frontmatter support varies.
-- Options: vendor keys in core; minimal standard plus adapters.
-- Decision: core uses `name`, `description`, `license`, and string metadata; omit experimental `allowed-tools`.
-- Confidence: high, grounded in Agent Skills spec.
-- Change: vendor keys only in adapter files after official/runtime verification.
+- Decision: keep core frontmatter to standard `name`, `description`, `license`, and string metadata; vendor extensions belong in adapter manifests.
+- Reason: preserve Agent Skills portability and reduce host-specific parsing assumptions.
 
 ## D-003 — Native target paths
-- Context: products use distinct discovery directories.
-- Options: single alias for all; product-native paths; marketplace only.
-- Decision: `.claude/skills`, `.agents/skills`, `.cursor/skills`, `.gemini/skills`, `.github/skills`; Copilot user path `~/.copilot/skills`; generic alias `.agents/skills`.
-- Confidence: high for documented paths; live discovery unverified.
-- Change: update both installers, tests, README and installation matrix together.
+- Decision: install into documented native skill roots per host, or a generic `.agents/skills` interoperability root where appropriate.
+- Change: update `targets.json`, installers, tests, docs, and CI together whenever a host path changes.
 
-## D-004 — Offline and reversible installers
-- Context: no network, telemetry, or silent overwrite.
-- Decision: POSIX/PowerShell native copy; idempotent; dry-run; backup existing content; uninstall restores newest backup.
-- Confidence: high for POSIX after simulation; medium for PowerShell pending Windows execution.
-- Change: keep both scripts and target/scope tests synchronized.
+## D-004 — Offline, reversible lower-level installers
+- Decision: retain POSIX and PowerShell helper installers for development and cross-platform tests; support dry-run, idempotence, backup, and restore.
 
 ## D-005 — Static checks do not impersonate runtime checks
-- Context: `skills-ref` and target CLIs absent.
-- Decision: standard-library validator plus explicit `NOT VERIFIED` live gates.
-- Confidence: high for static constraints only.
-- Change: add official validator/runtime results when the products are available.
+- Decision: use a standard-library validator and explicitly label native product discovery/model activation as separate verification gates.
 
 ## D-006 — English-only repository content
-- Context: mixed-language source documentation and evaluation prompts reduce consistency and make maintenance harder.
-- Options: bilingual documentation; language-dependent source artifacts; one English-only repository standard.
-- Decision: all repository-managed instructions, documentation, prompts, templates, comments, and installer messages are English-only.
-- Confidence: high; explicit project requirement.
-- Change: add a separately maintained translation only when explicitly required; never mix languages in a single artifact.
+- Decision: all repository-managed instructions, docs, prompts, templates, and installer messages are English-only. Never mix languages within a repository artifact.
 
-## D-007 — No installer/package runtime dependencies
-- Context: offline portability.
-- Decision: POSIX/PowerShell platform utilities and Python standard library for development tooling.
-- Confidence: high for Linux POSIX; PowerShell pending native execution.
-- Change: any new dependency needs explicit justification and docs.
+## D-007 — No third-party installer runtime dependencies
+- Decision: use Node built-ins, PowerShell, POSIX utilities, and Python standard library; add dependencies only with an explicit justification.
 
 ## D-008 — Pin CI actions to full commit SHAs
-- Context: the repository's own CI is a software supply-chain input.
-- Options: mutable major tags; full commit SHA; maintain a third-party action lockfile.
-- Decision: pin official checkout and setup-python releases to their verified full Git commit SHAs.
-- Criteria: immutable references, official upstream provenance, low maintenance overhead.
-- Confidence: high; refs read directly from the official GitHub repositories on 2026-11-16.
-- Change: update both SHAs only after verifying the release tag resolves in the official upstream repository.
+- Decision: keep GitHub Actions pinned to verified immutable commit SHAs. Update only after verifying upstream provenance.
 
 ## D-009 — Portable Agent Plugins manifest plus Codex fallback
-- Context: current OpenAI/Codex plugin docs prefer root `plugin.json`; `.codex-plugin/plugin.json` remains supported as a compatibility fallback.
-- Options: keep legacy-only manifest; replace it with root-only; ship root manifest plus fallback.
-- Decision: ship root portable `plugin.json` with Agent Plugins schema and OpenAI interface/onboarding metadata, while retaining `.codex-plugin/plugin.json` for older Codex compatibility.
-- Confidence: high; verified against current OpenAI official plugin packaging and submission docs on 2026-11-16.
-- Change: keep root and compatibility manifest names/version/skill paths synchronized; update the package builder and validator together.
+- Decision: ship root `plugin.json` for portable Agent Plugins packaging and retain `.codex-plugin/plugin.json` as a compatibility fallback.
 
-## D-010 — One-command Node.js and PowerShell entry points
-- Context: the previous install instructions exposed low-level shell flags and multiple platform-specific steps before the skill could be used.
-- Options: keep platform-specific installers as the primary interface; publish to the npm registry; provide a Node.js GitHub-package CLI and a PowerShell `irm` bootstrap.
-- Decision: make `npx -y github:RidTheWann/RCoder-Skills` and the root `install.ps1` bootstrap the primary entry points. Retain offline POSIX and PowerShell helpers for development and compatibility tests.
-- Confidence: high; npm documents GitHub package specs and `npx` binary execution, and Microsoft documents `irm` as the `Invoke-RestMethod` alias.
-- Change: update `package.json`, the root bootstrap, README, and cross-platform tests together whenever install behavior changes.
+## D-010 — Preserve both official installation methods
+- Decision: keep Windows PowerShell `irm` and Node.js/npm as first-class installation methods. Neither replaces the other.
+
+## D-011 — Global launcher command is exactly RCoder
+- Decision: install a global `RCoder` command. Windows `irm` provisions a `RCoder.cmd` shim invoking the bundled PowerShell manager; the Node installer provisions a POSIX wrapper or Windows shim.
+- Criteria: no Node dependency for the Windows `irm` route, no third-party runtime, idempotent update, and clear PATH guidance.
+
+## D-012 — Registry-driven host selection
+- Decision: maintain stable host IDs, labels, and Project/User roots in `targets.json`; offer multi-select and deduplicate roots shared by multiple hosts.
+
+## D-013 — Progressive disclosure and bounded context snapshots
+- Decision: load specialists on demand; provide a bounded helper reporting paths and Git state without reading source contents; use a context capsule on long tasks.
+
+## D-014 — Defensive cybersecurity and authorized reverse engineering
+- Decision: require explicit authorization, written test scope, provenance, sample hashing, isolated analysis, and non-destructive proof in specialist workflows.
+
+## D-015 — Evidence-led machine semantics
+- Decision: undocumented ABI, instruction, register, memory, and file-format behavior remains unknown until corroborated by specifications, independent observations, or differential tests.
