@@ -70,7 +70,7 @@ Reverse-engineering references cover executable/binary analysis, evidence-led se
 
 ## Validation
 
-<badge>CI passed</badge> GitHub Actions run [43937693813](https://github.com/RidTheWann/RCoder-Skills/actions/runs/43937693813) completed successfully on both Linux and Windows for commit `a19eed4f466d2231779a2c230a364ff773ad4554`.
+**CI status: PASS.** GitHub Actions run [43937693813](https://github.com/RidTheWann/RCoder-Skills/actions/runs/43937693813) completed successfully on both Linux and Windows for commit `a19eed4f466d2231779a2c230a364ff773ad4554`.
 
 The run verified 644 static checks, context-snapshot regression, Node syntax, 40 Node target/scope cases per OS, launcher and interactive-menu behavior, npm package dry-run, 40 POSIX target/scope cases, 40 Windows PowerShell target/scope cases on both PowerShell 5.1 and 7, and reproducible skill/plugin/source package builds.
 
