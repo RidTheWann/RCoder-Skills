@@ -49,8 +49,7 @@ def main():
   data=json.loads((ROOT/'evals'/'triggers.json').read_text(encoding='utf-8')); yes=[x for x in data if x.get('should_trigger') is True]; no=[x for x in data if x.get('should_trigger') is False]
   check(len(data)>=24,'G2: fewer than 24 prompts'); check(len(yes)>=12,'G2: fewer than 12 positive prompts'); check(len(no)>=12,'G2: fewer than 12 negative prompts')
   check(all(isinstance(x.get('prompt'),str) and x['prompt'].strip() for x in data),'G2: malformed/empty prompt')
-  for group,label in [(yes,'positive'),(no,'negative')]:
-   for lang in ['EN','ID']: check(sum(x.get('language')==lang for x in group)>=4,f'G2: fewer than four {label} prompts in {lang}')
+  check(all(x.get('language')=='EN' for x in data),'G2: all trigger records must be English-only')
  except Exception as e: check(False,f'G2: triggers.json invalid: {e}')
  try:
   data=json.loads((ROOT/'evals'/'scenarios.json').read_text(encoding='utf-8')); check(len(data)>=10,'G3: fewer than 10 scenarios')
@@ -63,13 +62,49 @@ def main():
   except Exception as e: check(False,f'G1: invalid {rel}: {e}')
  try:
   portable=json.loads((ROOT/'plugin.json').read_text(encoding='utf-8'))
+  package=json.loads((ROOT/'package.json').read_text(encoding='utf-8'))
+  check(package.get('name')=='rcoder','G1: npm package name must be rcoder')
+  check(package.get('bin',{}).get('rcoder')=='./scripts/rcoder.mjs','G1: npm rcoder binary mapping is missing')
+  check((ROOT/'scripts/rcoder.mjs').is_file(),'G1: npm installer entry point is missing')
+  check((ROOT/'install.ps1').is_file(),'G1: PowerShell irm bootstrap is missing')
+  check(package.get('version')==portable.get('version'),'G7: npm package and portable plugin versions differ')
   check(portable.get('name')=='rcoder','G1: portable plugin name must be rcoder')
   check(portable.get('extensions',{}).get('com.openai',{}).get('onboardingSkill')=='./skills/rcoder/SKILL.md','G1: portable plugin onboarding path mismatch')
   check((ROOT/'skills/rcoder/SKILL.md').is_file(),'G1: portable plugin points to missing skill')
   version=portable.get('version'); compat=json.loads((ROOT/'.codex-plugin/plugin.json').read_text(encoding='utf-8'))
+  claude=json.loads((ROOT/'.claude-plugin/plugin.json').read_text(encoding='utf-8'))
+  marketplace=json.loads((ROOT/'.claude-plugin/marketplace.json').read_text(encoding='utf-8'))
   check(compat.get('version')==version,'G7: portable and Codex compatibility versions differ')
+  check(claude.get('version')==version,'G7: Claude plugin version differs')
+  check(marketplace.get('plugins',[{}])[0].get('version')==version,'G7: marketplace plugin version differs')
   changelog=(ROOT/'CHANGELOG.md').read_text(encoding='utf-8')
   check(f'[{version}]' in changelog,'G7: plugin version missing from CHANGELOG')
+  skill_text=(ROOT/'skills/rcoder/SKILL.md').read_text(encoding='utf-8')
+  check(re.search(r'(?m)^  version: "'+re.escape(version)+r'"
+ except Exception as e: check(False,f'G1: portable plugin validation failed: {e}')
+ executables=list((ROOT/'scripts').glob('*'))+[ROOT/'install.ps1',SKILL/'scripts'/'detect_stack.py']
+ secrets=[re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'),re.compile(r'\bAKIA[0-9A-Z]{16}\b'),re.compile(r'\bgh[pousr]_[A-Za-z0-9]{20,}\b'),re.compile(r'\bgithub_pat_[A-Za-z0-9_]{20,}\b')]
+ unsafe=[re.compile(r'(?i)\b(?:curl|wget)\b[^\n]*\|\s*(?:sh|bash)\b'),re.compile(r'(?i)\bInvoke-Expression\b|\bIEX\s*\('),re.compile(r'(?i)\brm\s+-rf\s+/(?:\s|$)'),re.compile(r'(?i)\bgit\s+push\s+--force\b')]
+ for q in executables:
+  if not q.is_file(): continue
+  text=q.read_text(encoding='utf-8',errors='replace')
+  for pattern in secrets: check(not pattern.search(text),f'G5: possible secret pattern in {q.relative_to(ROOT)}')
+  if q.name != 'validate-all':
+   for pattern in unsafe: check(not pattern.search(text),f'G5: unsafe executable pattern in {q.relative_to(ROOT)}')
+ for rel in ['LICENSE','docs/HANDOFF.md','README.md','docs/DECISIONS.md','docs/research-log.md','docs/ARCHITECTURE.md','docs/PROGRESS.md']:
+  check((ROOT/rel).is_file(),f'Missing required file {rel}')
+ for rel in ['README.md','docs/HANDOFF.md','docs/PROGRESS.md']:
+  content=(ROOT/rel).read_text(encoding='utf-8',errors='replace')
+  check('Bahasa Indonesia' not in content and 'serah-terima' not in content and 'bilingual' not in content.lower(),f'G6: non-English or bilingual content marker found in {rel}')
+ print(f'RCoder validation: {count} checks')
+ if errors:
+  for e in errors: print('FAIL:',e)
+  print(f'FAILED: {len(errors)} issue(s)'); return 1
+ print('PASS: structure, English-only prompts, scenarios, links, manifests, package metadata, and selected security checks')
+ print('NOTE: live model triggering and vendor-native plugin validation are separate gates.')
+ return 0
+if __name__=='__main__': raise SystemExit(main())
+,skill_text) is not None,'G7: skill version differs from package metadata')
  except Exception as e: check(False,f'G1: portable plugin validation failed: {e}')
  executables=list((ROOT/'scripts').glob('*'))+[SKILL/'scripts'/'detect_stack.py']
  secrets=[re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'),re.compile(r'\bAKIA[0-9A-Z]{16}\b'),re.compile(r'\bgh[pousr]_[A-Za-z0-9]{20,}\b'),re.compile(r'\bgithub_pat_[A-Za-z0-9_]{20,}\b')]
