@@ -1,6 +1,6 @@
 # Installation matrix
 
-Official product docs reviewed 2026-11-16. Native runtime discovery is listed as unverified until tested in each product.
+Official product docs reviewed 2026-11-16. Native runtime discovery is listed as unverified until tested in each product. OpenAI plugin packaging uses root `plugin.json`; `.codex-plugin/plugin.json` is retained as a compatibility fallback.
 
 | Product | Project | User |
 |---|---|---|
