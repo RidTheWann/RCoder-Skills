@@ -53,3 +53,10 @@
 - Criteria: immutable references, official upstream provenance, low maintenance overhead.
 - Confidence: high; refs read directly from the official GitHub repositories on 2026-11-16.
 - Change: update both SHAs only after verifying the release tag resolves in the official upstream repository.
+
+## D-009 — Portable Agent Plugins manifest plus Codex fallback
+- Context: current OpenAI/Codex plugin docs prefer root `plugin.json`; `.codex-plugin/plugin.json` remains supported as a compatibility fallback.
+- Options: keep legacy-only manifest; replace it with root-only; ship root manifest plus fallback.
+- Decision: ship root portable `plugin.json` with Agent Plugins schema and OpenAI interface/onboarding metadata, while retaining `.codex-plugin/plugin.json` for older Codex compatibility.
+- Confidence: high; verified against current OpenAI official plugin packaging and submission docs on 2026-11-16.
+- Change: keep root and compatibility manifest names/version/skill paths synchronized; update the package builder and validator together.
