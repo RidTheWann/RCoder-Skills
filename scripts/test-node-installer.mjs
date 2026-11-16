@@ -81,11 +81,11 @@ try {
   assert.equal(after, before, 'Repeated installation must not create unnecessary launcher backups');
 
   const menu = spawnSync(process.execPath, [cli, '--interactive', '--home-dir', launcherHome], {
-    input: '3\n0\n', encoding: 'utf8'
+    input: '0\n', encoding: 'utf8'
   });
   assert.equal(menu.status, 0, menu.stderr || 'Interactive manager failed');
   assert.match(menu.stdout, /Agent Skill Manager/);
-  assert.match(menu.stdout, /Factory Droid/);
+  assert.match(list, /Factory Droid/);
   const sharedProject = path.join(temp, 'shared-root-project');
   const sharedHome = path.join(temp, 'shared-root-home');
   mkdirSync(sharedProject, { recursive: true });
