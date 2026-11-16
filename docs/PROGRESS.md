@@ -17,7 +17,7 @@ Build v1.2.0 as a safe extension of v1.1.0. Preserve both installers, the Agent 
 - [x] Expand trigger evaluations to 42 prompts and behavioral scenarios to 14.
 - [x] Run the Linux and Windows GitHub Actions matrix on the feature branch.
 - [x] Inspect CI logs and fix the validator, Node test, POSIX test, and PowerShell launcher issues found during CI.
-- [ ] Merge only after required checks pass.
+- [x] Merge PR #1 after all required checks passed; verify the resulting `main` commit with a post-merge CI run.
 
 ## Verification design
 
@@ -41,6 +41,12 @@ Build v1.2.0 as a safe extension of v1.1.0. Preserve both installers, the Agent 
 - POSIX adapter: 20 hosts × 2 scopes passed on Linux.
 - Windows PowerShell 5.1 and PowerShell 7: parser checks and 20 hosts × 2 scopes passed.
 - Reproducible skill/plugin/source package build passed on Linux and Windows.
+
+## Verified merge and CI evidence
+
+- PR [#1](https://github.com/RidTheWann/RCoder-Skills/pull/1) was squash-merged on 2026-11-17 UTC as `7f7c88f2fce5b8b2754d9cc10c65cca69a23f5ed`.
+- Post-merge workflow [43940645566](https://github.com/RidTheWann/RCoder-Skills/actions/runs/43940645566) — **PASS** on both `ubuntu-latest` and `windows-latest` for the exact `main` merge commit.
+- The post-merge run revalidated static checks, context snapshot, Node/launcher matrix, npm package, POSIX matrix, Windows PowerShell 5.1 and 7 matrices, and reproducible package build.
 
 ## Evidence boundary
 
