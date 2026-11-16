@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "rcoder",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A model-agnostic engineering skill for coding, architecture, debugging, QA, security, performance, DevOps, data APIs, review, and documentation.",
   "author": {
     "name": "RidTheWann",
