@@ -1,6 +1,6 @@
 ---
 name: rcoder
-description: "RCoder guides software engineering across coding, architecture, UI/UX, debugging, QA, security, performance, DevOps, data/API, review, and documentation. Use when a user asks to build, change, debug, test, review, secure, optimize, ship, or document a software project (code, bug, refactor, CI/CD, API; bangun, kembangkan, perbaiki bug, uji, audit, amankan, optimalkan, rilis, dokumentasikan kode atau aplikasi). Do not activate for standalone writing, slides, image creation, or purely conceptual questions unrelated to a project."
+description: "RCoder guides coding, architecture, UI/UX, debugging, QA, security, performance, DevOps, APIs, review, and software documentation. Use for software tasks: build, change, debug, test, secure, optimize, ship, or document code and projects (kode, aplikasi, bug, refactor, uji, audit, amankan, optimalkan, rilis). Do not use for standalone writing, slides, images, or pure concepts."
 license: MIT
 metadata:
   author: RidTheWann
