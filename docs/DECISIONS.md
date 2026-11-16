@@ -34,11 +34,12 @@
 - Confidence: high for static constraints only.
 - Change: add official validator/runtime results when the products are available.
 
-## D-006 — English skill internals, bilingual user docs
-- Context: token efficiency and Indonesian/English usage.
-- Decision: English skill/modules; README and handoff bilingual; agent mirrors user language.
-- Confidence: medium; pragmatic maintenance choice.
-- Change: revisit if evals show a better language strategy.
+## D-006 — English-only repository content
+- Context: mixed-language source documentation and evaluation prompts reduce consistency and make maintenance harder.
+- Options: bilingual documentation; language-dependent source artifacts; one English-only repository standard.
+- Decision: all repository-managed instructions, documentation, prompts, templates, comments, and installer messages are English-only.
+- Confidence: high; explicit project requirement.
+- Change: add a separately maintained translation only when explicitly required; never mix languages in a single artifact.
 
 ## D-007 — No installer/package runtime dependencies
 - Context: offline portability.
@@ -60,3 +61,10 @@
 - Decision: ship root portable `plugin.json` with Agent Plugins schema and OpenAI interface/onboarding metadata, while retaining `.codex-plugin/plugin.json` for older Codex compatibility.
 - Confidence: high; verified against current OpenAI official plugin packaging and submission docs on 2026-11-16.
 - Change: keep root and compatibility manifest names/version/skill paths synchronized; update the package builder and validator together.
+
+## D-010 — One-command Node.js and PowerShell entry points
+- Context: the previous install instructions exposed low-level shell flags and multiple platform-specific steps before the skill could be used.
+- Options: keep platform-specific installers as the primary interface; publish to the npm registry; provide a Node.js GitHub-package CLI and a PowerShell `irm` bootstrap.
+- Decision: make `npx -y github:RidTheWann/RCoder-Skills` and the root `install.ps1` bootstrap the primary entry points. Retain offline POSIX and PowerShell helpers for development and compatibility tests.
+- Confidence: high; npm documents GitHub package specs and `npx` binary execution, and Microsoft documents `irm` as the `Invoke-RestMethod` alias.
+- Change: update `package.json`, the root bootstrap, README, and cross-platform tests together whenever install behavior changes.
