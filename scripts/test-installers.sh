@@ -41,7 +41,7 @@ for target in claude-code codex cursor gemini-cli copilot agents qoder opencode 
     test -f "$dest/SKILL.md"
     test -f "$discovery/.rcoder-backups/rcoder"/install-*/original.txt
     sh "$INSTALLER" --target "$target" --scope "$scope" --project-dir "$project" --home-dir "$home" >/dev/null
-    test "$(find "$discovery/.rcoder-backups/$target" -maxdepth 1 -type d -name 'install-*' | wc -l | tr -d ' ')" = 1
+    test "$(find "$discovery/.rcoder-backups/rcoder" -maxdepth 1 -type d -name 'install-*' | wc -l | tr -d ' ')" = 1
     sh "$INSTALLER" --target "$target" --scope "$scope" --project-dir "$project" --home-dir "$home" --uninstall >/dev/null
     test -f "$dest/original.txt"
     test ! -f "$dest/SKILL.md"
