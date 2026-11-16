@@ -6,7 +6,7 @@
 
 ### Windows PowerShell
 
-Run from the root of the project where RCoder should be installed:
+Supported on Windows PowerShell 5.1 and PowerShell 7 or newer. Run from the root of the project where RCoder should be installed:
 
 ```powershell
 irm https://raw.githubusercontent.com/RidTheWann/RCoder-Skills/main/install.ps1 | iex
