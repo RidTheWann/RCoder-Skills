@@ -5,7 +5,7 @@
 ### Delivered
 `skills/rcoder/` is the canonical portable Agent Skill. It contains the router, twelve core engineering experts plus a domain-extension guide, read-only stack detection, six authoring templates, and optional OpenAI UI metadata. The repository includes POSIX/PowerShell installers, Claude plugin manifest, root portable Agent Plugins manifest plus Codex compatibility fallback, 24 trigger prompts, 10 behavioral scenarios, static validation, Linux/Windows CI, and a reproducible ZIP builder.
 
-**GitHub publication: VERIFIED.** The GitHub connector created and read back the source files on `main`. The verified tree contains 60 files, including all 13 reference modules, six templates, ten scenario files, installers, tests, docs, manifests, and CI. See commit history: https://github.com/RidTheWann/RCoder-Skills/commits/main. The latest verified CI run passed on both Ubuntu and Windows: https://github.com/RidTheWann/RCoder-Skills/actions/runs/43866341469.
+**GitHub publication: VERIFIED.** The GitHub connector created and read back the source files on `main`. The verified tree contains 60 files, including all 13 reference modules, six templates, ten scenario files, installers, tests, docs, manifests, and CI. See commit history: https://github.com/RidTheWann/RCoder-Skills/commits/main. The latest verified CI run passed on both Ubuntu and Windows after the portable manifest/package changes: https://github.com/RidTheWann/RCoder-Skills/actions/runs/43868447283.
 
 Generated ZIP files and `SHA256SUMS` are build artifacts and are intentionally not tracked in Git; generate them locally with `python3 scripts/package`. They were built and checksum-verified in the original Linux workspace.
 
@@ -74,9 +74,9 @@ Build environment: Linux x86-64, Python 3.13, Node 22, Git 2.47; no local PowerS
 
 ## Bahasa Indonesia
 
-RCoder adalah skill engineering portabel dengan router inti, 12 modul ahli utama + panduan ekstensi domain, stack detector read-only, enam template, installer shell/PowerShell, manifest Claude dan portable Agent Plugins (dengan fallback Codex), 24 prompt pemicu, 10 skenario perilaku, validator statis, CI Linux/Windows, dan pembuat paket ZIP.
+RCoder adalah skill engineering portabel dengan router inti, 12 modul ahli utama + panduan ekstensi domain, stack detector read-only, enam template, installer shell/PowerShell, manifest Claude dan portable Agent Plugins (dengan fallback Codex), 24 prompt pemicu seimbang EN/ID, 10 skenario perilaku, validator statis, CI Linux/Windows, dan pembuat paket ZIP.
 
-**Publikasi GitHub: VERIFIED.** File source berhasil ditulis dan dibaca ulang dari branch `main`. Tree remote berisi 59 file: seluruh 13 modul referensi, enam template, sepuluh skenario, installer, test harness, dokumentasi, manifest, serta workflow CI. [Lihat repository](https://github.com/RidTheWann/RCoder-Skills).
+**Publikasi GitHub: VERIFIED.** File source berhasil ditulis dan dibaca ulang dari branch `main`. Tree remote berisi 60 file: seluruh 13 modul referensi, enam template, sepuluh skenario, installer, test harness, dokumentasi, manifest, serta workflow CI. [Lihat repository](https://github.com/RidTheWann/RCoder-Skills).
 
 **Instalasi tercepat:** dari root repo jalankan `bash scripts/install.sh --target agents --scope project`. Untuk instalasi personal gunakan `--scope user`. Target lain: `claude-code`, `codex`, `cursor`, `gemini-cli`, dan `copilot`.
 
