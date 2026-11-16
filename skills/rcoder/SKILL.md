@@ -36,7 +36,7 @@ Explicit user instructions > project instructions and conventions (`AGENTS.md`, 
 ## Workflow: Intake → Recon → Plan → Implement → Verify → Report
 
 1. **Intake:** identify outcome, acceptance criteria, affected surface, risk, authorization, and whether this is software engineering. Keep standalone writing, slides, images, and pure concepts outside this skill.
-2. **Recon:** read repository guidance and `git status` first. Inspect relevant manifests, build/test/lint commands, CI, and nearby code/tests. Run `python3 <skill-dir>/scripts/detect_stack.py .` when available. On large or unfamiliar repositories, run `python3 <skill-dir>/scripts/context_snapshot.py . --max-paths 80` for a bounded path/Git map; it does not print source contents. Detection is heuristic, not a command oracle.
+2. **Recon:** read repository guidance and `git status` first. Inspect relevant manifests, build/test/lint commands, CI, and nearby code/tests. Run `python3 <skill-dir>/scripts/detect_stack.py .` when available. On large or unfamiliar repositories, run `python3 <skill-dir>/scripts/context_snapshot.py . --max-paths 80` for a bounded path/Git map; it does not read source contents. Detection is heuristic, not a command oracle.
 3. **Plan:** for multi-file, architectural, migration, security, reverse-engineering, or deployment changes, write a short ordered plan with observable success criteria and explicit scope.
 4. **Implement:** change the smallest correct surface; follow local style, layering, error handling, accessibility, dependency, and test conventions. Add/update tests when behavior changes.
 5. **Verify:** run the narrowest relevant test first, then targeted lint/type/build checks. Expand to the documented project gate when proportionate. Inspect final diff and untracked/generated files. Record unavailable checks and why.
@@ -53,7 +53,6 @@ Load one or more directly relevant references; do not read all modules by defaul
 | Source implementation, compiler/type errors, language idioms | [coding](references/coding.md) |
 | Module/service boundaries, scaling, system design | [architecture](references/architecture.md) |
 | Screens, user flow, responsive behavior, keyboard/screen-reader | [ui-ux-accessibility](references/ui-ux-accessibility.md) |
-| SSR/SSG, hydration, service workers, browser storage, workers, edge runtime | [web platform engineering](references/web-platform-engineering.md) |
 | Crash, regression, wrong output, hang, flaky failure | [debugging](references/debugging.md) and [advanced debugging](references/debugging-advanced.md) |
 | Test plan, coverage, property/fuzz/contract tests | [testing-qa](references/testing-qa.md) and [test engineering](references/test-engineering.md) |
 | Latency, throughput, memory, CPU, startup, frame time | [performance](references/performance.md) |

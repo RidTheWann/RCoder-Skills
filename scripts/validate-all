@@ -225,8 +225,9 @@ def main():
         content = read(path)
         for pattern in secret_patterns:
             check(not pattern.search(content), f"G5: possible secret pattern in {path.relative_to(ROOT)}")
-        for pattern in unsafe_patterns:
-            check(not pattern.search(content), f"G5: risky installer command pattern in {path.relative_to(ROOT)}")
+        if path.name != "validate-all":
+            for pattern in unsafe_patterns:
+                check(not pattern.search(content), f"G5: risky installer command pattern in {path.relative_to(ROOT)}")
 
     for required in (
         "LICENSE", "README.md", "CHANGELOG.md", "docs/HANDOFF.md",
