@@ -10,7 +10,7 @@ These are environment-dependent checks, not incomplete implementation placeholde
 | Cursor | App/runtime unavailable. | Install under `.cursor/skills`; inspect Customize → Skills and invoke `/rcoder`. |
 | Gemini CLI | CLI unavailable. | Run `gemini skills list --all`, activate RCoder in test workspace, and verify references. |
 | Copilot | CLI/VS Code runtime unavailable. | Install `.github/skills/rcoder`; inspect skill list and tool activity in supported Copilot harness. |
-| PowerShell | No local `pwsh` binary. | GitHub-hosted Windows CI run `43866341469` verified all 12 combinations. Re-run `scripts/test-installers.ps1` after future installer changes. |
+| PowerShell | No local `pwsh` binary. | GitHub-hosted Windows CI run `43868447283` verified all 12 combinations and the current portable manifest/package changes. Re-run `scripts/test-installers.ps1` after future installer changes. |
 | Live G2/G3 | No model runtime. | Run 24 triggers and 10 scenarios with same model/tools with and without RCoder; score using `evals/rubric.md`. |
 | ZIP import UI | No authenticated product UI. | Upload `dist/rcoder-v1.0.0.skill.zip` in the intended surface and invoke in a clean session. |
 
