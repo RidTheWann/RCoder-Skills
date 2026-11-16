@@ -1,6 +1,6 @@
 # Outstanding verification
 
-These are environment-dependent checks, not incomplete implementation placeholders.
+These are environment-dependent checks, not incomplete implementation placeholders. The root Agent Plugins manifest and legacy `.codex-plugin` compatibility fallback are both included; confirm them against current product runtime when available.
 
 | Item | Current blocker | Exact next verification |
 |---|---|---|
