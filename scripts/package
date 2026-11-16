@@ -31,8 +31,9 @@ def main():
     DIST.mkdir(exist_ok=True)
     packages = [
         (f'rcoder-v{VERSION}.skill.zip', [(SKILL, 'rcoder')]),
-        (f'rcoder-v{VERSION}.claude-plugin.zip', [(ROOT / '.claude-plugin', '.claude-plugin'), (SKILL.parent, 'skills'), (ROOT / 'LICENSE', 'LICENSE')]),
-        (f'rcoder-v{VERSION}.codex-plugin.zip', [(ROOT / '.codex-plugin', '.codex-plugin'), (SKILL.parent, 'skills'), (ROOT / 'LICENSE', 'LICENSE')]),
+        (f'rcoder-v{VERSION}.claude-plugin.zip', [(ROOT / '.claude-plugin', '.claude-plugin'), (SKILL.parent, 'skills'), (ROOT / 'LICENSE', 'LICENSE'), (ROOT / 'README.md', 'README.md')]),
+        (f'rcoder-v{VERSION}.agent-plugin.zip', [(ROOT / 'plugin.json', 'plugin.json'), (SKILL.parent, 'skills'), (ROOT / 'LICENSE', 'LICENSE'), (ROOT / 'README.md', 'README.md')]),
+        (f'rcoder-v{VERSION}.codex-plugin.zip', [(ROOT / 'plugin.json', 'plugin.json'), (ROOT / '.codex-plugin', '.codex-plugin'), (SKILL.parent, 'skills'), (ROOT / 'LICENSE', 'LICENSE'), (ROOT / 'README.md', 'README.md')]),
     ]
     checksums = []
     for filename, items in packages:
