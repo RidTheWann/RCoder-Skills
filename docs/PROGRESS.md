@@ -16,7 +16,7 @@
 - `python3 scripts/package` — PASS; five reproducible ZIP packages and SHA-256 manifest produced; repeated build hashes matched.
 - Extracted `rcoder-v1.0.0-source.zip` into a clean temporary workspace and reran validator plus POSIX installer simulations — PASS.
 - Polyglot fixture detection, ignored-directory behavior, and paths containing spaces — PASS.
-- GitHub Actions run `43866341469` on final installer-test fixes — PASS on both `ubuntu-latest` and `windows-latest`; both ran 226-check static validation and their 12 installer simulations, then built packages.
+- GitHub Actions run `43868447283` on the portable manifest/package changes — PASS on both `ubuntu-latest` and `windows-latest`; both ran 236-check static validation and their 12 installer simulations, then built packages.
 
 ## Remote publication evidence
 - Repository: `RidTheWann/RCoder-Skills`, branch: `main`.
@@ -27,7 +27,7 @@
 ## Gates
 | Gate | Status | Evidence / limitation |
 |---|---|---|
-| G1 Structural | VERIFIED (static) | Custom stdlib validator; 226 checks; official `skills-ref` unavailable. |
+| G1 Structural | VERIFIED (static) | Custom stdlib validator; 236 checks; official `skills-ref` unavailable. |
 | G2 Trigger | VERIFIED (dataset only) | 24 prompts: 12 positive + 12 negative, balanced by EN/ID; actual agent activation NOT VERIFIED. |
 | G3 Behavior | VERIFIED (scenario design) | Ten scenarios with objective rubrics and separate files; live model ablation NOT VERIFIED. |
 | G4 Install | VERIFIED (POSIX + PowerShell simulation) / NOT VERIFIED (native discovery) | Twelve target/scope combinations pass on Linux and twelve on Windows CI; native agent CLIs unavailable. |
