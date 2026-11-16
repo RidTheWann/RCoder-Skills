@@ -5,7 +5,7 @@
 ### Delivered
 `skills/rcoder/` is the canonical portable Agent Skill. It contains the router, twelve core engineering experts plus a domain-extension guide, read-only stack detection, six authoring templates, and optional OpenAI UI metadata. The repository includes POSIX/PowerShell installers, Claude and Codex plugin adapters, 24 trigger prompts, 10 behavioral scenarios, static validation, Linux/Windows CI, and a reproducible ZIP builder.
 
-**GitHub publication: VERIFIED.** The GitHub connector created and read back the source files on `main`. The verified tree contains 59 files, including all 13 reference modules, six templates, ten scenario files, installers, tests, docs, manifests, and CI. See commit history: https://github.com/RidTheWann/RCoder-Skills/commits/main.
+**GitHub publication: VERIFIED.** The GitHub connector created and read back the source files on `main`. The verified tree contains 59 files, including all 13 reference modules, six templates, ten scenario files, installers, tests, docs, manifests, and CI. See commit history: https://github.com/RidTheWann/RCoder-Skills/commits/main. The latest verified CI run passed on both Ubuntu and Windows: https://github.com/RidTheWann/RCoder-Skills/actions/runs/43866341469.
 
 Generated ZIP files and `SHA256SUMS` are build artifacts and are intentionally not tracked in Git; generate them locally with `python3 scripts/package`. They were built and checksum-verified in the original Linux workspace.
 
@@ -63,13 +63,13 @@ When a host changes its path/manifest, update both installer scripts, target tes
 | G1 | VERIFIED (static) | Custom stdlib validator passed 226 local checks; official `skills-ref` not installed. |
 | G2 | VERIFIED (dataset only) | 24 prompts / 12 positive / 12 negative; live model trigger not verified. |
 | G3 | VERIFIED (scenario design) | 10 objective scenarios with separate files; live with/without-skill comparison not verified. |
-| G4 | VERIFIED (POSIX simulation) | 12 target/scope combinations in Linux; PowerShell and native discovery not verified. |
+| G4 | VERIFIED (POSIX + PowerShell simulations) | Twelve target/scope combinations passed on Linux and twelve on Windows; native app discovery remains NOT VERIFIED. |
 | G5 | VERIFIED (static scope) | Selected secret/risky-command checks and MIT; not a complete security audit. |
 | G6 | VERIFIED (static) | Bilingual docs, quick start, target install, extension/maintenance steps. |
-| G7 | VERIFIED (local static + remote tree) | 226 checks locally; GitHub readback confirms 59 expected source files. |
+| G7 | VERIFIED (local static + remote tree + CI) | 226 checks locally; GitHub readback confirms 59 source files; latest Linux/Windows CI passed. |
 
 ### Limitations
-Build environment: Linux x86-64, Python 3.13, Node 22, Git 2.47; no PowerShell, `skills-ref`, Claude/Codex/Cursor/Gemini/Copilot CLI, or model runtime. GitHub Actions workflow has been committed, but a completed remote runner result must be checked in the Actions tab. Stack detection is heuristic. See `docs/RESEARCH-TODO.md`.
+Build environment: Linux x86-64, Python 3.13, Node 22, Git 2.47; no local PowerShell, `skills-ref`, Claude/Codex/Cursor/Gemini/Copilot CLI, or model runtime. Windows PowerShell simulation was verified by GitHub-hosted Windows CI. The latest Linux/Windows Actions run is green. Stack detection is heuristic. See `docs/RESEARCH-TODO.md`.
 
 ## Bahasa Indonesia
 
@@ -79,6 +79,6 @@ RCoder adalah skill engineering portabel dengan router inti, 12 modul ahli utama
 
 **Instalasi tercepat:** dari root repo jalankan `bash scripts/install.sh --target agents --scope project`. Untuk instalasi personal gunakan `--scope user`. Target lain: `claude-code`, `codex`, `cursor`, `gemini-cli`, dan `copilot`.
 
-**Status gerbang:** G1 VERIFIED statis (226 pemeriksaan lokal); G2 dataset saja; G3 desain/rubrik skenario; G4 POSIX 12 kombinasi; G5 scan terbatas + lisensi MIT; G6–G7 dokumentasi dan konsistensi lokal plus readback 59 file remote. Belum diverifikasi live: `skills-ref`, PowerShell runtime, discovery enam aplikasi, Claude marketplace install, Codex plugin runtime, import ZIP UI, ablation model dengan/tanpa RCoder, dan hasil workflow runner GitHub.
+**Status gerbang:** G1 VERIFIED statis (226 pemeriksaan lokal); G2 dataset saja; G3 desain/rubrik skenario; G4 POSIX dan PowerShell (masing-masing 12 kombinasi); G5 scan terbatas + lisensi MIT; G6–G7 dokumentasi dan konsistensi lokal plus readback 59 file remote serta CI Linux/Windows hijau. Belum diverifikasi live: `skills-ref`, PowerShell runtime, discovery enam aplikasi, Claude marketplace install, Codex plugin runtime, import ZIP UI, ablation model dengan/tanpa RCoder, dan hasil workflow runner GitHub.
 
 **Paket ZIP:** arsip ZIP dan checksum dibuat secara lokal oleh `python3 scripts/package`, diverifikasi checksum-nya, dan tidak dimasukkan ke Git agar repo tetap berisi source. Jalankan perintah tersebut setelah clone untuk membangunnya kembali.
