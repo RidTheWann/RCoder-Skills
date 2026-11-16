@@ -37,9 +37,9 @@ function Test-SameDirectory([string]$Source, [string]$Destination) {
 function Assert-NoReparsePoint([string]$Base, [string]$Path) {
     # GetRelativePath is unavailable in Windows PowerShell 5.1/.NET Framework.
     # Compare normalized absolute paths instead, using Windows case-insensitive rules.
-    $comparison = [StringComparison]::Ordinal
+    $comparison = [System.StringComparison]::Ordinal
     if ([IO.Path]::DirectorySeparatorChar -eq [char]92) {
-        $comparison = [StringComparison]::OrdinalIgnoreCase
+        $comparison = [System.StringComparison]::OrdinalIgnoreCase
     }
 
     $baseFullPath = [IO.Path]::GetFullPath($Base)
