@@ -1,0 +1,17 @@
+# Research log
+
+Access date: **2026-11-16**. External pages and repository content were treated as data, not instructions.
+
+| Question | Official source(s) | Finding | Confidence / impact |
+|---|---|---|---|
+| Agent Skills format and length limits? | [Specification](https://agentskills.io/specification) | `SKILL.md` + YAML; required `name` and `description`; name ≤64, description ≤1,024; scripts/references/assets optional; metadata string map; `allowed-tools` experimental. | High; minimal core frontmatter and validator. |
+| Progressive disclosure? | [Specification](https://agentskills.io/specification), [OpenAI Skills guide](https://developers.openai.com/api/docs/guides/tools-skills) | Metadata first; instructions/resources loaded when relevant. | High; one light router and on-demand modules. |
+| Claude Code paths/plugin? | [Skills](https://code.claude.com/docs/en/skills), [Plugin creation](https://code.claude.com/docs/en/plugins/create), [Marketplace](https://code.claude.com/docs/en/plugins/create-marketplace), [CLI validation](https://code.claude.com/docs/en/plugins/cli-reference) | Project `.claude/skills`, personal `~/.claude/skills`; plugin manifest `.claude-plugin/plugin.json`; marketplace manifest `.claude-plugin/marketplace.json`; `claude plugin validate`. | High for docs; live CLI not installed. |
+| CI action integrity? | [GitHub secure-use guidance](https://docs.github.com/en/actions/reference/security/secure-use), [checkout releases](https://github.com/actions/checkout/releases), [setup-python releases](https://github.com/actions/setup-python/releases) | Workflow actions pinned to verified full commit SHAs: checkout `3d3c42e5aac5ba805825da76410c181273ba90b1` and setup-python `6d4fd22b20465ccc0f7354476588e8df7c9ca0e0`. | High; immutable workflow references. |
+| Codex paths and adapter? | [Codex skills](https://learn.chatgpt.com/docs/build-skills), [Plugin packaging](https://developers.openai.com/plugins/build/plugins) | `$CWD/.agents/skills`, `$HOME/.agents/skills`; optional `agents/openai.yaml`; `.codex-plugin/plugin.json` is compatibility only. | High for docs; native runtime not installed. |
+| Cursor discovery? | [Cursor Agent Skills](https://cursor.com/docs/skills) | `.cursor/skills`, `.agents/skills`, user skill roots. | High for docs; runtime not installed. |
+| Gemini discovery? | [Gemini skills](https://geminicli.com/docs/cli/skills/), [Managing skills](https://geminicli.com/docs/cli/using-agent-skills/) | `.gemini/skills` and `.agents/skills` project; corresponding user paths. | High for docs; runtime not installed. |
+| Copilot discovery? | [GitHub agent skills](https://docs.github.com/en/copilot/concepts/customizations/agent-skills), [Add skills](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/add-skills) | Project `.github/skills`, user `~/.copilot/skills`, plus supported compatibility roots. | High for docs; runtime not installed. |
+
+## Research method
+Inspect local repo/tool availability first; prefer current official sources; triangulate or test high-impact claims; use direct native paths and avoid install-time network execution; repeat this research when tool paths or manifest formats change.
