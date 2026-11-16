@@ -24,8 +24,8 @@ if($Uninstall){
  exit 0
 }
 if(Test-Path -LiteralPath $dest -PathType Container){
- $srcFiles=@(Get-ChildItem -LiteralPath $sourceDir -File -Recurse|ForEach-Object{$_.FullName.Substring($sourceDir.Length).TrimStart([char[]]@('\\','/'))})
- $dstFiles=@(Get-ChildItem -LiteralPath $dest -File -Recurse|ForEach-Object{$_.FullName.Substring($dest.Length).TrimStart([char[]]@('\\','/'))})
+ $srcFiles=@(Get-ChildItem -LiteralPath $sourceDir -File -Recurse|ForEach-Object{$_.FullName.Substring($sourceDir.Length).TrimStart([char[]]@([char]92,[char]47))})
+ $dstFiles=@(Get-ChildItem -LiteralPath $dest -File -Recurse|ForEach-Object{$_.FullName.Substring($dest.Length).TrimStart([char[]]@([char]92,[char]47))})
  $same=(@($srcFiles|Sort-Object)-join "`n") -eq (@($dstFiles|Sort-Object)-join "`n")
  if($same){foreach($rel in $srcFiles){if((Get-FileHash -LiteralPath (Join-Path $sourceDir $rel)).Hash -ne (Get-FileHash -LiteralPath (Join-Path $dest $rel)).Hash){$same=$false;break}}}
  if($same){Write-Output "RCoder is already current at $dest";exit 0}
