@@ -31,7 +31,11 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: bash scripts/test-installers.sh
-      - name: PowerShell installer simulations
+      - name: Windows PowerShell 5.1 compatibility and installer simulations
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: ./scripts/test-installers.ps1
+      - name: PowerShell 7 compatibility and installer simulations
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./scripts/test-installers.ps1
