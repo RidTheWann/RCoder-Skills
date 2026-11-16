@@ -101,23 +101,23 @@ bash scripts/test-installers.sh
 python3 scripts/package
 ```
 
-The PowerShell installer tests run on the Windows GitHub Actions runner. The Windows test suite covers all six targets and both scopes, including dry-run, backup, idempotent repeat, uninstall, and backup restoration.
+The latest GitHub Actions run `43871519315` passed on Linux and Windows. Linux passed the static validator, all twelve Node simulations, npm package dry-run, all twelve POSIX simulations, and package build. Windows passed the same static/Node/npm checks, all twelve PowerShell simulations, and package build. The Windows test also parses the root `install.ps1` bootstrap to catch PowerShell syntax errors.
 
 ## Quality-gate status
 
 | Gate | Status | Evidence and limitation |
 |---|---|---|
-| G1 Structural | VERIFIED (static) | Standard-library validator checks skill metadata, structure, references, links, package metadata, and manifests. The official `skills-ref` validator remains a separate check. |
+| G1 Structural | VERIFIED (static) | Standard-library validator passed 261 checks; the official `skills-ref` validator remains a separate check. |
 | G2 Trigger | VERIFIED (dataset only) | 24 prompts: 12 positive and 12 negative, all in English. Live model activation accuracy is NOT VERIFIED. |
 | G3 Behavior | VERIFIED (scenario design) | Ten scenarios with objective rubrics and separate fixtures. Live with/without-skill model comparison is NOT VERIFIED. |
-| G4 Installation | VERIFIED (simulations) | Node and POSIX installers tested on Linux; PowerShell installer tested on Windows CI. Native discovery in each host application remains NOT VERIFIED. |
+| G4 Installation | VERIFIED (cross-platform simulations) | Twelve Node and twelve POSIX combinations passed on Linux; twelve PowerShell combinations passed on Windows CI. Native discovery in each host application remains NOT VERIFIED. |
 | G5 Security and license | VERIFIED (static scope) | Selected secret/risky-command checks and MIT license are included. This is not a full security audit. |
 | G6 Documentation | VERIFIED (static) | Repository docs, skill instructions, prompts, templates, and installer messages are English-only. |
-| G7 Consistency | VERIFIED (static + remote tree + CI) | Local validation, package checks, GitHub tree readback, and cross-platform CI are recorded in the repository. |
+| G7 Consistency | VERIFIED (static + remote tree + CI) | Validator, npm package checks, GitHub tree readback, and cross-platform CI passed. |
 
 ## Remaining verification
 
-The current build environment has Node 22, npm 10, Python 3.13, Git, and Linux x86-64. A local PowerShell runtime, `skills-ref`, and the native Claude Code, Codex, Cursor, Gemini CLI, and Copilot runtimes are not installed. Windows PowerShell behavior is covered by the GitHub-hosted Windows runner. See `docs/RESEARCH-TODO.md` for exact next steps.
+The current build environment has Node 22, npm 10, Python 3.13, Git, and Linux x86-64. A local PowerShell runtime, `skills-ref`, and the native Claude Code, Codex, Cursor, Gemini CLI, and Copilot runtimes are not installed. The root PowerShell bootstrap was syntax-parsed by the Windows runner, and the legacy PowerShell installer completed its full simulation matrix there. See `docs/RESEARCH-TODO.md` for remaining native product/runtime checks.
 
 ## Maintenance rules
 
