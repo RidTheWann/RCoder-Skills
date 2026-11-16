@@ -1,85 +1,128 @@
-# RCoder handoff / serah-terima
+# RCoder project handoff
 
-## English
+## Delivered
 
-### Delivered
-`skills/rcoder/` is the canonical portable Agent Skill. It contains the router, twelve core engineering experts plus a domain-extension guide, read-only stack detection, six authoring templates, and optional OpenAI UI metadata. The repository includes POSIX/PowerShell installers, Claude plugin manifest, root portable Agent Plugins manifest plus Codex compatibility fallback, 24 trigger prompts, 10 behavioral scenarios, static validation, Linux/Windows CI, and a reproducible ZIP builder.
+`skills/rcoder/` is the canonical portable Agent Skill. It contains one workflow router, twelve core engineering expert modules plus a domain-extension guide, a read-only stack detector, six authoring templates, and optional OpenAI UI metadata. The repository also includes:
 
-**GitHub publication: VERIFIED.** The GitHub connector created and read back the source files on `main`. The verified tree contains 60 files, including all 13 reference modules, six templates, ten scenario files, installers, tests, docs, manifests, and CI. See commit history: https://github.com/RidTheWann/RCoder-Skills/commits/main. The latest verified CI run passed on both Ubuntu and Windows after the portable manifest/package changes: https://github.com/RidTheWann/RCoder-Skills/actions/runs/43868447283.
+- A Node.js/npm installer exposed as the `rcoder` binary.
+- A PowerShell bootstrap callable through `irm`.
+- Legacy offline POSIX and PowerShell installers retained for local development and CI testing.
+- A Claude Code plugin manifest, a portable root Agent Plugins manifest, and a Codex compatibility fallback.
+- 24 English-only trigger prompts and ten behavioral scenarios with objective rubrics.
+- A standard-library static validator, cross-platform CI, and a reproducible package builder.
 
-Generated ZIP files and `SHA256SUMS` are build artifacts and are intentionally not tracked in Git; generate them locally with `python3 scripts/package`. They were built and checksum-verified in the original Linux workspace.
+Repository: https://github.com/RidTheWann/RCoder-Skills
 
-### Fastest install
-```sh
-bash scripts/install.sh --target agents --scope project
-bash scripts/install.sh --target agents --scope user
-```
-Windows:
+## Fastest installation
+
+### PowerShell
+
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Target agents -Scope project
+irm https://raw.githubusercontent.com/RidTheWann/RCoder-Skills/main/install.ps1 | iex
 ```
 
-### Native target commands (POSIX, project scope)
+Default: install to `.agents/skills/rcoder` in the current project.
+
+Select a target or scope:
+
+```powershell
+& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/RidTheWann/RCoder-Skills/main/install.ps1'))) -Target codex -Scope user
+```
+
+### Node.js/npm
+
 ```sh
-bash scripts/install.sh --target claude-code --scope project
-bash scripts/install.sh --target codex --scope project
-bash scripts/install.sh --target cursor --scope project
-bash scripts/install.sh --target gemini-cli --scope project
-bash scripts/install.sh --target copilot --scope project
-bash scripts/install.sh --target agents --scope project
+npx -y github:RidTheWann/RCoder-Skills
 ```
-Replace scope with `user` for home install. Installer has `--dry-run`, `--uninstall`, and explicit path overrides. It backs up existing RCoder before replacement; uninstall preserves active files and restores the latest pre-install backup when available. Identical install is a no-op.
 
-### Claude plugin commands
+Target-specific example:
+
 ```sh
-claude plugin validate . --strict
-claude --plugin-dir .
-claude plugin marketplace add https://github.com/RidTheWann/RCoder-Skills
-claude plugin install rcoder@rcoder-skills
-claude plugin list
+npx -y github:RidTheWann/RCoder-Skills --target claude-code --scope project
 ```
-Marketplace flow is documented but native CLI installation remains NOT VERIFIED. Native `.claude/skills` install is the fallback.
 
-### Codex adapter and packages
-Codex native discovery uses `.agents/skills/` or `~/.agents/skills/`; `agents/openai.yaml` supplies optional UI metadata. The root `plugin.json` is the portable Agent Plugins manifest with an OpenAI extension and onboarding skill; `.codex-plugin/plugin.json` remains a compatibility fallback. Run `python3 scripts/package` to create:
-- `dist/rcoder-v1.0.0.skill.zip`
-- `dist/rcoder-v1.0.0.claude-plugin.zip`
-- `dist/rcoder-v1.0.0.agent-plugin.zip` (portable root manifest)
-- `dist/rcoder-v1.0.0.codex-plugin.zip` (root manifest plus legacy Codex fallback)
-- `dist/rcoder-v1.0.0-source.zip`
+Node requirements: 18.18+, npm, and Git. The npm GitHub package spec retrieves the repository without publishing `rcoder` to the npm registry.
+
+## Target and scope mapping
+
+| Target | Project location | User location |
+|---|---|---|
+| Claude Code | `.claude/skills/rcoder` | `~/.claude/skills/rcoder` |
+| Codex | `.agents/skills/rcoder` | `~/.agents/skills/rcoder` |
+| Cursor | `.cursor/skills/rcoder` | `~/.cursor/skills/rcoder` |
+| Gemini CLI | `.gemini/skills/rcoder` | `~/.gemini/skills/rcoder` |
+| GitHub Copilot | `.github/skills/rcoder` | `~/.copilot/skills/rcoder` |
+| Generic Agent Skills | `.agents/skills/rcoder` | `~/.agents/skills/rcoder` |
+
+Targets: `claude-code`, `codex`, `cursor`, `gemini-cli`, `copilot`, `agents`. Scopes: `project`, `user`.
+
+## Uninstall and safety
+
+Node.js:
+
+```sh
+npx -y github:RidTheWann/RCoder-Skills --uninstall
+```
+
+PowerShell:
+
+```powershell
+& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/RidTheWann/RCoder-Skills/main/install.ps1'))) -Uninstall
+```
+
+Both installers are idempotent, support dry-run, preserve an existing installation before replacement, and restore the latest backup during uninstall. The PowerShell bootstrap downloads the repository archive over HTTPS into a temporary directory and removes it after installation. Review `install.ps1` before using the `irm` one-liner in environments that require manual script approval.
+
+## Package commands
+
+Build distributable archives locally:
+
+```sh
+python3 scripts/package
+```
+
+The builder creates:
+
+- `dist/rcoder-v1.1.0.skill.zip`
+- `dist/rcoder-v1.1.0.claude-plugin.zip`
+- `dist/rcoder-v1.1.0.agent-plugin.zip`
+- `dist/rcoder-v1.1.0.codex-plugin.zip`
+- `dist/rcoder-v1.1.0-source.zip`
 - `dist/SHA256SUMS`
 
-### Extend and maintain
-Copy `skills/rcoder/assets/templates/expert-module-template.md` to `skills/rcoder/references/`, keep modules ≤300 lines, add a router signal and evaluation case, then run:
+Generated ZIP files and checksums are build artifacts and are not tracked in Git.
+
+## Development and validation
+
 ```sh
 python3 scripts/validate-all
+node scripts/test-node-installer.mjs
+npm pack --dry-run --json
 bash scripts/test-installers.sh
 python3 scripts/package
 ```
-When a host changes its path/manifest, update both installer scripts, target tests, README, installation matrix, research log, and decisions. Synchronize SemVer across `CHANGELOG.md`, plugin manifests, and `scripts/package`.
 
-### Gate status
-| Gate | Status | Meaning |
+The PowerShell installer tests run on the Windows GitHub Actions runner. The Windows test suite covers all six targets and both scopes, including dry-run, backup, idempotent repeat, uninstall, and backup restoration.
+
+## Quality-gate status
+
+| Gate | Status | Evidence and limitation |
 |---|---|---|
-| G1 | VERIFIED (static) | Custom stdlib validator passed 236 local checks; official `skills-ref` not installed. |
-| G2 | VERIFIED (dataset only) | 24 prompts / 12 positive / 12 negative balanced across EN/ID; live model trigger not verified. |
-| G3 | VERIFIED (scenario design) | 10 objective scenarios with separate files; live with/without-skill comparison not verified. |
-| G4 | VERIFIED (POSIX + PowerShell simulations) | Twelve target/scope combinations passed on Linux and twelve on Windows; native app discovery remains NOT VERIFIED. |
-| G5 | VERIFIED (static scope) | Selected secret/risky-command checks and MIT; not a complete security audit. |
-| G6 | VERIFIED (static) | Bilingual docs, quick start, target install, extension/maintenance steps. |
-| G7 | VERIFIED (local static + remote tree + CI) | 236 checks locally; GitHub readback confirms 60 source files; latest Linux/Windows CI passed. |
+| G1 Structural | VERIFIED (static) | Standard-library validator checks skill metadata, structure, references, links, package metadata, and manifests. The official `skills-ref` validator remains a separate check. |
+| G2 Trigger | VERIFIED (dataset only) | 24 prompts: 12 positive and 12 negative, all in English. Live model activation accuracy is NOT VERIFIED. |
+| G3 Behavior | VERIFIED (scenario design) | Ten scenarios with objective rubrics and separate fixtures. Live with/without-skill model comparison is NOT VERIFIED. |
+| G4 Installation | VERIFIED (simulations) | Node and POSIX installers tested on Linux; PowerShell installer tested on Windows CI. Native discovery in each host application remains NOT VERIFIED. |
+| G5 Security and license | VERIFIED (static scope) | Selected secret/risky-command checks and MIT license are included. This is not a full security audit. |
+| G6 Documentation | VERIFIED (static) | Repository docs, skill instructions, prompts, templates, and installer messages are English-only. |
+| G7 Consistency | VERIFIED (static + remote tree + CI) | Local validation, package checks, GitHub tree readback, and cross-platform CI are recorded in the repository. |
 
-### Limitations
-Build environment: Linux x86-64, Python 3.13, Node 22, Git 2.47; no local PowerShell, `skills-ref`, Claude/Codex/Cursor/Gemini/Copilot CLI, or model runtime. Windows PowerShell simulation was verified by GitHub-hosted Windows CI. The latest Linux/Windows Actions run is green. Stack detection is heuristic. See `docs/RESEARCH-TODO.md`.
+## Remaining verification
 
-## Bahasa Indonesia
+The current build environment has Node 22, npm 10, Python 3.13, Git, and Linux x86-64. A local PowerShell runtime, `skills-ref`, and the native Claude Code, Codex, Cursor, Gemini CLI, and Copilot runtimes are not installed. Windows PowerShell behavior is covered by the GitHub-hosted Windows runner. See `docs/RESEARCH-TODO.md` for exact next steps.
 
-RCoder adalah skill engineering portabel dengan router inti, 12 modul ahli utama + panduan ekstensi domain, stack detector read-only, enam template, installer shell/PowerShell, manifest Claude dan portable Agent Plugins (dengan fallback Codex), 24 prompt pemicu seimbang EN/ID, 10 skenario perilaku, validator statis, CI Linux/Windows, dan pembuat paket ZIP.
+## Maintenance rules
 
-**Publikasi GitHub: VERIFIED.** File source berhasil ditulis dan dibaca ulang dari branch `main`. Tree remote berisi 60 file: seluruh 13 modul referensi, enam template, sepuluh skenario, installer, test harness, dokumentasi, manifest, serta workflow CI. [Lihat repository](https://github.com/RidTheWann/RCoder-Skills).
-
-**Instalasi tercepat:** dari root repo jalankan `bash scripts/install.sh --target agents --scope project`. Untuk instalasi personal gunakan `--scope user`. Target lain: `claude-code`, `codex`, `cursor`, `gemini-cli`, dan `copilot`.
-
-**Status gerbang:** G1 VERIFIED statis (236 pemeriksaan lokal); G2 dataset saja; G3 desain/rubrik skenario; G4 POSIX dan PowerShell (masing-masing 12 kombinasi); G5 scan terbatas + lisensi MIT; G6–G7 dokumentasi dan konsistensi lokal plus readback 60 file remote serta CI Linux/Windows hijau. Belum diverifikasi live: `skills-ref`, PowerShell runtime, discovery enam aplikasi, Claude marketplace install, Codex plugin runtime, import ZIP UI, ablation model dengan/tanpa RCoder, dan hasil workflow runner GitHub.
-
-**Paket ZIP:** arsip ZIP dan checksum dibuat secara lokal oleh `python3 scripts/package`, diverifikasi checksum-nya, dan tidak dimasukkan ke Git agar repo tetap berisi source. Jalankan perintah tersebut setelah clone untuk membangunnya kembali.
+1. Keep all repository-managed text in English.
+2. Update both the Node CLI and PowerShell bootstrap when target paths or backup behavior changes.
+3. Keep project/user mappings synchronized in installers, tests, README, and this handoff.
+4. Keep package/plugin/skill versions and the changelog synchronized.
+5. Re-run all development checks and inspect the newest Linux and Windows CI results before release.
