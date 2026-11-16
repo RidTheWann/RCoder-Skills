@@ -14,7 +14,9 @@ Version 1.2.0 adds:
 - 42 trigger prompts and 14 behavioral evaluation scenarios.
 
 Repository: https://github.com/RidTheWann/RCoder-Skills
-Feature branch: `feat/agent-cli-launcher-1.2.0`
+Main branch: `main`  
+Merged PR: [#1](https://github.com/RidTheWann/RCoder-Skills/pull/1)  
+Merge commit: `7f7c88f2fce5b8b2754d9cc10c65cca69a23f5ed`
 
 ## Installation
 
@@ -70,7 +72,7 @@ Reverse-engineering references cover executable/binary analysis, evidence-led se
 
 ## Validation
 
-**CI status: PASS.** GitHub Actions run [43937693813](https://github.com/RidTheWann/RCoder-Skills/actions/runs/43937693813) completed successfully on both Linux and Windows for commit `a19eed4f466d2231779a2c230a364ff773ad4554`.
+**CI status: PASS.** The pre-merge PR matrix passed, and post-merge GitHub Actions run [43940645566](https://github.com/RidTheWann/RCoder-Skills/actions/runs/43940645566) completed successfully on both Linux and Windows for the exact `main` merge commit `7f7c88f2fce5b8b2754d9cc10c65cca69a23f5ed`.
 
 The run verified 644 static checks, context-snapshot regression, Node syntax, 40 Node target/scope cases per OS, launcher and interactive-menu behavior, npm package dry-run, 40 POSIX target/scope cases, 40 Windows PowerShell target/scope cases on both PowerShell 5.1 and 7, and reproducible skill/plugin/source package builds.
 
