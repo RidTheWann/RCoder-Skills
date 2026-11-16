@@ -1,39 +1,39 @@
 # RCoder build progress — 2026-11-16
 
 ## Phases
-- [x] Phase 0 — Recon/research: target GitHub repository confirmed empty before work; Linux x86-64, Python 3.13, Node 22, and Git 2.47 inspected; official format and target-path documentation reviewed.
-- [x] Phase 1 — Design: architecture and nine decisions recorded.
-- [x] Phase 2 — Vertical slice: portable router, twelve core expert modules, extension guide, read-only stack detector, and six templates.
-- [x] Phase 3 — Installers/adapters: POSIX + PowerShell installers, six targets, project/user scopes, Claude plugin manifest plus portable Agent Plugins manifest with Codex compatibility fallback, and AGENTS/CLAUDE bootstrap files.
-- [x] Phase 4 — Evaluation: 24 trigger prompts and ten scenario rubrics with separate scenario files; live-model gaps recorded.
-- [x] Phase 5 — Documentation/package: bilingual README and handoff, MIT license, SemVer changelog, static validator, pinned CI, and ZIP package builder.
-- [x] Phase 6 — Handoff/publication: local source and generated archives verified; GitHub main branch populated and remote tree read back.
+- [x] Phase 0 — Recon/research: repository and build environment inspected; official Agent Skills, npm Git package, `npx`, and PowerShell `irm` documentation reviewed.
+- [x] Phase 1 — Design: architecture and ten decisions recorded.
+- [x] Phase 2 — Vertical slice: portable router, twelve expert modules, domain extension guide, read-only stack detector, and six templates.
+- [x] Phase 3 — Installer entry points: Node.js/npm CLI and PowerShell `irm` bootstrap added; offline POSIX and PowerShell helpers retained; six targets and two scopes supported.
+- [x] Phase 4 — Evaluation: 24 English-only trigger prompts and ten behavioral scenarios with separate rubric/fixture files.
+- [x] Phase 5 — Documentation/package: English-only documentation, MIT license, SemVer changelog, 261-check static validator, pinned CI, and five reproducible ZIP packages.
+- [x] Phase 6 — Handoff/publication: local packages and tests verified; GitHub `main` updated and read back.
 
 ## Local verification evidence
-- `python3 scripts/validate-all` — PASS, 236 checks.
-- `bash scripts/test-installers.sh` — PASS, all 12 POSIX target/scope combinations including dry-run, backup, idempotent repeat, uninstall, and restore.
-- `python3 skills/rcoder/scripts/detect_stack.py . --json` — PASS; read-only output produced.
-- `python3 scripts/package` — PASS; five reproducible ZIP packages and SHA-256 manifest produced; repeated build hashes matched.
-- Extracted `rcoder-v1.0.0-source.zip` into a clean temporary workspace and reran validator plus POSIX installer simulations — PASS.
-- Polyglot fixture detection, ignored-directory behavior, and paths containing spaces — PASS.
-- GitHub Actions run `43868447283` on the portable manifest/package changes — PASS on both `ubuntu-latest` and `windows-latest`; both ran 236-check static validation and their 12 installer simulations, then built packages.
+- `node --check scripts/rcoder.mjs` — PASS.
+- `node scripts/rcoder.mjs --help` — PASS.
+- `node scripts/test-node-installer.mjs` — PASS, all twelve target/scope combinations including dry-run, backup, idempotent repeat, uninstall, and restore.
+- `npm pack --dry-run --json` — PASS; package contains the `rcoder` executable and complete skill folder.
+- `python3 scripts/validate-all` — PASS, 261 checks.
+- `bash scripts/test-installers.sh` — PASS, all twelve POSIX target/scope combinations.
+- `python3 scripts/package` — PASS; five reproducible v1.1.0 archives built.
+- `sha256sum -c dist/SHA256SUMS` — PASS for all five archives.
+- ZIP integrity and internal paths — PASS.
 
 ## Remote publication evidence
 - Repository: `RidTheWann/RCoder-Skills`, branch: `main`.
-- Connector readback: 60 files, including 13 expert references, six templates, ten scenario files, all development scripts, docs, manifests, and workflow.
-- Latest verified source-tree readback: 60 tracked files on `main`; use the repository link for the live commit and tree.
-- Generated dist ZIPs/checksums remain build outputs, not tracked source.
+- The new Node, PowerShell, and English-only changes are being committed now; read back the remote tree and latest CI run before considering remote publication complete.
 
 ## Gates
 | Gate | Status | Evidence / limitation |
 |---|---|---|
-| G1 Structural | VERIFIED (static) | Custom stdlib validator; 236 checks; official `skills-ref` unavailable. |
-| G2 Trigger | VERIFIED (dataset only) | 24 prompts: 12 positive + 12 negative, balanced by EN/ID; actual agent activation NOT VERIFIED. |
-| G3 Behavior | VERIFIED (scenario design) | Ten scenarios with objective rubrics and separate files; live model ablation NOT VERIFIED. |
-| G4 Install | VERIFIED (POSIX + PowerShell simulation) / NOT VERIFIED (native discovery) | Twelve target/scope combinations pass on Linux and twelve on Windows CI; native agent CLIs unavailable. |
-| G5 Security / license | VERIFIED (static scope) | Selected secret/command patterns scanned; MIT license included; not a complete audit. |
-| G6 Documentation | VERIFIED (static) | Bilingual README/HANDOFF, target commands, quick start, extension and maintenance guidance. |
-| G7 Consistency | VERIFIED (static + remote tree + CI) | Local links/JSON/lengths pass; GitHub tree contains all 60 expected source paths; latest Linux/Windows CI is green. |
+| G1 Structural | VERIFIED (local static) | 261 checks; official `skills-ref` validator remains unavailable. |
+| G2 Trigger | VERIFIED (dataset only) | 24 prompts, 12 positive and 12 negative; every prompt is English-only. Live model activation remains NOT VERIFIED. |
+| G3 Behavior | VERIFIED (scenario design) | Ten objective scenarios; live model ablation remains NOT VERIFIED. |
+| G4 Installation | VERIFIED (local Node/POSIX simulation) | Twelve Node and twelve POSIX combinations pass locally; PowerShell bootstrap syntax and Windows compatibility are covered by the next Windows CI run. Native application discovery remains NOT VERIFIED. |
+| G5 Security / license | VERIFIED (static scope) | Selected secret/risky-command checks and MIT license; not a full security audit. |
+| G6 Documentation | VERIFIED (static) | README, handoff, instructions, prompts, templates, and installer messages are English-only. |
+| G7 Consistency | VERIFIED (local) | Versions synchronized, links and manifests validated, and package archives/checksums verified. Remote readback and CI are still required. |
 
-## Remaining external verification
-See `docs/RESEARCH-TODO.md` for product CLI, official validator, PowerShell, live model, ZIP-import UI, and GitHub Actions runner checks.
+## Remaining verification
+The official `skills-ref` validator, native product discovery, live model activation/ablation, and authenticated ZIP-import UI remain external verification tasks.
