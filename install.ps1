@@ -35,11 +35,35 @@ function Test-SameDirectory([string]$Source, [string]$Destination) {
 }
 
 function Assert-NoReparsePoint([string]$Base, [string]$Path) {
-    $relative = [IO.Path]::GetRelativePath($Base, $Path)
-    if ($relative -eq '..' -or $relative.StartsWith("..$([IO.Path]::DirectorySeparatorChar)") -or [IO.Path]::IsPathRooted($relative)) {
-        throw "Refusing to write outside the selected scope: $Path"
+    # GetRelativePath is unavailable in Windows PowerShell 5.1/.NET Framework.
+    # Compare normalized absolute paths instead, using Windows case-insensitive rules.
+    $comparison = [StringComparison]::Ordinal
+    if ([IO.Path]::DirectorySeparatorChar -eq [char]92) {
+        $comparison = [StringComparison]::OrdinalIgnoreCase
     }
-    $current = $Base
+
+    $baseFullPath = [IO.Path]::GetFullPath($Base)
+    $pathFullPath = [IO.Path]::GetFullPath($Path)
+    $baseRoot = [IO.Path]::GetPathRoot($baseFullPath)
+    if ($baseFullPath.Length -gt $baseRoot.Length) {
+        $baseFullPath = $baseFullPath.TrimEnd([char[]]@([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar))
+    }
+
+    if ($pathFullPath.Equals($baseFullPath, $comparison)) {
+        $relative = ''
+    }
+    else {
+        $basePrefix = $baseFullPath
+        if (-not $basePrefix.EndsWith([string][IO.Path]::DirectorySeparatorChar)) {
+            $basePrefix += [IO.Path]::DirectorySeparatorChar
+        }
+        if (-not $pathFullPath.StartsWith($basePrefix, $comparison)) {
+            throw "Refusing to write outside the selected scope: $Path"
+        }
+        $relative = $pathFullPath.Substring($basePrefix.Length)
+    }
+
+    $current = $baseFullPath
     foreach ($segment in ($relative -split '[\\/]+' | Where-Object { $_ })) {
         $current = Join-Path $current $segment
         if (Test-Path -LiteralPath $current) {
