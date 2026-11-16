@@ -1,0 +1,9 @@
+{
+  "name": "rcoder",
+  "description": "A model-agnostic engineering skill for coding, architecture, debugging, QA, security, performance, DevOps, data/API, review, and documentation.",
+  "version": "1.0.0",
+  "author": {
+    "name": "RidTheWann",
+    "url": "https://github.com/RidTheWann"
+  }
+}
