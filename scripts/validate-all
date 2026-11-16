@@ -104,24 +104,3 @@ def main():
  print('NOTE: live model triggering and vendor-native plugin validation are separate gates.')
  return 0
 if __name__=='__main__': raise SystemExit(main())
-,skill_text) is not None,'G7: skill version differs from package metadata')
- except Exception as e: check(False,f'G1: portable plugin validation failed: {e}')
- executables=list((ROOT/'scripts').glob('*'))+[SKILL/'scripts'/'detect_stack.py']
- secrets=[re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'),re.compile(r'\bAKIA[0-9A-Z]{16}\b'),re.compile(r'\bgh[pousr]_[A-Za-z0-9]{20,}\b'),re.compile(r'\bgithub_pat_[A-Za-z0-9_]{20,}\b')]
- unsafe=[re.compile(r'(?i)\b(?:curl|wget)\b[^\n]*\|\s*(?:sh|bash)\b'),re.compile(r'(?i)\bInvoke-Expression\b|\bIEX\s*\('),re.compile(r'(?i)\brm\s+-rf\s+/(?:\s|$)'),re.compile(r'(?i)\bgit\s+push\s+--force\b')]
- for q in executables:
-  if not q.is_file(): continue
-  text=q.read_text(encoding='utf-8',errors='replace')
-  for pattern in secrets: check(not pattern.search(text),f'G5: possible secret pattern in {q.relative_to(ROOT)}')
-  if q.name != 'validate-all':
-   for pattern in unsafe: check(not pattern.search(text),f'G5: unsafe executable pattern in {q.relative_to(ROOT)}')
- for rel in ['LICENSE','docs/HANDOFF.md','README.md','docs/DECISIONS.md','docs/research-log.md','docs/ARCHITECTURE.md','docs/PROGRESS.md']:
-  check((ROOT/rel).is_file(),f'Missing required file {rel}')
- print(f'RCoder validation: {count} checks')
- if errors:
-  for e in errors: print('FAIL:',e)
-  print(f'FAILED: {len(errors)} issue(s)'); return 1
- print('PASS: structural, trigger-count, scenario, link, manifest, and selected security checks')
- print('NOTE: live model triggering and vendor-native plugin validation are separate gates.')
- return 0
-if __name__=='__main__': raise SystemExit(main())
