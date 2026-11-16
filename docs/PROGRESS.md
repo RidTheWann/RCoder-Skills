@@ -2,7 +2,7 @@
 
 ## Phases
 - [x] Phase 0 — Recon/research: target GitHub repository confirmed empty before work; Linux x86-64, Python 3.13, Node 22, and Git 2.47 inspected; official format and target-path documentation reviewed.
-- [x] Phase 1 — Design: architecture and eight decisions recorded.
+- [x] Phase 1 — Design: architecture and nine decisions recorded.
 - [x] Phase 2 — Vertical slice: portable router, twelve core expert modules, extension guide, read-only stack detector, and six templates.
 - [x] Phase 3 — Installers/adapters: POSIX + PowerShell installers, six targets, project/user scopes, Claude/Codex adapters, and AGENTS/CLAUDE bootstrap files.
 - [x] Phase 4 — Evaluation: 24 trigger prompts and ten scenario rubrics with separate scenario files; live-model gaps recorded.
@@ -20,7 +20,7 @@
 
 ## Remote publication evidence
 - Repository: `RidTheWann/RCoder-Skills`, branch: `main`.
-- Connector readback: 59 files, including 13 expert references, six templates, ten scenario files, all development scripts, docs, manifests, and workflow.
+- Connector readback: 60 files, including 13 expert references, six templates, ten scenario files, all development scripts, docs, manifests, and workflow.
 - Latest verified tree SHA before this documentation refresh: `bdd8e525bfd9c59e7d4739eacf6e3e7680980597`.
 - Generated dist ZIPs/checksums remain build outputs, not tracked source.
 
@@ -33,7 +33,7 @@
 | G4 Install | VERIFIED (POSIX + PowerShell simulation) / NOT VERIFIED (native discovery) | Twelve target/scope combinations pass on Linux and twelve on Windows CI; native agent CLIs unavailable. |
 | G5 Security / license | VERIFIED (static scope) | Selected secret/command patterns scanned; MIT license included; not a complete audit. |
 | G6 Documentation | VERIFIED (static) | Bilingual README/HANDOFF, target commands, quick start, extension and maintenance guidance. |
-| G7 Consistency | VERIFIED (static + remote tree + CI) | Local links/JSON/lengths pass; GitHub tree contains all 59 expected source paths; latest Linux/Windows CI is green. |
+| G7 Consistency | VERIFIED (static + remote tree + CI) | Local links/JSON/lengths pass; GitHub tree contains all 60 expected source paths; latest Linux/Windows CI is green. |
 
 ## Remaining external verification
 See `docs/RESEARCH-TODO.md` for product CLI, official validator, PowerShell, live model, ZIP-import UI, and GitHub Actions runner checks.
