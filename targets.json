@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "targets": [
+    {
+      "id": "claude-code",
+      "label": "Claude Code",
+      "project_root": ".claude",
+      "user_root": ".claude"
+    },
+    {
+      "id": "codex",
+      "label": "OpenAI Codex CLI",
+      "project_root": ".agents",
+      "user_root": ".agents"
+    },
+    {
+      "id": "cursor",
+      "label": "Cursor",
+      "project_root": ".cursor",
+      "user_root": ".cursor"
+    },
+    {
+      "id": "gemini-cli",
+      "label": "Gemini CLI",
+      "project_root": ".gemini",
+      "user_root": ".gemini"
+    },
+    {
+      "id": "copilot",
+      "label": "GitHub Copilot",
+      "project_root": ".github",
+      "user_root": ".copilot"
+    },
+    {
+      "id": "agents",
+      "label": "Generic Agent Skills",
+      "project_root": ".agents",
+      "user_root": ".agents"
+    },
+    {
+      "id": "qoder",
+      "label": "Qoder CLI / IDE",
+      "project_root": ".qoder",
+      "user_root": ".qoder"
+    },
+    {
+      "id": "opencode",
+      "label": "OpenCode",
+      "project_root": ".opencode",
+      "user_root": ".config/opencode"
+    },
+    {
+      "id": "antigravity",
+      "label": "Google Antigravity",
+      "project_root": ".agents",
+      "user_root": ".gemini/config"
+    },
+    {
+      "id": "amp",
+      "label": "Amp CLI",
+      "project_root": ".agents",
+      "user_root": ".config/agents"
+    },
+    {
+      "id": "zed",
+      "label": "Zed Agent",
+      "project_root": ".agents",
+      "user_root": ".agents"
+    },
+    {
+      "id": "pi",
+      "label": "Pi Coding Agent",
+      "project_root": ".pi",
+      "user_root": ".pi/agent"
+    },
+    {
+      "id": "openclaw",
+      "label": "OpenClaw",
+      "project_root": ".agents",
+      "user_root": ".agents"
+    },
+    {
+      "id": "autohand",
+      "label": "Autohand Code CLI",
+      "project_root": ".autohand",
+      "user_root": ".autohand"
+    },
+    {
+      "id": "warp",
+      "label": "Warp Agent",
+      "project_root": ".warp",
+      "user_root": ".warp"
+    },
+    {
+      "id": "kilocode",
+      "label": "Kilo Code",
+      "project_root": ".kilo",
+      "user_root": ".kilo"
+    },
+    {
+      "id": "cline",
+      "label": "Cline",
+      "project_root": ".cline",
+      "user_root": ".cline"
+    },
+    {
+      "id": "roo-code",
+      "label": "Roo Code",
+      "project_root": ".roo",
+      "user_root": ".roo"
+    },
+    {
+      "id": "trae",
+      "label": "TRAE",
+      "project_root": ".trae",
+      "user_root": ".trae"
+    },
+    {
+      "id": "factory",
+      "label": "Factory Droid",
+      "project_root": ".factory",
+      "user_root": ".factory"
+    }
+  ]
+}

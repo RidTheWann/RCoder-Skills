@@ -1,12 +1,156 @@
 [
-  {"id":"s01-debug-regression","title":"Failing parser regression","prompt":"A parser test fails only for a quoted escape sequence. Reproduce, minimize, compare hypotheses, fix root cause, and add a regression test.","rubric":["Baseline failure is reproduced and exact command/output recorded.","At least two hypotheses are distinguished with evidence.","Regression test fails before and passes after the fix.","Patch addresses root cause and adjacent parser behavior is checked."]},
-  {"id":"s02-ambiguous-feature","title":"Ambiguous feature request","prompt":"Add a bulk export feature with sparse requirements. Infer a safe first slice, state assumptions, inspect existing patterns, and avoid inventing product policy.","rubric":["Assumptions and non-goals are explicit.","Existing export implementation and repo conventions are inspected.","Implementation is bounded and reversible.","Success, invalid input, and failure behavior are tested."]},
-  {"id":"s03-architecture-choice","title":"Architecture choice and ADR","prompt":"A growing service needs background processing. Compare at least two designs, identify quality attributes and failure modes, and write an ADR before implementation.","rubric":["Requirements, constraints, and quality attributes are ranked.","At least two options have trade-offs.","ADR records decision and consequences.","Failure modes, contracts, and evolution path are described."]},
-  {"id":"s04-ui-ux-audit","title":"UI critique","prompt":"Audit a settings flow missing empty/error states and with poor keyboard focus. Propose fixes and check WCAG 2.2 AA.","rubric":["User goal and primary flow are identified.","Empty/loading/success/error/disabled states are considered.","Keyboard, focus, semantics, contrast, labels, and targets are assessed.","Responsive behavior and existing design-system consistency are checked."]},
-  {"id":"s05-performance-bottleneck","title":"Measured performance bottleneck","prompt":"The dashboard is slow. Establish baseline, profile actual bottleneck, change only the proven hotspot, and compare results.","rubric":["Workload, environment, metric, and budget are recorded.","Profiler/benchmark identifies dominant cost.","Change targets measurement evidence.","Before/after measurements use same workload/settings."]},
-  {"id":"s06-security-review","title":"Security review","prompt":"Review an upload API accepting file paths and URLs. Threat-model boundaries, inspect dangerous sinks, and provide evidence-backed findings/tests.","rubric":["Assets, actors, entry points, and trust boundaries are identified.","Path traversal, SSRF, validation, authorization, and sensitive logging are considered.","Findings state trigger, impact, severity, and evidence.","Mitigations and negative tests address the actual boundary."]},
-  {"id":"s07-safe-refactor","title":"Behavior-preserving refactor","prompt":"Refactor duplicated billing calculation while preserving all externally visible behavior.","rubric":["Baseline behavior and tests are captured.","Invariant to preserve is stated.","Refactor is scoped and avoids unrelated upgrades.","Tests cover edge cases and public behavior."]},
-  {"id":"s08-polyglot-repo","title":"Polyglot monorepo reconnaissance","prompt":"A repo contains Rust service, TypeScript frontend, Python jobs. Map package manifests and real quality commands before changing a shared API.","rubric":["Stack detector is run or limitation is stated.","Each package manifest and quality entry point is inspected.","Shared API consumers/generated clients are identified.","Package-specific commands are verified before use."]},
-  {"id":"s09-ci-hardening","title":"CI permissions and deployment","prompt":"Harden CI that builds pull requests and deploys from main. Review permissions, fork execution, pinning, artifacts, and rollback.","rubric":["Workflow events and trust boundaries are mapped.","Permissions and secrets follow least privilege.","Untrusted PR code cannot access deploy credentials.","Deployment gates and rollback are described."]},
-  {"id":"s10-api-migration","title":"Backward-compatible API migration","prompt":"Add a required API field backed by a database column while older app versions remain deployed.","rubric":["Consumers, invariants, and old/new versions are identified.","Expand/migrate/contract or equivalent staged strategy is described.","Backfill, idempotency, partial failure, and rollback are bounded.","Contract and migration tests cover compatibility/invalid values."]}
+  {
+    "id": "s01-debug-regression",
+    "title": "Failing parser regression",
+    "prompt": "A parser test fails only for a quoted escape sequence. Reproduce, minimize, compare hypotheses, fix root cause, and add a regression test.",
+    "rubric": [
+      "Baseline failure is reproduced and exact command/output recorded.",
+      "At least two hypotheses are distinguished with evidence.",
+      "Regression test fails before and passes after the fix.",
+      "Patch addresses root cause and adjacent parser behavior is checked."
+    ]
+  },
+  {
+    "id": "s02-ambiguous-feature",
+    "title": "Ambiguous feature request",
+    "prompt": "Add a bulk export feature with sparse requirements. Infer a safe first slice, state assumptions, inspect existing patterns, and avoid inventing product policy.",
+    "rubric": [
+      "Assumptions and non-goals are explicit.",
+      "Existing export implementation and repo conventions are inspected.",
+      "Implementation is bounded and reversible.",
+      "Success, invalid input, and failure behavior are tested."
+    ]
+  },
+  {
+    "id": "s03-architecture-choice",
+    "title": "Architecture choice and ADR",
+    "prompt": "A growing service needs background processing. Compare at least two designs, identify quality attributes and failure modes, and write an ADR before implementation.",
+    "rubric": [
+      "Requirements, constraints, and quality attributes are ranked.",
+      "At least two options have trade-offs.",
+      "ADR records decision and consequences.",
+      "Failure modes, contracts, and evolution path are described."
+    ]
+  },
+  {
+    "id": "s04-ui-ux-audit",
+    "title": "UI critique",
+    "prompt": "Audit a settings flow missing empty/error states and with poor keyboard focus. Propose fixes and check WCAG 2.2 AA.",
+    "rubric": [
+      "User goal and primary flow are identified.",
+      "Empty/loading/success/error/disabled states are considered.",
+      "Keyboard, focus, semantics, contrast, labels, and targets are assessed.",
+      "Responsive behavior and existing design-system consistency are checked."
+    ]
+  },
+  {
+    "id": "s05-performance-bottleneck",
+    "title": "Measured performance bottleneck",
+    "prompt": "The dashboard is slow. Establish baseline, profile actual bottleneck, change only the proven hotspot, and compare results.",
+    "rubric": [
+      "Workload, environment, metric, and budget are recorded.",
+      "Profiler/benchmark identifies dominant cost.",
+      "Change targets measurement evidence.",
+      "Before/after measurements use same workload/settings."
+    ]
+  },
+  {
+    "id": "s06-security-review",
+    "title": "Security review",
+    "prompt": "Review an upload API accepting file paths and URLs. Threat-model boundaries, inspect dangerous sinks, and provide evidence-backed findings/tests.",
+    "rubric": [
+      "Assets, actors, entry points, and trust boundaries are identified.",
+      "Path traversal, SSRF, validation, authorization, and sensitive logging are considered.",
+      "Findings state trigger, impact, severity, and evidence.",
+      "Mitigations and negative tests address the actual boundary."
+    ]
+  },
+  {
+    "id": "s07-safe-refactor",
+    "title": "Behavior-preserving refactor",
+    "prompt": "Refactor duplicated billing calculation while preserving all externally visible behavior.",
+    "rubric": [
+      "Baseline behavior and tests are captured.",
+      "Invariant to preserve is stated.",
+      "Refactor is scoped and avoids unrelated upgrades.",
+      "Tests cover edge cases and public behavior."
+    ]
+  },
+  {
+    "id": "s08-polyglot-repo",
+    "title": "Polyglot monorepo reconnaissance",
+    "prompt": "A repo contains Rust service, TypeScript frontend, Python jobs. Map package manifests and real quality commands before changing a shared API.",
+    "rubric": [
+      "Stack detector is run or limitation is stated.",
+      "Each package manifest and quality entry point is inspected.",
+      "Shared API consumers/generated clients are identified.",
+      "Package-specific commands are verified before use."
+    ]
+  },
+  {
+    "id": "s09-ci-hardening",
+    "title": "CI permissions and deployment",
+    "prompt": "Harden CI that builds pull requests and deploys from main. Review permissions, fork execution, pinning, artifacts, and rollback.",
+    "rubric": [
+      "Workflow events and trust boundaries are mapped.",
+      "Permissions and secrets follow least privilege.",
+      "Untrusted PR code cannot access deploy credentials.",
+      "Deployment gates and rollback are described."
+    ]
+  },
+  {
+    "id": "s10-api-migration",
+    "title": "Backward-compatible API migration",
+    "prompt": "Add a required API field backed by a database column while older app versions remain deployed.",
+    "rubric": [
+      "Consumers, invariants, and old/new versions are identified.",
+      "Expand/migrate/contract or equivalent staged strategy is described.",
+      "Backfill, idempotency, partial failure, and rollback are bounded.",
+      "Contract and migration tests cover compatibility/invalid values."
+    ]
+  },
+  {
+    "id": "s11-reverse-engineering",
+    "title": "Evidence-led reverse engineering",
+    "prompt": "Analyze an authorized binary whose function behavior is undocumented. Preserve provenance, establish architecture, form a hypothesis from static evidence, validate with isolated traces, and write a minimal differential test.",
+    "rubric": [
+      "Authorization, artifact hash, architecture, and tool versions are recorded.",
+      "Static observations, dynamic observations, and hypotheses are clearly separated.",
+      "Register/memory/ABI effects are validated against independent evidence or a reference.",
+      "Confirmed behavior is encoded in a minimal regression/differential test; unknown semantics remain explicitly unresolved."
+    ]
+  },
+  {
+    "id": "s12-authorized-security-assessment",
+    "title": "Scoped security assessment",
+    "prompt": "Review an owned staging API using a written scope. Map trust boundaries, validate likely access-control and input-handling risks with non-destructive synthetic data, and write a prioritized report.",
+    "rubric": [
+      "Written scope, exclusions, rate limits, and stop conditions are followed.",
+      "Threat model covers assets, identities, trust boundaries, and abuse cases.",
+      "Findings include location, reachability, impact, confidence, and reproducible evidence.",
+      "Remediation includes root-cause fixes and negative regression tests; out-of-scope activity is avoided."
+    ]
+  },
+  {
+    "id": "s13-token-efficient-repository-task",
+    "title": "Token-efficient engineering in a large repository",
+    "prompt": "Implement a small API change in a large monorepo while minimizing context and tool overhead. Use a bounded repository snapshot, inspect only relevant files, record evidence, and verify the change proportionately.",
+    "rubric": [
+      "Repository snapshot is metadata-only and bounded; source contents are read only when relevant.",
+      "Only directly relevant modules, source ranges, and test outputs are loaded.",
+      "Tool reads are deduplicated and the state ledger/context capsule is current.",
+      "Acceptance criteria, regression tests, and security constraints are preserved despite context optimization."
+    ]
+  },
+  {
+    "id": "s14-polyglot-api-compatibility",
+    "title": "Polyglot API compatibility change",
+    "prompt": "A monorepo contains a Kotlin mobile app, a Go API, a TypeScript web client, and a Python worker. Evolve a shared event schema without breaking old producers or consumers.",
+    "rubric": [
+      "Each runtime/toolchain and its package quality commands are evidenced.",
+      "Producer/consumer contracts and old/new deployment combinations are mapped.",
+      "Schema evolution preserves unknown fields or has explicit compatibility behavior.",
+      "Contract/integration tests cover each language client and migration stage."
+    ]
+  }
 ]

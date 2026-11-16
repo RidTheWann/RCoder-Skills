@@ -23,7 +23,11 @@ jobs:
           python-version: '3.13'
       - name: Static validation
         run: python scripts/validate-all
-      - name: Node installer simulations
+      - name: Context snapshot regression
+        run: python scripts/test-context-snapshot.py
+      - name: Node syntax check
+        run: node --check scripts/rcoder.mjs
+      - name: Node installer and terminal launcher simulations
         run: node scripts/test-node-installer.mjs
       - name: Verify npm package contents
         run: npm pack --dry-run --json
@@ -31,13 +35,13 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: bash scripts/test-installers.sh
-      - name: Windows PowerShell 5.1 compatibility and installer simulations
+      - name: Windows PowerShell 5.1 parser and installer simulations
         if: runner.os == 'Windows'
         shell: powershell
         run: ./scripts/test-installers.ps1
-      - name: PowerShell 7 compatibility and installer simulations
+      - name: PowerShell 7 parser and installer simulations
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./scripts/test-installers.ps1
-      - name: Build packages
+      - name: Build reproducible packages
         run: python scripts/package

@@ -1,33 +1,71 @@
 # RCoder architecture
 
 ## Product boundary
-RCoder is an instruction package, not a runtime, model, sandbox, or permission system. It coordinates only capabilities exposed by the host agent.
+
+RCoder is a portable Agent Skill package and installer/terminal manager. It is not a model, runtime, sandbox, permission system, or guarantee that a host model will select a skill. It coordinates only capabilities exposed by the active host.
 
 ## Layers
-1. **Discovery:** `skills/rcoder/SKILL.md` frontmatter supplies compact activation metadata.
+
+1. **Discovery and activation:** compact `skills/rcoder/SKILL.md` metadata supplies task-routing information.
 2. **Core protocol:** instruction precedence and Intake → Recon → Plan → Implement → Verify → Report.
-3. **Experts:** focused `references/*.md` with decision procedures, checks, anti-patterns, verification, and output format; links are one level deep.
-4. **Deterministic helper:** `scripts/detect_stack.py` is read-only and has no network calls.
-5. **Extension:** reusable templates under `assets/templates/`; project-specific rules under `.rcoder/`.
-6. **Adapters/distribution:** AGENTS/CLAUDE bootstrap files, Claude manifest, portable root Agent Plugins manifest plus Codex compatibility fallback, Node.js/npm CLI and PowerShell `irm` bootstrap, offline installer helpers, and ZIP packages.
+3. **Specialists:** focused references for programming languages, product engineering, cybersecurity, reverse engineering, and token efficiency; load only what is relevant.
+4. **Deterministic helpers:** read-only stack detector and bounded metadata-only context snapshot.
+5. **Extension and templates:** reusable templates under `assets/templates/`; project-specific rules under `.rcoder/`.
+6. **Adapters and distribution:** Claude/Agent Plugin manifests, portable Agent Plugins manifest with Codex compatibility metadata, Node/npm CLI, PowerShell `irm` bootstrap, offline installers, terminal manager, and ZIP packages.
 
 ## Runtime flow
+
 ```text
-Request -> task boundary and instruction precedence -> repo recon -> relevant modules
- -> proportional plan -> smallest correct implementation -> observable verification
- -> adversarial diff review -> evidence-based report
+Request
+  -> task boundary, instruction precedence, and authorization
+  -> repository status and bounded reconnaissance
+  -> select relevant engineering/security/reverse-engineering specialists
+  -> plan with observable acceptance criteria
+  -> implement the smallest correct change
+  -> targeted verification and adversarial diff review
+  -> evidence-based report and context capsule when needed
 ```
 
+## Token and context policy
+
+- Progressive disclosure: load only relevant references; keep the router compact.
+- Bounded snapshots list paths and Git state but do not read source contents.
+- Prefer exact symbol searches, bounded line ranges, focused diffs, and relevant test output.
+- Maintain a compact ledger and context capsule on long tasks.
+- Deduplicate tool calls; parallelize independent read-only work and serialize writes.
+- Delegate only independent tasks with explicit file scopes and acceptance criteria.
+- Never weaken authorization, provenance, regression, or data-integrity checks to reduce tokens.
+
+## Installer and launcher flow
+
+```text
+PowerShell irm bootstrap (Windows) ----+
+                                       +--> canonical skill + targets.json
+Node/npm GitHub package ---------------+
+       -> install selected native skill root
+       -> register global command RCoder
+       -> interactive target/scope/action manager
+```
+
+The PowerShell bootstrap provisions a Windows-native `RCoder.cmd` shim that calls the bundled `launcher/RCoder.ps1`; Node.js is not needed for the Windows `irm` route. The Node/npm installer provisions a POSIX wrapper or Windows shim as appropriate.
+
+## Target registry
+
+`targets.json` records stable target IDs, labels, and Project/User discovery roots. The Node manager and PowerShell terminal manager read it. The PowerShell bootstrap retrieves it from the same HTTPS archive. POSIX and offline PowerShell adapters have explicit path maps, checked by CI.
+
+Multiple selections are deduplicated by resolved destination so hosts sharing a standard discovery root receive one physical copy.
+
 ## Invariants
+
 - User and project instructions outrank RCoder defaults.
-- No model/vendor lock-in in core metadata or workflow.
-- Stack detector is read-only; installers do not fetch remote code.
-- Installation is scoped, reversible, and backed up.
-- Static validation is never described as proof of live behavior.
+- Core skill metadata is portable and vendor-neutral.
+- Canonical skill source is `skills/rcoder/`.
+- Installs are scoped, idempotent, backed up, and reversible.
+- Installers reject symlink/reparse-point traversal in destination paths.
+- Bootstrap downloads are HTTPS-only and temporary; no downloaded second-stage installer is executed.
+- Security testing and dynamic binary analysis require explicit authorization and isolated environments.
+- Static checks do not impersonate native host activation or live model evaluation.
 
-## Distribution and extensions
-`skills/rcoder/` is canonical. Installers copy it to native discovery paths. Plugin manifests reference the same skill folder. Add a specialist with `expert-module-template.md`, update router signal and evals, and keep project-only overrides in `.rcoder/`.
+## Distribution
 
-## Installation entry points
-
-The end-user interface is `npx -y github:RidTheWann/RCoder-Skills` or the root PowerShell bootstrap. Both install the canonical `skills/rcoder/` content. Lower-level POSIX and PowerShell helpers remain available for offline development tests.
+Package version is synchronized across `package.json`, plugin manifests, skill metadata, changelog, and package builder. The npm `files` list includes the target catalog and PowerShell manager required by the global launcher.

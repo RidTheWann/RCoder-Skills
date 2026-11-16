@@ -1,33 +1,30 @@
-# RCoder project handoff
+# RCoder project handoff — v1.2.0
 
 ## Delivered
 
-`skills/rcoder/` is the canonical portable Agent Skill. It contains one workflow router, twelve core engineering expert modules plus a domain-extension guide, a read-only stack detector, six authoring templates, and optional OpenAI UI metadata. The repository also includes:
+RCoder remains one portable Agent Skill with progressive disclosure. The core router selects focused references rather than injecting the entire specialist library into every agent context.
 
-- A Node.js/npm installer exposed as the `rcoder` binary.
-- A PowerShell bootstrap callable through `irm`.
-- Legacy offline POSIX and PowerShell installers retained for local development and CI testing.
-- A Claude Code plugin manifest, a portable root Agent Plugins manifest, and a Codex compatibility fallback.
-- 24 English-only trigger prompts and ten behavioral scenarios with objective rubrics.
-- A standard-library static validator, cross-platform CI, and a reproducible package builder.
+Version 1.2.0 adds:
+- A global terminal manager invoked by typing `RCoder`.
+- Twenty Agentic AI/CLI integrations with Project/User scopes, multi-selection, shared-root deduplication, update, uninstall, backup, and restore.
+- A Windows-native PowerShell launcher installed through the existing `irm` bootstrap; this route does not require Node.js.
+- A Node/npm installer that provisions a global launcher on Node-enabled platforms.
+- Expanded programming-language, systems, platform, cybersecurity, reverse-engineering, and smart-contract specialists.
+- A metadata-only bounded repository snapshot helper and context-capsule template.
+- 42 trigger prompts and 14 behavioral evaluation scenarios.
 
 Repository: https://github.com/RidTheWann/RCoder-Skills
+Feature branch: `feat/agent-cli-launcher-1.2.0`
 
-## Fastest installation
+## Installation
 
-### PowerShell
+### Windows PowerShell
 
 ```powershell
 irm https://raw.githubusercontent.com/RidTheWann/RCoder-Skills/main/install.ps1 | iex
 ```
 
-Default: install to `.agents/skills/rcoder` in the current project.
-
-Select a target or scope:
-
-```powershell
-& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/RidTheWann/RCoder-Skills/main/install.ps1'))) -Target codex -Scope user
-```
+Supports Windows PowerShell 5.1 and PowerShell 7+. It downloads the repository archive over HTTPS, installs the selected skill, registers `%USERPROFILE%\.rcoder\bin` in the user PATH, and creates `RCoder.cmd`. Node.js is not required for this Windows `irm` route.
 
 ### Node.js/npm
 
@@ -35,94 +32,55 @@ Select a target or scope:
 npx -y github:RidTheWann/RCoder-Skills
 ```
 
-Target-specific example:
+Requires Node.js 18.18+, npm, and Git. It installs the selected skill and provisions `RCoder` under `~/.local/bin` on POSIX or `%USERPROFILE%\.rcoder\bin` on Windows.
 
-```sh
-npx -y github:RidTheWann/RCoder-Skills --target claude-code --scope project
-```
+After installation, open a new terminal and type `RCoder`.
 
-Node requirements: 18.18+, npm, and Git. The npm GitHub package spec retrieves the repository without publishing `rcoder` to the npm registry.
+## Terminal manager
 
-## Target and scope mapping
+1. Install / Update.
+2. Uninstall / restore the latest backup.
+3. Show supported agents.
+0. Exit.
 
-| Target | Project location | User location |
-|---|---|---|
-| Claude Code | `.claude/skills/rcoder` | `~/.claude/skills/rcoder` |
-| Codex | `.agents/skills/rcoder` | `~/.agents/skills/rcoder` |
-| Cursor | `.cursor/skills/rcoder` | `~/.cursor/skills/rcoder` |
-| Gemini CLI | `.gemini/skills/rcoder` | `~/.gemini/skills/rcoder` |
-| GitHub Copilot | `.github/skills/rcoder` | `~/.copilot/skills/rcoder` |
-| Generic Agent Skills | `.agents/skills/rcoder` | `~/.agents/skills/rcoder` |
+Choose one or more target indices (comma-separated or `A` for all), then Project or User scope. Shared discovery roots are deduplicated.
 
-Targets: `claude-code`, `codex`, `cursor`, `gemini-cli`, `copilot`, `agents`. Scopes: `project`, `user`.
+## Target catalog
 
-## Uninstall and safety
+The catalog covers Claude Code, Codex CLI, Cursor, Gemini CLI, GitHub Copilot, generic Agent Skills, Qoder, OpenCode, Antigravity, Amp, Zed, Pi, OpenClaw, Autohand, Warp, Kilo Code, Cline, Roo Code, TRAE, and Factory Droid.
 
-Node.js:
+`targets.json` is the canonical label/path matrix. Node CLI and PowerShell terminal manager read the catalog; the PowerShell bootstrap downloads it before resolving the selected target. Offline shell/PowerShell adapters and CI tests validate their path maps.
 
-```sh
-npx -y github:RidTheWann/RCoder-Skills --uninstall
-```
+## Specialist coverage
 
-PowerShell:
+Programming references cover language/runtime routing, C/C++/Rust, Python, JavaScript/TypeScript, .NET/JVM, Go, polyglot ecosystems, frontend/browser, backend, databases, API protocols, mobile, game/emulation, embedded, ML/AI, distributed systems, functional programming, build systems, and debugging/testing.
 
-```powershell
-& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/RidTheWann/RCoder-Skills/main/install.ps1'))) -Uninstall
-```
+Cybersecurity references cover threat modeling, secure review, application/cloud/container/network security, identity/cryptography/secrets, supply chain, vulnerability research, authorized penetration testing, incident response/forensics, defensive malware triage, binary hardening, and smart contracts.
 
-Both installers are idempotent, support dry-run, preserve an existing installation before replacement, and restore the latest backup during uninstall. The PowerShell bootstrap downloads the repository archive over HTTPS into a temporary directory and removes it after installation. Review `install.ps1` before using the `irm` one-liner in environments that require manual script approval.
+Reverse-engineering references cover executable/binary analysis, evidence-led semantic reconstruction, undocumented file formats, and compatibility/emulator/recompiler research.
 
-## Package commands
+## Token-efficiency strategy
 
-Build distributable archives locally:
+- Progressive disclosure: do not load the entire reference library by default.
+- Bounded reconnaissance: the context snapshot prints repository metadata and paths only.
+- Exact reads: symbol searches, line ranges, and focused diffs.
+- Context capsule: preserve decisions, evidence, changed files, verification, and next actions.
+- Deduplicated tool calls and non-overlapping subagent scopes.
+- No reduction in authorization, security, test, or data-integrity checks to save tokens.
 
-```sh
-python3 scripts/package
-```
+## Validation
 
-The builder creates:
+**CI status: PASS.** GitHub Actions run [43937693813](https://github.com/RidTheWann/RCoder-Skills/actions/runs/43937693813) completed successfully on both Linux and Windows for commit `a19eed4f466d2231779a2c230a364ff773ad4554`.
 
-- `dist/rcoder-v1.1.0.skill.zip`
-- `dist/rcoder-v1.1.0.claude-plugin.zip`
-- `dist/rcoder-v1.1.0.agent-plugin.zip`
-- `dist/rcoder-v1.1.0.codex-plugin.zip`
-- `dist/rcoder-v1.1.0-source.zip`
-- `dist/SHA256SUMS`
+The run verified 644 static checks, context-snapshot regression, Node syntax, 40 Node target/scope cases per OS, launcher and interactive-menu behavior, npm package dry-run, 40 POSIX target/scope cases, 40 Windows PowerShell target/scope cases on both PowerShell 5.1 and 7, and reproducible skill/plugin/source package builds.
 
-Generated ZIP files and checksums are build artifacts and are not tracked in Git.
+Do not claim native model activation in all hosts from path simulations alone. Native discovery and live model triggering remain separate verification gates.
 
-## Development and validation
+## Safety and maintenance
 
-```sh
-python3 scripts/validate-all
-node scripts/test-node-installer.mjs
-npm pack --dry-run --json
-bash scripts/test-installers.sh
-python3 scripts/package
-```
-
-The latest GitHub Actions run `43871519315` passed on Linux and Windows. Linux passed the static validator, all twelve Node simulations, npm package dry-run, all twelve POSIX simulations, and package build. Windows passed the same static/Node/npm checks, all twelve PowerShell simulations, and package build. The Windows test also parses the root `install.ps1` bootstrap to catch PowerShell syntax errors.
-
-## Quality-gate status
-
-| Gate | Status | Evidence and limitation |
-|---|---|---|
-| G1 Structural | VERIFIED (static) | Standard-library validator passed 261 checks; the official `skills-ref` validator remains a separate check. |
-| G2 Trigger | VERIFIED (dataset only) | 24 prompts: 12 positive and 12 negative, all in English. Live model activation accuracy is NOT VERIFIED. |
-| G3 Behavior | VERIFIED (scenario design) | Ten scenarios with objective rubrics and separate fixtures. Live with/without-skill model comparison is NOT VERIFIED. |
-| G4 Installation | VERIFIED (cross-platform simulations) | Twelve Node and twelve POSIX combinations passed on Linux; twelve PowerShell combinations passed on Windows CI. Native discovery in each host application remains NOT VERIFIED. |
-| G5 Security and license | VERIFIED (static scope) | Selected secret/risky-command checks and MIT license are included. This is not a full security audit. |
-| G6 Documentation | VERIFIED (static) | Repository docs, skill instructions, prompts, templates, and installer messages are English-only. |
-| G7 Consistency | VERIFIED (static + remote tree + CI) | Validator, npm package checks, GitHub tree readback, and cross-platform CI passed. |
-
-## Remaining verification
-
-The current build environment has Node 22, npm 10, Python 3.13, Git, and Linux x86-64. A local PowerShell runtime, `skills-ref`, and the native Claude Code, Codex, Cursor, Gemini CLI, and Copilot runtimes are not installed. The root PowerShell bootstrap was syntax-parsed by the Windows runner, and the legacy PowerShell installer completed its full simulation matrix there. See `docs/RESEARCH-TODO.md` for remaining native product/runtime checks.
-
-## Maintenance rules
-
-1. Keep all repository-managed text in English.
-2. Update both the Node CLI and PowerShell bootstrap when target paths or backup behavior changes.
-3. Keep project/user mappings synchronized in installers, tests, README, and this handoff.
-4. Keep package/plugin/skill versions and the changelog synchronized.
-5. Re-run all development checks and inspect the newest Linux and Windows CI results before release.
+1. Keep all repository-maintained text in English.
+2. Require explicit authorization and written scope for active security testing.
+3. Preserve sample provenance and hashes during reverse engineering and forensics.
+4. Do not guess undocumented ABI or machine-state semantics.
+5. Keep `targets.json`, Node/PowerShell/POSIX adapters, tests, and docs synchronized.
+6. Keep package/plugin/skill/changelog versions synchronized.
