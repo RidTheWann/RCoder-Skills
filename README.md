@@ -1,93 +1,103 @@
-# RCoder — portable engineering skill
+# RCoder
 
-**RCoder** is a model-agnostic Agent Skill for software engineering agents. It routes work to focused expert modules, uses a read-only stack detector, and ships offline installers, static evaluations, and plugin adapters.
+**RCoder** is a portable, model-agnostic software engineering skill for coding agents. It routes software tasks to focused expert references and applies an evidence-led workflow across implementation, architecture, UI/UX, debugging, QA, security, performance, DevOps, data/API, review, and documentation.
 
-## English: quick start (60 seconds)
+## Install in one command
 
-Clone/download this repository, then run one command from its root:
+### Windows PowerShell
 
-```sh
-bash scripts/install.sh --target agents --scope project
-```
-
-Windows PowerShell:
+Run from the root of the project where RCoder should be installed:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Target agents -Scope project
+irm https://raw.githubusercontent.com/RidTheWann/RCoder-Skills/main/install.ps1 | iex
 ```
 
-Reload/start your coding agent and ask:
+This installs the generic Agent Skills path at `.agents/skills/rcoder`. The bootstrap downloads the repository archive to a temporary directory, copies the bundled skill, and removes the temporary files.
+
+To select a specific host or user scope:
+
+```powershell
+& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/RidTheWann/RCoder-Skills/main/install.ps1'))) -Target claude-code -Scope project
+```
+
+Available targets: `claude-code`, `codex`, `cursor`, `gemini-cli`, `copilot`, and `agents`. Available scopes: `project` and `user`.
+
+### Node.js and npm
+
+Run from the root of the project where RCoder should be installed:
+
+```sh
+npx -y github:RidTheWann/RCoder-Skills
+```
+
+The command installs the generic Agent Skills path at `.agents/skills/rcoder`.
+
+Select a host or install scope with options:
+
+```sh
+npx -y github:RidTheWann/RCoder-Skills --target codex --scope project
+npx -y github:RidTheWann/RCoder-Skills --target cursor --scope user
+```
+
+Requirements: Node.js 18.18 or newer, npm, and Git (npm uses Git to retrieve the GitHub package). No global RCoder installation or third-party runtime dependencies are required.
+
+### Uninstall
+
+```sh
+npx -y github:RidTheWann/RCoder-Skills --uninstall
+```
+
+PowerShell:
+
+```powershell
+& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/RidTheWann/RCoder-Skills/main/install.ps1'))) -Uninstall
+```
+
+The installer preserves the current installation and restores the most recent backup when available. Use `--dry-run` with Node or `-DryRun` with PowerShell to preview changes.
+
+> **Security note:** the PowerShell one-liner executes the repository's bootstrap script over HTTPS. Review [`install.ps1`](install.ps1) before running it in environments that require manual script approval. The Node installer retrieves the Git repository through npm and executes the checked-in CLI entry point.
+
+## Quick start
+
+After installation, reload your coding agent and ask:
 
 > Trace the failing API test, identify the root cause, add a regression test, make the smallest correct fix, run the relevant checks, and report exact evidence.
 
-### One-command installation by target
+Other examples:
 
-Run from the repository root. Replace `project` with `user` for a home-directory install. PowerShell commands use the common prefix `powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1` followed by the listed parameters.
-
-| Target | POSIX command | PowerShell parameters |
-|---|---|---|
-| Claude Code | `bash scripts/install.sh --target claude-code --scope project` | `-Target claude-code -Scope project` |
-| Codex | `bash scripts/install.sh --target codex --scope project` | `-Target codex -Scope project` |
-| Cursor | `bash scripts/install.sh --target cursor --scope project` | `-Target cursor -Scope project` |
-| Gemini CLI | `bash scripts/install.sh --target gemini-cli --scope project` | `-Target gemini-cli -Scope project` |
-| GitHub Copilot | `bash scripts/install.sh --target copilot --scope project` | `-Target copilot -Scope project` |
-| Agent Skills alias | `bash scripts/install.sh --target agents --scope project` | `-Target agents -Scope project` |
-
-The installer supports `--dry-run` / `-DryRun`, `--uninstall` / `-Uninstall`, and explicit `--project-dir` / `-ProjectDir` or `--home-dir` / `-HomeDir`. It copies the bundled skill only; it does not install product CLIs, modify tool settings, or use the network. Windows PowerShell installer simulations are included in the GitHub Actions Windows job.
-
-### Native entry points
-
-- **Claude Code:** install to `.claude/skills/rcoder`; this repo also includes `.claude-plugin/plugin.json` and a marketplace manifest. Validate with `claude plugin validate . --strict`; add it with `claude plugin marketplace add RidTheWann/RCoder-Skills`, then install with `claude plugin install rcoder@rcoder-skills`. Load locally with `claude --plugin-dir .`.
-- **Codex:** install to `.agents/skills/rcoder`; `agents/openai.yaml` is optional UI metadata. The root `plugin.json` is the portable Agent Plugins manifest; `.codex-plugin/plugin.json` remains a compatibility fallback for older Codex packaging.
-- **Cursor:** install to `.cursor/skills/rcoder`; Cursor also discovers `.agents/skills/`.
-- **Gemini CLI:** install to `.gemini/skills/rcoder`; `.agents/skills/` is also a documented alias.
-- **Copilot:** install to `.github/skills/rcoder`; the user-level path is `~/.copilot/skills/`.
-- **Other Agent Skills clients:** install to `.agents/skills/rcoder` or `~/.agents/skills/rcoder`.
-
-### Example prompts
-
-**English**
 - “Audit this Rust workspace for correctness and security risks. Fix only confirmed defects and run the relevant checks.”
 - “Compare two API migration designs, record an ADR, and implement the first safe slice.”
+- “Review this React settings screen for keyboard navigation, responsive states, and WCAG 2.2 AA.”
 
-**Bahasa Indonesia**
-- “Perbaiki bug ini berdasarkan reproduksi dan bukti. Tambahkan regression test, jalankan test terkait, lalu laporkan hasil aktual.”
-- “Audit tampilan pengaturan dari sisi alur, state kosong/loading/error/sukses, responsivitas, dan WCAG 2.2 AA.”
+## Architecture
 
-### Extend and maintain
+- `skills/rcoder/SKILL.md` is the portable router and operating protocol.
+- `skills/rcoder/references/` contains focused expert modules, loaded only when relevant.
+- `skills/rcoder/scripts/detect_stack.py` provides read-only repository reconnaissance.
+- `skills/rcoder/assets/templates/` contains ADR, bug report, expert module, PR, test plan, and UX audit templates.
+- `.rcoder/` can hold project-specific expert modules and conventions.
+- `plugin.json` is the portable Agent Plugins manifest. `.codex-plugin/plugin.json` remains a compatibility fallback.
 
-Copy `skills/rcoder/assets/templates/expert-module-template.md` into `skills/rcoder/references/`, write domain-specific decision rules and verification steps, keep it ≤300 lines, and add a routing signal to `skills/rcoder/SKILL.md`. Project-only expertise belongs in `.rcoder/`. Recheck `docs/research-log.md` and official tool docs when a product changes its discovery path or manifest. Record changes in `docs/DECISIONS.md`; synchronize SemVer across manifests and `CHANGELOG.md`.
+All repository-maintained instructions, docs, prompts, templates, comments, and installer messages are written in English. Do not mix languages within a repository artifact.
 
-### Development checks
+## Extend and maintain
+
+Copy `skills/rcoder/assets/templates/expert-module-template.md` into `skills/rcoder/references/`, keep each expert module at or below 300 lines, add a routing signal to `skills/rcoder/SKILL.md`, and add an evaluation case. Project-only expertise belongs in `.rcoder/`.
+
+Update the installation baseline only after checking current official product documentation. Record design choices in `docs/DECISIONS.md`, update `docs/research-log.md`, synchronize SemVer across `package.json`, plugin manifests, `CHANGELOG.md`, and `scripts/package`, then run the full validation suite.
+
+## Development checks
 
 ```sh
 python3 scripts/validate-all
+node scripts/test-node-installer.mjs
+npm pack --dry-run --json
 bash scripts/test-installers.sh
 python3 scripts/package
 ```
 
-All development scripts use the Python standard library or native shell utilities. The installer itself has no external runtime dependency.
+The CI workflow runs static validation, Node installer simulations, npm package validation, POSIX installer tests, PowerShell installer tests, and package builds on Linux and Windows.
 
-## Bahasa Indonesia
+## Verification boundaries
 
-RCoder adalah *project skill* portabel dan model-agnostic untuk agen engineering. Satu router inti memilih modul ahli sesuai pekerjaan: coding, arsitektur, UI/UX, debugging, QA, keamanan, performa, DevOps, data/API, review, dan dokumentasi. Referensi dimuat seperlunya agar konteks tetap efisien.
-
-### Mulai cepat
-
-Dari root repo jalankan:
-
-```sh
-bash scripts/install.sh --target agents --scope project
-```
-
-Windows PowerShell:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Target agents -Scope project
-```
-
-Untuk instalasi personal, gunakan `--scope user`. Installer mendukung dry-run, backup sebelum penggantian, instalasi idempoten, dan uninstall yang memulihkan backup sebelumnya bila tersedia.
-
-### Batas verifikasi
-
-Lingkungan build tersedia Linux x86-64, Python 3.13, Node 22, dan Git 2.47. PowerShell lokal serta CLI/runtime produk tidak terpasang, tetapi simulasi installer POSIX dan PowerShell berjalan pada runner Linux/Windows GitHub Actions. `skills-ref` dan aktivasi model live masih belum diverifikasi langsung. Status setiap gerbang ada di `docs/HANDOFF.md`.
+Static checks, installer simulations, and CI results do not prove that every coding-agent product discovers or activates RCoder. See `docs/HANDOFF.md` and `docs/RESEARCH-TODO.md` for verified evidence and remaining live-runtime checks.
