@@ -1,0 +1,6 @@
+{
+  "name": "rcoder",
+  "version": "1.0.0",
+  "description": "A model-agnostic engineering skill for software projects.",
+  "skills": "./skills/"
+}
