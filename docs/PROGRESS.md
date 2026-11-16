@@ -10,10 +10,10 @@
 - [x] Phase 6 — Handoff/publication: local source and generated archives verified; GitHub main branch populated and remote tree read back.
 
 ## Local verification evidence
-- `python3 scripts/validate-all` — PASS, 226 checks.
+- `python3 scripts/validate-all` — PASS, 236 checks.
 - `bash scripts/test-installers.sh` — PASS, all 12 POSIX target/scope combinations including dry-run, backup, idempotent repeat, uninstall, and restore.
 - `python3 skills/rcoder/scripts/detect_stack.py . --json` — PASS; read-only output produced.
-- `python3 scripts/package` — PASS; four reproducible ZIP packages and SHA-256 manifest produced; repeated build hashes matched.
+- `python3 scripts/package` — PASS; five reproducible ZIP packages and SHA-256 manifest produced; repeated build hashes matched.
 - Extracted `rcoder-v1.0.0-source.zip` into a clean temporary workspace and reran validator plus POSIX installer simulations — PASS.
 - Polyglot fixture detection, ignored-directory behavior, and paths containing spaces — PASS.
 - GitHub Actions run `43866341469` on final installer-test fixes — PASS on both `ubuntu-latest` and `windows-latest`; both ran 226-check static validation and their 12 installer simulations, then built packages.
@@ -28,7 +28,7 @@
 | Gate | Status | Evidence / limitation |
 |---|---|---|
 | G1 Structural | VERIFIED (static) | Custom stdlib validator; 226 checks; official `skills-ref` unavailable. |
-| G2 Trigger | VERIFIED (dataset only) | 24 prompts: 12 positive + 12 negative across EN/ID; actual agent activation NOT VERIFIED. |
+| G2 Trigger | VERIFIED (dataset only) | 24 prompts: 12 positive + 12 negative, balanced by EN/ID; actual agent activation NOT VERIFIED. |
 | G3 Behavior | VERIFIED (scenario design) | Ten scenarios with objective rubrics and separate files; live model ablation NOT VERIFIED. |
 | G4 Install | VERIFIED (POSIX + PowerShell simulation) / NOT VERIFIED (native discovery) | Twelve target/scope combinations pass on Linux and twelve on Windows CI; native agent CLIs unavailable. |
 | G5 Security / license | VERIFIED (static scope) | Selected secret/command patterns scanned; MIT license included; not a complete audit. |
