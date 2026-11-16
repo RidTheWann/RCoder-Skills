@@ -33,12 +33,12 @@ Run from the repository root. Replace `project` with `user` for a home-directory
 | GitHub Copilot | `bash scripts/install.sh --target copilot --scope project` | `-Target copilot -Scope project` |
 | Agent Skills alias | `bash scripts/install.sh --target agents --scope project` | `-Target agents -Scope project` |
 
-The installer supports `--dry-run` / `-DryRun`, `--uninstall` / `-Uninstall`, and explicit `--project-dir` / `-ProjectDir` or `--home-dir` / `-HomeDir`. It copies the bundled skill only; it does not install product CLIs, modify tool settings, or use the network.
+The installer supports `--dry-run` / `-DryRun`, `--uninstall` / `-Uninstall`, and explicit `--project-dir` / `-ProjectDir` or `--home-dir` / `-HomeDir`. It copies the bundled skill only; it does not install product CLIs, modify tool settings, or use the network. Windows PowerShell installer simulations are included in the GitHub Actions Windows job.
 
 ### Native entry points
 
-- **Claude Code:** install to `.claude/skills/rcoder`; this repo also includes `.claude-plugin/plugin.json` and a marketplace manifest. Validate with `claude plugin validate . --strict`; load locally with `claude --plugin-dir .`.
-- **Codex:** install to `.agents/skills/rcoder`; `agents/openai.yaml` is optional UI metadata and `.codex-plugin/` is a compatibility adapter.
+- **Claude Code:** install to `.claude/skills/rcoder`; this repo also includes `.claude-plugin/plugin.json` and a marketplace manifest. Validate with `claude plugin validate . --strict`; add it with `claude plugin marketplace add RidTheWann/RCoder-Skills`, then install with `claude plugin install rcoder@rcoder-skills`. Load locally with `claude --plugin-dir .`.
+- **Codex:** install to `.agents/skills/rcoder`; `agents/openai.yaml` is optional UI metadata. The root `plugin.json` is the portable Agent Plugins manifest; `.codex-plugin/plugin.json` remains a compatibility fallback for older Codex packaging.
 - **Cursor:** install to `.cursor/skills/rcoder`; Cursor also discovers `.agents/skills/`.
 - **Gemini CLI:** install to `.gemini/skills/rcoder`; `.agents/skills/` is also a documented alias.
 - **Copilot:** install to `.github/skills/rcoder`; the user-level path is `~/.copilot/skills/`.
