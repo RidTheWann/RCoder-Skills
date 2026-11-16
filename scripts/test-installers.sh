@@ -13,7 +13,8 @@ for target in claude-code codex cursor gemini-cli copilot agents qoder opencode 
     [ "$scope" = user ] && base=$home
     case "$target" in
       claude-code) root=.claude;;
-      codex|agents|zed|openclaw|amp) root=.agents;;
+      codex|agents|zed|openclaw) root=.agents;;
+      amp) [ "$scope" = user ] && root=.config/agents || root=.agents;;
       cursor) root=.cursor;;
       gemini-cli) root=.gemini;;
       copilot) [ "$scope" = user ] && root=.copilot || root=.github;;
