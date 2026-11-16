@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""Build reproducible standalone Agent Skill and plugin ZIPs with stdlib only."""
+from pathlib import Path
+import hashlib
+import stat
+import zipfile
+
+ROOT = Path(__file__).resolve().parent.parent
+SKILL = ROOT / 'skills' / 'rcoder'
+DIST = ROOT / 'dist'
+VERSION = '1.0.0'
+FIXED_TIME = (2026, 1, 1, 0, 0, 0)
+
+def add_file(archive, path, archive_name):
+    info = zipfile.ZipInfo(archive_name, date_time=FIXED_TIME)
+    info.compress_type = zipfile.ZIP_DEFLATED
+    info.create_system = 3
+    executable = bool(path.stat().st_mode & 0o111)
+    info.external_attr = (stat.S_IFREG | (0o755 if executable else 0o644)) << 16
+    archive.writestr(info, path.read_bytes(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
+
+def add_dir(archive, base, prefix):
+    for path in sorted(item for item in base.rglob('*') if item.is_file()):
+        if any(part in {'.git', 'dist', '__pycache__', '.venv', 'venv', 'node_modules', '.pytest_cache', '.mypy_cache', 'target', 'build'} for part in path.relative_to(base).parts):
+            continue
+        add_file(archive, path, f'{prefix}/{path.relative_to(base).as_posix()}')
+
+def main():
+    if not (SKILL / 'SKILL.md').is_file():
+        raise SystemExit('Missing skills/rcoder/SKILL.md')
+    DIST.mkdir(exist_ok=True)
+    packages = [
+        (f'rcoder-v{VERSION}.skill.zip', [(SKILL, 'rcoder')]),
+        (f'rcoder-v{VERSION}.claude-plugin.zip', [(ROOT / '.claude-plugin', '.claude-plugin'), (SKILL.parent, 'skills'), (ROOT / 'LICENSE', 'LICENSE')]),
+        (f'rcoder-v{VERSION}.codex-plugin.zip', [(ROOT / '.codex-plugin', '.codex-plugin'), (SKILL.parent, 'skills'), (ROOT / 'LICENSE', 'LICENSE')]),
+    ]
+    checksums = []
+    for filename, items in packages:
+        output = DIST / filename
+        with zipfile.ZipFile(output, 'w') as archive:
+            for base, prefix in items:
+                if base.is_dir():
+                    add_dir(archive, base, prefix)
+                elif base.is_file():
+                    add_file(archive, base, prefix)
+                else:
+                    raise SystemExit(f'Missing package input: {base}')
+        digest = hashlib.sha256(output.read_bytes()).hexdigest()
+        checksums.append(f'{digest}  {filename}')
+        print(f'created {output.relative_to(ROOT)} ({output.stat().st_size} bytes, sha256 {digest})')
+    source_name = f'rcoder-v{VERSION}-source.zip'
+    source_output = DIST / source_name
+    with zipfile.ZipFile(source_output, 'w') as archive:
+        for path in sorted(item for item in ROOT.rglob('*') if item.is_file()):
+            relative = path.relative_to(ROOT)
+            if any(part in {'.git', 'dist', '__pycache__', '.venv', 'venv', 'node_modules', '.pytest_cache', '.mypy_cache', 'target', 'build'} for part in relative.parts):
+                continue
+            add_file(archive, path, f'rcoder/{relative.as_posix()}')
+    digest = hashlib.sha256(source_output.read_bytes()).hexdigest()
+    checksums.append(f'{digest}  {source_name}')
+    print(f'created {source_output.relative_to(ROOT)} ({source_output.stat().st_size} bytes, sha256 {digest})')
+    (DIST / 'SHA256SUMS').write_text('\n'.join(checksums) + '\n', encoding='utf-8')
+    print('created dist/SHA256SUMS')
+    return 0
+
+if __name__ == '__main__':
+    raise SystemExit(main())
