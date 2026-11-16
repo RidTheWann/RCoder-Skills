@@ -1,0 +1,33 @@
+{
+  "name": "rcoder",
+  "version": "1.1.0",
+  "description": "A portable, model-agnostic software engineering agent skill installer.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RidTheWann/RCoder-Skills.git"
+  },
+  "homepage": "https://github.com/RidTheWann/RCoder-Skills#readme",
+  "bin": {
+    "rcoder": "./scripts/rcoder.mjs"
+  },
+  "files": [
+    "skills/rcoder/**",
+    "scripts/rcoder.mjs",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "keywords": [
+    "agent-skill",
+    "coding-agent",
+    "software-engineering",
+    "claude-code",
+    "codex",
+    "cursor",
+    "gemini-cli",
+    "copilot"
+  ]
+}
