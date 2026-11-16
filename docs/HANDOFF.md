@@ -3,7 +3,7 @@
 ## English
 
 ### Delivered
-`skills/rcoder/` is the canonical portable Agent Skill. It contains the router, twelve core engineering experts plus a domain-extension guide, read-only stack detection, six authoring templates, and optional OpenAI UI metadata. The repository includes POSIX/PowerShell installers, Claude and Codex plugin adapters, 24 trigger prompts, 10 behavioral scenarios, static validation, Linux/Windows CI, and a reproducible ZIP builder.
+`skills/rcoder/` is the canonical portable Agent Skill. It contains the router, twelve core engineering experts plus a domain-extension guide, read-only stack detection, six authoring templates, and optional OpenAI UI metadata. The repository includes POSIX/PowerShell installers, Claude plugin manifest, root portable Agent Plugins manifest plus Codex compatibility fallback, 24 trigger prompts, 10 behavioral scenarios, static validation, Linux/Windows CI, and a reproducible ZIP builder.
 
 **GitHub publication: VERIFIED.** The GitHub connector created and read back the source files on `main`. The verified tree contains 59 files, including all 13 reference modules, six templates, ten scenario files, installers, tests, docs, manifests, and CI. See commit history: https://github.com/RidTheWann/RCoder-Skills/commits/main. The latest verified CI run passed on both Ubuntu and Windows: https://github.com/RidTheWann/RCoder-Skills/actions/runs/43866341469.
 
@@ -41,10 +41,11 @@ claude plugin list
 Marketplace flow is documented but native CLI installation remains NOT VERIFIED. Native `.claude/skills` install is the fallback.
 
 ### Codex adapter and packages
-Codex native discovery uses `.agents/skills/` or `~/.agents/skills/`; `agents/openai.yaml` supplies optional UI metadata. `.codex-plugin/plugin.json` is a compatibility adapter, not proof of native plugin support. Run `python3 scripts/package` to create:
+Codex native discovery uses `.agents/skills/` or `~/.agents/skills/`; `agents/openai.yaml` supplies optional UI metadata. The root `plugin.json` is the portable Agent Plugins manifest with an OpenAI extension and onboarding skill; `.codex-plugin/plugin.json` remains a compatibility fallback. Run `python3 scripts/package` to create:
 - `dist/rcoder-v1.0.0.skill.zip`
 - `dist/rcoder-v1.0.0.claude-plugin.zip`
-- `dist/rcoder-v1.0.0.codex-plugin.zip`
+- `dist/rcoder-v1.0.0.agent-plugin.zip` (portable root manifest)
+- `dist/rcoder-v1.0.0.codex-plugin.zip` (root manifest plus legacy Codex fallback)
 - `dist/rcoder-v1.0.0-source.zip`
 - `dist/SHA256SUMS`
 
