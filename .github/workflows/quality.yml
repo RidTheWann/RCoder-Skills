@@ -23,6 +23,10 @@ jobs:
           python-version: '3.13'
       - name: Static validation
         run: python scripts/validate-all
+      - name: Node installer simulations
+        run: node scripts/test-node-installer.mjs
+      - name: Verify npm package contents
+        run: npm pack --dry-run --json
       - name: POSIX installer simulations
         if: runner.os == 'Linux'
         shell: bash
