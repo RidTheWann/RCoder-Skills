@@ -35,7 +35,20 @@ def main():
         assert "SECRET_FIXTURE_MUST_NOT_BE_PRINTED" not in result.stdout
         assert "linked-secret" not in data["file_paths"]
         assert "ESTIMATED TOKENS:" in result.stderr
-        print("PASS context snapshot: bounded metadata-only output; dependency trees and symlinks skipped")
+        bounded_root = root / "bounded"
+        bounded_root.mkdir()
+        for index in range(25):
+            (bounded_root / f"file-{index:02d}.txt").write_text("fixture\n", encoding="utf-8")
+        bounded = subprocess.run(
+            [sys.executable, str(HELPER), str(bounded_root), "--json", "--max-paths", "10", "--max-depth", "3"],
+            text=True, capture_output=True, check=True, timeout=10,
+        )
+        bounded_data = json.loads(bounded.stdout)
+        assert len(bounded_data["file_paths"]) <= 10
+        assert bounded_data["truncated"] is True
+        assert bounded_data["source_contents_included"] is False
+        assert "fixture" not in bounded.stdout
+        print("PASS context snapshot: bounded metadata-only output; dependency trees, symlinks, and path limits enforced")
 
 if __name__ == "__main__":
     main()
