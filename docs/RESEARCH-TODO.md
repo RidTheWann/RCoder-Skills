@@ -4,7 +4,7 @@ These are environment-dependent checks, not claims that implementation is comple
 
 | Item | Blocker | Required evidence |
 |---|---|---|
-| GitHub Actions | v1.2.0 feature branch has not completed CI | Inspect Linux and Windows job logs; require all jobs green before merge. |
+| GitHub Actions | v1.3.0 feature branch has not completed CI | Inspect Linux and Windows job logs; require all jobs green before merge. |
 | Official `skills-ref` | Validator is not installed in the build environment | Run the official validator against `skills/rcoder`; record version and output. |
 | Windows `irm` bootstrap | Syntax checks do not execute a real HTTPS bootstrap in a clean profile | Run the exact `irm` command on PowerShell 5.1 and 7; verify PATH, launcher, Project/User install, update, dry-run, and restore. |
 | Node/npm package | CI package checks do not replace a clean networked install | Run `npx -y github:RidTheWann/RCoder-Skills` on a clean system with Node, npm, and Git. |

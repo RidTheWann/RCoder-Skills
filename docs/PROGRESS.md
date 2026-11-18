@@ -1,12 +1,17 @@
-# RCoder build progress — 2026-11-17
+# RCoder build progress — 2026-11-18
 
 ## Release objective
 
-Build v1.2.0 as a safe extension of v1.1.0. Preserve both installers, the Agent Skill format, plugin manifests, and existing engineering references.
+Build v1.3.0 as a safe extension of v1.2.0. Preserve both installers, the Agent Skill format, plugin manifests, the canonical skill directory, and all existing specialist capabilities while adding model adaptation and an evidence-based compatibility contract.
 
 ## Implementation checklist
 
 - [x] Audit the repository and preserve PowerShell `irm` and Node/npm installation methods.
+- [x] Normalize the evaluation contract across `evals/rubric.md`, `evals/results.md`, and `scripts/validate-all`.
+- [x] Add model-adaptation capability discovery, adaptive execution profiles, and evaluation methodology.
+- [x] Add a host compatibility evidence matrix and an environment/capability record.
+- [x] Deepen core engineering, security, and reverse-engineering specialists without removing existing modules.
+- [ ] Re-run the full local gate set and installer/packaging regressions for v1.3.0.
 - [x] Add a global terminal manager invoked by typing `RCoder`.
 - [x] Add multi-target and Project/User selection, shared-root deduplication, install/update, uninstall, backup, and restore.
 - [x] Add a Windows-native PowerShell launcher independent of Node.js.

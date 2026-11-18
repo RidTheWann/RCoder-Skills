@@ -1,10 +1,17 @@
-# RCoder project handoff — v1.2.0
+# RCoder project handoff — v1.3.0
 
 ## Delivered
 
 RCoder remains one portable Agent Skill with progressive disclosure. The core router selects focused references rather than injecting the entire specialist library into every agent context.
 
-Version 1.2.0 adds:
+Version 1.3.0 adds:
+- A model-adaptation specialist: observable capability discovery, four adaptive execution profiles, empirical ablation/evaluation methodology, subagent strategy, and long-task continuity.
+- A five-tier host compatibility evidence matrix separating file installation from documented discovery, native discovery, invocation, and behavioral evaluation.
+- An environment and capability record for the Termux/OpenCode development shell, with observed runtimes and explicitly unknown capabilities.
+- A compact router layer map (A-F) and an English-only 13-section specialist authoring template.
+- A normalized evaluation contract; `rubric.md` and `results.md` now match the enforced dataset and label non-English activation and model performance claims `NOT VERIFIED`.
+
+Version 1.2.0 added:
 - A global terminal manager invoked by typing `RCoder`.
 - Twenty Agentic AI/CLI integrations with Project/User scopes, multi-selection, shared-root deduplication, update, uninstall, backup, and restore.
 - A Windows-native PowerShell launcher installed through the existing `irm` bootstrap; this route does not require Node.js.

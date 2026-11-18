@@ -52,7 +52,7 @@ def main():
         return 1
 
     meta, body = parse_frontmatter(skill_file)
-    version = "1.2.0"
+    version = "1.3.0"
     check(meta.get("name") == "rcoder", "G1: skill name must be rcoder")
     check(bool(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(meta.get("name", "")))), "G1: invalid skill name")
     check(isinstance(meta.get("description"), str) and 1 <= len(meta["description"]) <= 1024,
@@ -80,7 +80,7 @@ def main():
         "incident-response-forensics.md", "malware-analysis.md", "cryptography-engineering.md",
         "smart-contract-security.md", "reverse-engineering.md",
         "reverse-engineering-architecture.md", "reverse-engineering-file-formats.md",
-        "token-efficiency.md", "web-platform-engineering.md"
+        "token-efficiency.md", "web-platform-engineering.md", "model-adaptation.md"
     ):
         check((SKILL / "references" / required).is_file(), f"G1: required specialist missing: {required}")
 
@@ -232,7 +232,8 @@ def main():
     for required in (
         "LICENSE", "README.md", "CHANGELOG.md", "docs/HANDOFF.md",
         "docs/DECISIONS.md", "docs/research-log.md", "docs/ARCHITECTURE.md",
-        "docs/PROGRESS.md", "docs/RESEARCH-TODO.md"
+        "docs/PROGRESS.md", "docs/RESEARCH-TODO.md",
+        "docs/COMPATIBILITY.md", "docs/ENVIRONMENT.md"
     ):
         check((ROOT / required).is_file(), f"G6: required documentation missing: {required}")
     for rel in ("README.md", "docs/HANDOFF.md", "docs/PROGRESS.md"):
