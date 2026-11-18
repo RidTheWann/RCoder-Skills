@@ -77,7 +77,21 @@ Reverse-engineering references cover executable/binary analysis, evidence-led se
 - Deduplicated tool calls and non-overlapping subagent scopes.
 - No reduction in authorization, security, test, or data-integrity checks to save tokens.
 
-## Validation
+## Local verification for v1.3.0
+
+Run in the Termux development shell on the `feat/adaptive-specialist-system` branch:
+
+- `python3 scripts/validate-all` — PASS, 654 checks.
+- `python3 scripts/test-context-snapshot.py` — PASS, including the new bounded-path assertion.
+- `node --check scripts/rcoder.mjs` — PASS (exit 0).
+- `node scripts/test-node-installer.mjs` — PASS, all 40 target/scope combinations plus backup restore and launcher checks.
+- `bash scripts/test-installers.sh` — PASS, all 40 POSIX target/scope combinations.
+- `npm pack --dry-run --json` — PASS, package `rcoder@1.3.0`, 71 entries.
+- `python3 scripts/package` — PASS; five ZIPs created and `sha256sum -c dist/SHA256SUMS` verified all OK.
+
+**CI status for v1.3.0: NOT VERIFIED** (feature branch has not run the hosted matrix). Windows PowerShell, the `irm` bootstrap, host-native discovery, and live model activation are also NOT VERIFIED in this environment. The v1.2.0 CI evidence below is historical and does not cover v1.3.0 changes.
+
+## Historical CI evidence (v1.2.0)
 
 **CI status: PASS.** The pre-merge PR matrix passed, and post-merge GitHub Actions run [43940645566](https://github.com/RidTheWann/RCoder-Skills/actions/runs/43940645566) completed successfully on both Linux and Windows for the exact `main` merge commit `7f7c88f2fce5b8b2754d9cc10c65cca69a23f5ed`.
 

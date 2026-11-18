@@ -9,9 +9,10 @@ RCoder is a portable Agent Skill package and installer/terminal manager. It is n
 1. **Discovery and activation:** compact `skills/rcoder/SKILL.md` metadata supplies task-routing information.
 2. **Core protocol:** instruction precedence and Intake → Recon → Plan → Implement → Verify → Report.
 3. **Specialists:** focused references for programming languages, product engineering, cybersecurity, reverse engineering, and token efficiency; load only what is relevant.
-4. **Deterministic helpers:** read-only stack detector and bounded metadata-only context snapshot.
-5. **Extension and templates:** reusable templates under `assets/templates/`; project-specific rules under `.rcoder/`.
-6. **Adapters and distribution:** Claude/Agent Plugin manifests, portable Agent Plugins manifest with Codex compatibility metadata, Node/npm CLI, PowerShell `irm` bootstrap, offline installers, terminal manager, and ZIP packages.
+4. **Runtime and tool adaptation:** observable capability discovery, adaptive execution profiles, and subagent strategy in `references/model-adaptation.md`; never treat a skill file as an installed tool.
+5. **Deterministic helpers:** read-only stack detector and bounded metadata-only context snapshot.
+6. **Extension and templates:** reusable templates under `assets/templates/` (including the 13-section specialist template and context capsule); project-specific rules under `.rcoder/`.
+7. **Adapters and distribution:** Claude/Agent Plugin manifests, portable Agent Plugins manifest with Codex compatibility metadata, Node/npm CLI, PowerShell `irm` bootstrap, offline installers, terminal manager, and ZIP packages. Host evidence tiers live in `docs/COMPATIBILITY.md`; observed runtime capabilities in `docs/ENVIRONMENT.md`.
 
 ## Runtime flow
 
@@ -19,8 +20,9 @@ RCoder is a portable Agent Skill package and installer/terminal manager. It is n
 Request
   -> task boundary, instruction precedence, and authorization
   -> repository status and bounded reconnaissance
-  -> select relevant engineering/security/reverse-engineering specialists
-  -> plan with observable acceptance criteria
+  -> discover observable host capabilities and select an execution profile
+   -> select relevant engineering/security/reverse-engineering specialists
+   -> plan with observable acceptance criteria
   -> implement the smallest correct change
   -> targeted verification and adversarial diff review
   -> evidence-based report and context capsule when needed

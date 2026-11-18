@@ -15,5 +15,8 @@ These are environment-dependent checks, not claims that implementation is comple
 | Reverse-engineering behavior | Static evaluation includes an RE scenario | Test on authorized fixture binaries; validate provenance, evidence-led hypotheses, isolation, and differential tests. |
 | Context helper | Unit test covers bounded fixture output | Test representative large repos on Windows and POSIX; inspect path limits and symlink handling. |
 | ZIP import | No authenticated product UI in build environment | Import the generated skill/plugin ZIP into supported hosts and perform a low-risk activation test. |
+| Model ablation (Hy4 Flash Free) | No pinned with/without run has been executed | Run the identical suite with and without RCoder under the `evals/rubric.md` methodology; retain configuration and per-criterion scores in `evals/results.md`. |
+| OpenCode CLI discovery | `opencode` is absent from PATH in the Termux development shell | Install or locate the CLI, record its exact version, verify skill discovery and configuration syntax against that version, then update `docs/COMPATIBILITY.md` and `docs/ENVIRONMENT.md`. |
+| Deepened specialist behavior | Static validation checks structure, not behavioral quality | Run scenario prompts for the deepened programming, security, and reverse-engineering modules and score against their Verification sections. |
 
 Native discovery and model activation must not be inferred from successful file-copy simulations.
