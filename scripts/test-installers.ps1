@@ -47,6 +47,17 @@ try {
         }
     }
     Write-Output 'PASS all 40 PowerShell target/scope combinations'
+    $featureOutput = & $installer -ListFeatures
+    $featureText = $featureOutput -join "`n"
+    if ($featureText -notmatch 'RSaver:' -or $featureText -notmatch 'RScan:') { throw 'Feature descriptions are missing' }
+    $featureProject = Join-Path $temp 'feature-project'
+    $featureHome = Join-Path $temp 'feature-home'
+    New-Item -ItemType Directory -Force -Path $featureProject,$featureHome | Out-Null
+    & $installer -Target agents -Scope project -ProjectDir $featureProject -HomeDir $featureHome -Features rscan | Out-Null
+    $featureManifest = Join-Path (Join-Path $featureProject '.agents') '.rcoder-features.json'
+    $featureState = Get-Content -LiteralPath $featureManifest -Raw -Encoding UTF8 | ConvertFrom-Json
+    if (-not $featureState.rscan -or $featureState.rsaver) { throw 'Optional tool manifest is incorrect' }
+    Write-Output 'PASS PowerShell optional tool selection'
 } finally {
     Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
 }

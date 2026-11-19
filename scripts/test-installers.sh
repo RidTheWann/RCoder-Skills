@@ -50,3 +50,12 @@ for target in claude-code codex cursor gemini-cli copilot agents qoder opencode 
   done
 done
 echo 'PASS all 40 POSIX target/scope combinations'
+sh "$INSTALLER" --list-features | grep -q 'RSaver:'
+sh "$INSTALLER" --list-features | grep -q 'RScan:'
+FEATURE_PROJECT="$TMP/feature-project"; FEATURE_HOME="$TMP/feature-home"; mkdir -p "$FEATURE_PROJECT" "$FEATURE_HOME"
+sh "$INSTALLER" --target agents --scope project --project-dir "$FEATURE_PROJECT" --home-dir "$FEATURE_HOME" --features rsaver >/dev/null
+FEATURE_MANIFEST="$FEATURE_PROJECT/.agents/.rcoder-features.json"
+test -f "$FEATURE_MANIFEST"
+grep -q '"rsaver": true' "$FEATURE_MANIFEST"
+grep -q '"rscan": false' "$FEATURE_MANIFEST"
+echo 'PASS POSIX optional tool selection'

@@ -11,7 +11,7 @@ Official product docs reviewed 2026-11-16. Native runtime discovery is listed as
 | Copilot | `.github/skills/rcoder/` | `~/.copilot/skills/rcoder/` |
 | Generic Agent Skills | `.agents/skills/rcoder/` | `~/.agents/skills/rcoder/` |
 
-Installer options: `--target`, `--scope`, `--project-dir`, `--home-dir`, `--dry-run`, and `--uninstall`. Identical content is a no-op. Existing content is moved to `.rcoder-backups/` before replacement. Scripts install only the canonical skill folder; they do not modify application settings or fetch remote code.
+Installer options: `--target`, `--scope`, `--project-dir`, `--home-dir`, `--features`, `--list-features`, `--dry-run`, and `--uninstall`. Optional tools are RSaver (context pruning/budgeting/re-anchoring) and RScan (read-only project scan with development options); the selection is saved as `<target-root>/.rcoder-features.json`. Identical content is a no-op. Existing content is moved to `.rcoder-backups/` before replacement. Scripts install only the canonical skill folder; they do not modify application settings or fetch remote code.
 
 ## One-command entry points
 

@@ -7,6 +7,7 @@ RCoder follows Semantic Versioning.
 ### Added
 - RScan, a read-only bounded project scanner that reports stacks, quality entry points, risk signals, and a ranked menu of development options with first commands and specialist references.
 - Host session-start adapters for Claude Code and Gemini CLI (`rscan hooks preview|install`) with idempotent merging, backups, and dry-run; unsupported hosts are documented rather than guessed.
+- Installer optional tool selection for RSaver and RScan across the Node CLI, interactive managers, PowerShell bootstrap, and POSIX helper, recorded in a per-target feature manifest.
 - `rscan.md` specialist and `docs/RSCAN-HOOKS.md` evidence table.
 
 ### Changed

@@ -56,9 +56,14 @@ The interactive menu provides:
 3. **Show supported agents** — display the available integrations.
 0. **Exit**.
 
-Select several target numbers separated by commas, or enter `A` for all. Shared discovery roots are installed only once.
+Select several target numbers separated by commas, or enter `A` for all. Shared discovery roots are installed only once. The manager then offers two optional tools:
 
-For non-interactive use, run `npx -y github:RidTheWann/RCoder-Skills --help`. Use `--dry-run` to preview, `--uninstall` to remove an installation, and `--no-launcher` to install only the selected skill.
+- **RSaver** — context pruning, budgeting, and re-anchoring for long sessions.
+- **RScan** — read-only project scan with ranked development options at session start.
+
+Choose both (default), one, or neither. The choice is saved in `<target-root>/.rcoder-features.json` so an agent can see which tools are enabled; changing the choice requires reinstalling with a different selection.
+
+For non-interactive use, run `npx -y github:RidTheWann/RCoder-Skills --help`. Use `--features rsaver,rscan` (or `--features none`) to select tools, `--list-features` for descriptions, `--dry-run` to preview, `--uninstall` to remove an installation, and `--no-launcher` to install only the selected skill. The PowerShell `irm` route accepts the same selection with `-Features`, and the offline POSIX helper uses `--features`.
 
 ## Supported Agentic AI and CLI hosts
 

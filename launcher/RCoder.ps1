@@ -91,8 +91,14 @@ function Invoke-RCoderTarget {
         [Parameter(Mandatory = $true)][object]$Target,
         [Parameter(Mandatory = $true)][ValidateSet('project', 'user')][string]$Scope,
         [Parameter(Mandatory = $true)][string]$Base,
-        [Parameter(Mandatory = $true)][ValidateSet('install', 'uninstall')][string]$Action
+        [Parameter(Mandatory = $true)][ValidateSet('install', 'uninstall')][string]$Action,
+        [string]$Features = 'rsaver,rscan'
     )
+    $selectedFeatures = @()
+    foreach ($part in ($Features -split ',')) {
+        $name = $part.Trim().ToLowerInvariant()
+        if ($name -in @('rsaver', 'rscan') -and $selectedFeatures -notcontains $name) { $selectedFeatures += $name }
+    }
 
     $relativeRoot = if ($Scope -eq 'project') { [string]$Target.project_root } else { [string]$Target.user_root }
     $targetRoot = [IO.Path]::GetFullPath((Join-Path $Base $relativeRoot))
@@ -125,6 +131,8 @@ function Invoke-RCoderTarget {
             Move-Item -LiteralPath $backups[-1].FullName -Destination $destination
             Write-Host "  Restored previous installation: $destination"
         }
+        $featureManifest = Join-Path $targetRoot '.rcoder-features.json'
+        if (Test-Path -LiteralPath $featureManifest) { Remove-Item -LiteralPath $featureManifest -Force }
         return
     }
 
@@ -147,6 +155,10 @@ function Invoke-RCoderTarget {
         }
         Move-Item -LiteralPath $stage -Destination $destination
         Write-Host "Installed RCoder $Version for $($Target.label): $destination"
+        $featureManifest = Join-Path $targetRoot '.rcoder-features.json'
+        $state = @{schema_version=1;version=$Version;rsaver=($selectedFeatures -contains 'rsaver');rscan=($selectedFeatures -contains 'rscan')}|ConvertTo-Json
+        Set-Content -LiteralPath $featureManifest -Value $state -Encoding UTF8
+        Write-Host "Enabled optional tools: $Features"
     }
     catch {
         if (Test-Path -LiteralPath $stage) {
@@ -166,6 +178,25 @@ function Show-SupportedTargets {
         $target = $Catalog.targets[$index]
         Write-Host (' {0,2}. {1,-30} {2}' -f ($index + 1), $target.label, $target.id)
     }
+}
+
+function Show-OptionalTools {
+    Write-Host ''
+    Write-Host 'Optional tools:'
+    Write-Host '  1. RSaver   Context pruning, budgeting, and re-anchoring for long sessions'
+    Write-Host '  2. RScan    Read-only project scan with ranked development options at session start'
+}
+
+function Read-FeatureSelection {
+    Show-OptionalTools
+    Write-Host '  1. Both tools (default)'
+    Write-Host '  2. RSaver only'
+    Write-Host '  3. RScan only'
+    Write-Host '  4. Neither'
+    $choice = (Read-Host 'Enable optional tools').Trim()
+    if ([string]::IsNullOrWhiteSpace($choice)) { $choice = '1' }
+    if ($choice -notin @('1', '2', '3', '4')) { throw "Invalid optional tool selection: $choice" }
+    return @{1='rsaver,rscan';2='rsaver';3='rscan';4='none'}[[int]$choice]
 }
 
 function Read-TargetSelection {
@@ -218,6 +249,8 @@ try {
         }
         $scope = if ($scopeChoice -eq '1') { 'project' } else { 'user' }
 
+        $features = 'rsaver,rscan'
+        if ($actionChoice -eq '1') { $features = Read-FeatureSelection }
         if ($actionChoice -eq '2') {
             $confirmation = (Read-Host 'Confirm uninstall and restore the previous installation? (y/N)').Trim()
             if ($confirmation.ToLowerInvariant() -notin @('y', 'yes')) {
@@ -252,7 +285,7 @@ try {
             $seen[$destinationKey] = $true
 
             $action = if ($actionChoice -eq '1') { 'install' } else { 'uninstall' }
-            Invoke-RCoderTarget -Target $target -Scope $scope -Base $base -Action $action
+            Invoke-RCoderTarget -Target $target -Scope $scope -Base $base -Action $action -Features $features
         }
 
         Write-Host ''

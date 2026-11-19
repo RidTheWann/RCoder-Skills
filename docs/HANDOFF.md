@@ -6,6 +6,7 @@ RCoder remains one portable Agent Skill with progressive disclosure. The core ro
 
 Version 1.8.0 adds:
 - RScan bounded project scanner with ranked development options, risk signals, and host-specific session-start hook installation for Claude Code and Gemini CLI.
+- Installer choice for RSaver and RScan (both/one/neither) in the Node CLI, interactive managers, PowerShell bootstrap, and POSIX helper, saved as a per-target feature manifest.
 
 Version 1.7.0 added:
 - RSaver re-anchoring for long contexts: drift signals, dual-end objective/constraint restatement with explicit IDs, source-separated facts, and budget-aware reanchoring.
@@ -102,7 +103,7 @@ Reverse-engineering references cover executable/binary analysis, evidence-led se
 
 Run in the Termux development shell on the `feat/rsaver` branch:
 
-- `python3 scripts/validate-all` — PASS, 773 checks.
+- `python3 scripts/validate-all` — PASS, 778 checks.
 - `python3 scripts/test-context-snapshot.py` — PASS, including the new bounded-path assertion.
 - `python3 scripts/test-score-eval.py` — PASS, scorer verified on synthetic perfect, mixed, inverted, and four rejection paths.
 - `python3 scripts/test-rsaver.py` — PASS, reduction, verbatim evidence, recovery, verification, dedupe economics, estimator profiles, and external tokenizer hook.

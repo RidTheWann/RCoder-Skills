@@ -57,7 +57,7 @@ These layers describe responsibilities, not extra steps to perform on every task
 
 ## RScan (session start)
 
-On a new session or in an unfamiliar repository, load [RScan](references/rscan.md) and run `python3 skills/rcoder/scripts/rscan.py scan --root . --format json` (or `--format text` for a menu). Present the ranked development options with their first commands and specialist references before choosing work. Automatic launch scanning requires a verified host session-start hook; install it only for supported hosts with `rscan hooks install` and see `docs/RSCAN-HOOKS.md`. Never claim automatic invocation from file installation alone.
+On a new session or in an unfamiliar repository, load [RScan](references/rscan.md) and run `python3 skills/rcoder/scripts/rscan.py scan --root . --format json` (or `--format text` for a menu). Present the ranked development options with their first commands and specialist references before choosing work. Automatic launch scanning requires a verified host session-start hook; install it only for supported hosts with `rscan hooks install` and see `docs/RSCAN-HOOKS.md`. Never claim automatic invocation from file installation alone. Check `<target-root>/.rcoder-features.json` to see whether RScan and RSaver were enabled at install time.
 
 ## RSaver gate (before routing)
 

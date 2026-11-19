@@ -8,9 +8,25 @@ param(
     [string]$HomeDir = $HOME,
     [switch]$DryRun,
     [switch]$Uninstall,
-    [switch]$NoLauncher
+    [switch]$NoLauncher,
+    [string]$Features = 'rsaver,rscan',
+    [switch]$ListFeatures
 )
 $ErrorActionPreference = 'Stop'
+if ($ListFeatures) {
+    Write-Host 'RSaver: Context pruning, budgeting, and re-anchoring for long sessions'
+    Write-Host 'RScan: Read-only project scan with ranked development options at session start'
+    exit 0
+}
+$selectedFeatures = @()
+if ($Features -and $Features -ne 'none') {
+    foreach ($part in ($Features -split ',')) {
+        $name = $part.Trim().ToLowerInvariant()
+        if ($name -notin @('rsaver', 'rscan')) { throw "Unknown optional tool: $name" }
+        if ($selectedFeatures -contains $name) { throw "Duplicate optional tool: $name" }
+        $selectedFeatures += $name
+    }
+}
 
 function Assert-NoReparsePoint([string]$Base,[string]$Path) {
     $baseFull=[IO.Path]::GetFullPath($Base)
@@ -144,6 +160,8 @@ try {
             Move-Item -LiteralPath $backups[-1].FullName -Destination $destination
             Write-Host "Restored previous installation: $destination"
         }
+        $featureManifest = Join-Path $targetRoot '.rcoder-features.json'
+        if (Test-Path -LiteralPath $featureManifest) { Remove-Item -LiteralPath $featureManifest -Force }
         return
     }
     $source=Join-Path $repo 'skills/rcoder'
@@ -162,6 +180,11 @@ try {
         Move-Item -LiteralPath $stage -Destination $destination
         $stage=$null
         Write-Host "Installed RCoder skill: $destination"
+        $featureManifest = Join-Path $targetRoot '.rcoder-features.json'
+        $version = (Get-Content -LiteralPath (Join-Path $repo 'package.json') -Raw -Encoding UTF8 | ConvertFrom-Json).version
+        $state = @{schema_version=1;version=$version;rsaver=($selectedFeatures -contains 'rsaver');rscan=($selectedFeatures -contains 'rscan')}|ConvertTo-Json
+        Set-Content -LiteralPath $featureManifest -Value $state -Encoding UTF8
+        Write-Host "Enabled optional tools: $Features"
     } else {Write-Host 'The selected RCoder skill installation is already current.'}
     if(-not $NoLauncher -and -not $DryRun){Install-GlobalLauncher -Repo $repo -UserHome $home}
     Write-Host ''

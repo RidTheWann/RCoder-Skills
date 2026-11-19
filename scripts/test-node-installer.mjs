@@ -23,6 +23,9 @@ function destinationFor(target, scope, projectDir, homeDir) {
 
 try {
   assert.match(run(['--help']), /RCoder/);
+  const featureList = run(['--list-features']);
+  assert.match(featureList, /RSaver.*Context pruning/);
+  assert.match(featureList, /RScan.*Read-only project scan/);
   const list = run(['--list-targets']);
   for (const target of targets) assert.ok(list.includes(target.id), `Missing target: ${target.id}`);
 
@@ -114,6 +117,20 @@ try {
   console.log('PASS legacy v1.1.0 backup restoration');
   console.log('PASS shared Agent Skills root: cross-host backup restoration');
   console.log('PASS global RCoder command, bundled manager, launcher idempotence, and interactive menu');
+  const featureProject = path.join(temp, 'feature-project');
+  const featureHome = path.join(temp, 'feature-home');
+  mkdirSync(featureProject, { recursive: true });
+  mkdirSync(featureHome, { recursive: true });
+  const featureArgs = ['--target', 'agents', '--scope', 'project', '--project-dir', featureProject,
+    '--home-dir', featureHome, '--no-launcher'];
+  run([...featureArgs, '--features', 'rscan']);
+  const featureManifest = path.join(featureProject, '.agents', '.rcoder-features.json');
+  const featureState = JSON.parse(readFileSync(featureManifest, 'utf8'));
+  assert.equal(featureState.rscan, true);
+  assert.equal(featureState.rsaver, false);
+  assert.throws(() => run([...featureArgs, '--features', 'unknown-tool']));
+  console.log('PASS optional tool selection: RSaver and RScan manifests');
+
   console.log(`PASS all ${targets.length * 2} Node installer target/scope combinations`);
 } finally {
   rmSync(temp, { recursive: true, force: true });

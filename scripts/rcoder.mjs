@@ -20,6 +20,11 @@ const CATALOG = JSON.parse(readFileSync(path.join(PACKAGE_ROOT, 'targets.json'),
 const TARGETS = CATALOG.targets;
 const TARGET_BY_ID = new Map(TARGETS.map((target) => [target.id, target]));
 const SCOPES = new Set(['project', 'user']);
+const FEATURES = [
+  { id: 'rsaver', label: 'RSaver', description: 'Context pruning, budgeting, and re-anchoring for long sessions' },
+  { id: 'rscan', label: 'RScan', description: 'Read-only project scan with ranked development options at session start' }
+];
+const FEATURE_IDS = new Set(FEATURES.map((feature) => feature.id));
 
 function usage() {
   console.log(`RCoder ${VERSION}
@@ -38,6 +43,8 @@ Options:
   --dry-run           Preview without writing files
   --uninstall         Remove selected skill and restore the latest backup
   --no-launcher       Do not install/update the global RCoder command
+  --features <csv>    Optional tools to enable: rsaver,rscan (default: both)
+  --list-features     Show optional tools with short descriptions
   --help              Show this help
   --version           Show version
 
@@ -48,7 +55,8 @@ function parseArgs(args) {
   const options = {
     target: 'agents', scope: 'project', projectDir: process.cwd(),
     homeDir: HOME, dryRun: false, uninstall: false, interactive: false,
-    listTargets: false, noLauncher: false
+    listTargets: false, noLauncher: false, listFeatures: false,
+    features: 'rsaver,rscan'
   };
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
@@ -59,6 +67,12 @@ function parseArgs(args) {
     if (arg === '--interactive' || arg === '-i') { options.interactive = true; continue; }
     if (arg === '--list-targets') { options.listTargets = true; continue; }
     if (arg === '--no-launcher') { options.noLauncher = true; continue; }
+    if (arg === '--list-features') { options.listFeatures = true; continue; }
+    if (arg === '--features') {
+      if (!args[i + 1] || args[i + 1].startsWith('--')) throw new Error('Missing value for --features');
+      options.features = args[++i];
+      continue;
+    }
     if (['--target', '--scope', '--project-dir', '--home-dir'].includes(arg)) {
       if (!args[i + 1] || args[i + 1].startsWith('--')) throw new Error(`Missing value for ${arg}`);
       const value = args[++i];
@@ -72,7 +86,51 @@ function parseArgs(args) {
   }
   if (!TARGET_BY_ID.has(options.target)) throw new Error(`Unsupported target: ${options.target}. Use --list-targets.`);
   if (!SCOPES.has(options.scope)) throw new Error(`Unsupported scope: ${options.scope}`);
+  parseFeatureSelection(options.features);
   return options;
+}
+
+function parseFeatureSelection(value) {
+  const raw = String(value).trim().toLowerCase();
+  if (raw === 'none' || raw === '') return [];
+  const ids = raw.split(',').map((item) => item.trim()).filter(Boolean);
+  const unknown = ids.filter((id) => !FEATURE_IDS.has(id));
+  if (unknown.length) throw new Error(`Unknown optional tool: ${unknown.join(', ')}. Use --list-features.`);
+  if (new Set(ids).size !== ids.length) throw new Error('Duplicate optional tool in --features.');
+  return ids;
+}
+
+function featureState(value) {
+  const selected = new Set(parseFeatureSelection(value));
+  return { schema_version: 1, version: VERSION,
+    rsaver: selected.has('rsaver'), rscan: selected.has('rscan') };
+}
+
+function showFeatures() {
+  console.log('\nOptional tools:');
+  FEATURES.forEach((feature, index) => {
+    console.log(`  ${index + 1}. ${feature.label.padEnd(8)} ${feature.description}`);
+  });
+}
+
+function writeFeatureManifest(options, target) {
+  const { targetRoot } = targetPaths(target, options.scope,
+    options.scope === 'project' ? options.projectDir : options.homeDir);
+  const manifest = path.join(targetRoot, '.rcoder-features.json');
+  if (options.uninstall) {
+    if (!options.dryRun && existsSync(manifest)) rmSync(manifest, { force: true });
+    return;
+  }
+  const state = JSON.stringify(featureState(options.features), null, 2) + '\n';
+  if (options.dryRun) {
+    console.log(`DRY RUN: write optional tool manifest to ${manifest}`);
+    return;
+  }
+  if (existsSync(manifest) && readFileSync(manifest, 'utf8') === state) return;
+  assertSafePath(options.scope === 'project' ? options.projectDir : options.homeDir, manifest);
+  mkdirSync(targetRoot, { recursive: true });
+  writeFileSync(manifest, state, 'utf8');
+  console.log(`Enabled optional tools for ${target.label}: ${options.features}`);
 }
 
 function assertSafePath(base, targetPath) {
@@ -364,6 +422,16 @@ async function runInteractive(options) {
       const scopeChoice = await ask(rl, '\nChoose installation scope: ', '1');
       if (!['1', '2'].includes(scopeChoice)) throw new Error('Invalid scope selection.');
       const scope = scopeChoice === '1' ? 'project' : 'user';
+      if (action === '1') {
+        showFeatures();
+        console.log('\n  1. Both tools (default)');
+        console.log('  2. RSaver only');
+        console.log('  3. RScan only');
+        console.log('  4. Neither');
+        const featureChoice = await ask(rl, '\nEnable optional tools: ', '1');
+        if (!['1', '2', '3', '4'].includes(featureChoice)) throw new Error('Invalid optional tool selection.');
+        options.features = { 1: 'rsaver,rscan', 2: 'rsaver', 3: 'rscan', 4: 'none' }[featureChoice];
+      }
       if (action === '2') {
         const confirmation = await ask(rl, '\nConfirm uninstall and backup the current RCoder folder? (y/N): ', 'n');
         if (!['y', 'yes'].includes(confirmation.toLowerCase())) {
@@ -386,7 +454,9 @@ async function runInteractive(options) {
           continue;
         }
         seen.add(key);
-        installTarget({ ...options, scope, projectDir: base, uninstall: action === '2', dryRun: false }, target);
+        const targetOptions = { ...options, scope, projectDir: base, uninstall: action === '2', dryRun: false };
+        installTarget(targetOptions, target);
+        writeFeatureManifest(targetOptions, target);
       }
       console.log('\nOperation completed. Start a new agent session to refresh its skills.');
     }
@@ -400,11 +470,13 @@ try {
   if (options.help) { usage(); process.exit(0); }
   if (options.version) { console.log(VERSION); process.exit(0); }
   if (options.listTargets) { showTargets(); process.exit(0); }
+  if (options.listFeatures) { showFeatures(); process.exit(0); }
   if (options.interactive) {
     await runInteractive(options);
   } else {
     const target = TARGET_BY_ID.get(options.target);
     installTarget(options, target);
+    writeFeatureManifest(options, target);
     if (!options.noLauncher && !options.dryRun && !options.uninstall) installLauncher(options.homeDir);
   }
 } catch (error) {
