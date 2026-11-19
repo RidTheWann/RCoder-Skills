@@ -1,0 +1,16 @@
+{
+  "arm": "with",
+  "harness": "scripts/run-benchmark.py",
+  "limit": 12,
+  "model": "opencode/hy4-flash-free",
+  "opencode": [
+    "/data/data/com.termux/files/usr/tmp/opencode/oc113"
+  ],
+  "parallel": 2,
+  "scenario_files": "/data/data/com.termux/files/usr/tmp/opencode/v11repo/evals/scenarios",
+  "scenarios_dataset": "/data/data/com.termux/files/usr/tmp/opencode/v11repo/evals/scenarios.json",
+  "scenarios_only": false,
+  "timeout_s": 90,
+  "triggers_dataset": "/data/data/com.termux/files/usr/tmp/opencode/v11repo/evals/triggers.json",
+  "triggers_only": true
+}

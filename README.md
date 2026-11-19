@@ -187,6 +187,8 @@ Windows CI also parses the PowerShell entry points and runs the PowerShell insta
 
 Static gates verify structure, installers, and packaging; they do not prove model improvement. `docs/LIVE-BENCHMARK.md` defines the controlled with/without-RCoder protocol for Hy4 Flash Free on OpenCode. A completed controlled ablation (61 cases × 2 arms, strict scorer exit 0) is retained in `evals/runs/hy4-flash-openrouter-2026-11-19/` and summarized in `evals/results.md`; the earlier quota-limited partial run is retained separately. Native skill discovery and end-to-end RScan menu injection were both directly observed in OpenCode 1.19.6. Results apply only to the pinned model and configuration recorded with the run.
 
+v1.13.0 adds a separate, bounded control-vs-treatment live comparison on the authorized free tier (`evals/runs/v113-live-free-2026-11-19/`): specialist F1 0.368 -> 0.476 and empty positive selections 7/12 -> 5/12, with a trigger-F1 regression from 0.957 to 0.857 in the same small sample. No independent judge, full-dataset rerun, multilingual run, or non-OpenCode host activation is claimed. `docs/V1.13-DELIVERY.md` classifies every important assertion.
+
 ## License
 
 MIT. See `LICENSE`.

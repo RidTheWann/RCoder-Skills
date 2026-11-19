@@ -17,11 +17,18 @@ ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_EXPECTATIONS = ROOT / "evals" / "routing-expectations.json"
 DEFAULT_REFERENCES = ROOT / "skills" / "rcoder" / "references"
 
+HELPER_MODULES = frozenset({
+    "verification", "rsaver", "rsaver-gate", "token-efficiency", "model-adaptation",
+})
+
 TRIGGER_CHECKS = (
     "prediction_shape",
     "specialists_are_known",
     "activation_has_specialists",
     "negative_not_activated",
+    "negative_selection_empty",
+    "non_helper_primary",
+    "expected_specialist_overlap",
 )
 CASE_CHECKS = (
     "prediction_shape",
@@ -59,11 +66,15 @@ def verify_trigger(record: dict, expectations: dict, modules: set[str]) -> list[
     selected = record.get("selected_specialists")
     expected = set(expectations.get(item_id, []))
     is_positive_trigger = bool(expected)
+    selected_names = set(selected) if isinstance(selected, list) else set()
     return [
         isinstance(predicted, bool) and isinstance(selected, list),
         isinstance(selected, list) and all(name in modules for name in selected),
         (not (predicted is True and is_positive_trigger)) or bool(selected),
         predicted is not True or is_positive_trigger,
+        is_positive_trigger or not selected_names,
+        not selected_names or any(name not in HELPER_MODULES for name in selected_names),
+        not is_positive_trigger or not selected_names or bool(selected_names & expected),
     ]
 
 
@@ -88,6 +99,7 @@ def main() -> int:
     parser.add_argument("--arm", choices=("with", "without"), default="with")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--definitions", type=Path, help="Optional JSON file mapping case IDs to check names")
+    parser.add_argument("--strict", action="store_true", help="Exit 1 when any emitted check fails")
     args = parser.parse_args()
 
     try:
@@ -122,7 +134,7 @@ def main() -> int:
 
     failed = sum(1 for record in records for flag in record["objective_checks"][record["id"]] if not flag)
     print(f"objective verification: {len(records)} cases, {failed} failed check(s) -> {args.output}")
-    return 0
+    return 1 if failed and args.strict else 0
 
 
 if __name__ == "__main__":

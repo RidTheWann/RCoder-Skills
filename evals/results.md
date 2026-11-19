@@ -1,5 +1,38 @@
 # Evaluation results
 
+## v1.13.0 bounded live ablation (separate from the frozen control)
+
+Retained evidence: `evals/runs/v113-live-free-2026-11-19/`. This is a NEW run on
+`opencode/hy4-flash-free` via the verified glibc-loader OpenCode 1.19.6 CLI; it
+is not merged with the historical `openrouter/tencent/hy4-flash` control.
+
+Two isolated arms used the same harness, model, prompts, fixtures, timeout, and
+scorer. The CONTROL arm used the unmodified v1.11.0 skill from commit `06ec22c`
+(59 references); the TREATMENT arm used the v1.13 routing changes (60
+references). Twenty-four trigger IDs were executed in each arm; six IDs were
+invalid in one or both arms and were excluded from both via `shared-invalid.json`,
+leaving 12 comparable positive triggers.
+
+| Metric (12 comparable positives) | CONTROL v1.11.0 | TREATMENT v1.13 |
+|---|---|---|
+| Trigger TP / FP / FN / TN | 11 / 0 / 1 / 6 | 9 / 0 / 3 / 6 |
+| Trigger F1 | 0.957 | 0.857 |
+| Specialist precision / recall / F1 | 0.778 / 0.241 / 0.368 | 0.769 / 0.345 / 0.476 |
+| Specialist exact-match | 0.000 | 0.083 |
+| Empty specialist sets | 7 / 12 | 5 / 12 |
+| Recorded tokens (12 positives) | 311,619 | 313,092 |
+| Tool calls (12 positives) | 99 | 98 |
+| Deterministic objective failures | 6 | 2 |
+
+**Classification:** all table values are VERIFIED deterministic computations over
+retained artifacts. The higher specialist recall/F1, one exact-match, fewer empty
+sets, and fewer objective failures are genuine observations in this small sample;
+the trigger-F1 regression is also a genuine observation and is not hidden.
+Causality and statistical significance are INFERRED at most. A post-run free-tier
+probe timed out, so full 42-trigger, scenario, expanded, and multilingual live
+runs are NOT VERIFIED; no paid provider was used. See the run `SUMMARY.md` for
+configuration and limitations.
+
 ## Static suite status
 
 `scripts/validate-all` enforces the current dataset contract (see `rubric.md`). The shipped corpus contains 42 trigger prompts — 24 positive and 18 negative — all English-only, plus 19 behavioral scenarios with 4 objective rubric items and a dedicated fixture file each. `evals/routing-expectations.json` records the expected specialist set for every trigger. The validator checks dataset integrity, routing metadata, manifests, host catalog, installers, and selected security patterns. It does not execute a model or a host.

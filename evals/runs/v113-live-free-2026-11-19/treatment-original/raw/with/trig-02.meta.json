@@ -1,0 +1,8 @@
+{
+  "arm": "with",
+  "case_id": "trig-02",
+  "duration_s": 26.281,
+  "exit_code": 0,
+  "stderr_bytes": 0,
+  "stdout_bytes": 24480
+}

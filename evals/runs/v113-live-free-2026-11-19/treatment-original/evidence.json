@@ -1,0 +1,722 @@
+{
+  "with": {
+    "trig-01": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": true,
+      "specialists": [],
+      "tokens": {
+        "cache": {
+          "read": 28672,
+          "write": 0
+        },
+        "input": 849,
+        "output": 126,
+        "reasoning": 343,
+        "total": 29990
+      },
+      "tool_calls": 7,
+      "tool_errors": 2,
+      "valid": true
+    },
+    "trig-02": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {
+        "cache": {
+          "read": 10240,
+          "write": 0
+        },
+        "input": 616,
+        "output": 129,
+        "reasoning": 348,
+        "total": 11333
+      },
+      "tool_calls": 5,
+      "tool_errors": 0,
+      "valid": true
+    },
+    "trig-03": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": true,
+      "specialists": [
+        "ui-ux-accessibility"
+      ],
+      "tokens": {
+        "cache": {
+          "read": 14336,
+          "write": 0
+        },
+        "input": 1517,
+        "output": 596,
+        "reasoning": 400,
+        "total": 16849
+      },
+      "tool_calls": 5,
+      "tool_errors": 0,
+      "valid": true
+    },
+    "trig-04": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {
+        "cache": {
+          "read": 22784,
+          "write": 0
+        },
+        "input": 425,
+        "output": 151,
+        "reasoning": 248,
+        "total": 23608
+      },
+      "tool_calls": 4,
+      "tool_errors": 0,
+      "valid": true
+    },
+    "trig-05": {
+      "invalid_reason": "ok",
+      "skill_invoked": true,
+      "skill_md_read": true,
+      "specialists": [
+        "devops-ci-cd",
+        "supply-chain-security"
+      ],
+      "tokens": {
+        "cache": {
+          "read": 30720,
+          "write": 0
+        },
+        "input": 574,
+        "output": 683,
+        "reasoning": 0,
+        "total": 31977
+      },
+      "tool_calls": 13,
+      "tool_errors": 1,
+      "valid": true
+    },
+    "trig-06": {
+      "invalid_reason": "ok",
+      "skill_invoked": true,
+      "skill_md_read": true,
+      "specialists": [
+        "database-engineering"
+      ],
+      "tokens": {
+        "cache": {
+          "read": 20992,
+          "write": 0
+        },
+        "input": 8801,
+        "output": 1135,
+        "reasoning": 1747,
+        "total": 32675
+      },
+      "tool_calls": 8,
+      "tool_errors": 1,
+      "valid": true
+    },
+    "trig-07": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": true,
+      "specialists": [],
+      "tokens": {
+        "cache": {
+          "read": 16384,
+          "write": 0
+        },
+        "input": 775,
+        "output": 534,
+        "reasoning": 188,
+        "total": 17881
+      },
+      "tool_calls": 8,
+      "tool_errors": 1,
+      "valid": true
+    },
+    "trig-08": {
+      "invalid_reason": "ok",
+      "skill_invoked": true,
+      "skill_md_read": true,
+      "specialists": [
+        "application-security",
+        "secure-code-review"
+      ],
+      "tokens": {
+        "cache": {
+          "read": 28672,
+          "write": 0
+        },
+        "input": 3214,
+        "output": 444,
+        "reasoning": 403,
+        "total": 32733
+      },
+      "tool_calls": 8,
+      "tool_errors": 1,
+      "valid": true
+    },
+    "trig-09": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": true,
+      "specialists": [
+        "review-refactor"
+      ],
+      "tokens": {
+        "cache": {
+          "read": 29184,
+          "write": 0
+        },
+        "input": 3734,
+        "output": 478,
+        "reasoning": 890,
+        "total": 34286
+      },
+      "tool_calls": 9,
+      "tool_errors": 2,
+      "valid": true
+    },
+    "trig-10": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": true,
+      "specialists": [
+        "mobile-engineering",
+        "polyglot-ecosystems",
+        "testing-qa",
+        "ui-ux-accessibility"
+      ],
+      "tokens": {
+        "cache": {
+          "read": 30976,
+          "write": 0
+        },
+        "input": 2966,
+        "output": 749,
+        "reasoning": 598,
+        "total": 35289
+      },
+      "tool_calls": 10,
+      "tool_errors": 0,
+      "valid": true
+    },
+    "trig-11": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {
+        "cache": {
+          "read": 25600,
+          "write": 0
+        },
+        "input": 190,
+        "output": 137,
+        "reasoning": 239,
+        "total": 26166
+      },
+      "tool_calls": 7,
+      "tool_errors": 1,
+      "valid": true
+    },
+    "trig-12": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": true,
+      "specialists": [
+        "architecture",
+        "documentation"
+      ],
+      "tokens": {
+        "cache": {
+          "read": 17664,
+          "write": 0
+        },
+        "input": 2527,
+        "output": 80,
+        "reasoning": 34,
+        "total": 20305
+      },
+      "tool_calls": 14,
+      "tool_errors": 2,
+      "valid": true
+    },
+    "trig-13": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {
+        "cache": {
+          "read": 15360,
+          "write": 0
+        },
+        "input": 426,
+        "output": 96,
+        "reasoning": 0,
+        "total": 15882
+      },
+      "tool_calls": 8,
+      "tool_errors": 0,
+      "valid": true
+    },
+    "trig-14": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {
+        "cache": {
+          "read": 0,
+          "write": 0
+        },
+        "input": 7990,
+        "output": 169,
+        "reasoning": 52,
+        "total": 8211
+      },
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": true
+    },
+    "trig-15": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {
+        "cache": {
+          "read": 0,
+          "write": 0
+        },
+        "input": 7996,
+        "output": 72,
+        "reasoning": 45,
+        "total": 8113
+      },
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": true
+    },
+    "trig-16": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {
+        "cache": {
+          "read": 11520,
+          "write": 0
+        },
+        "input": 357,
+        "output": 71,
+        "reasoning": 0,
+        "total": 11948
+      },
+      "tool_calls": 4,
+      "tool_errors": 0,
+      "valid": true
+    },
+    "trig-17": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {
+        "cache": {
+          "read": 7936,
+          "write": 0
+        },
+        "input": 7078,
+        "output": 237,
+        "reasoning": 51,
+        "total": 15302
+      },
+      "tool_calls": 1,
+      "tool_errors": 0,
+      "valid": true
+    },
+    "trig-18": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {
+        "cache": {
+          "read": 7680,
+          "write": 0
+        },
+        "input": 7803,
+        "output": 355,
+        "reasoning": 71,
+        "total": 15909
+      },
+      "tool_calls": 1,
+      "tool_errors": 0,
+      "valid": true
+    },
+    "trig-19": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {
+        "cache": {
+          "read": 2304,
+          "write": 0
+        },
+        "input": 5690,
+        "output": 12,
+        "reasoning": 78,
+        "total": 8084
+      },
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": true
+    },
+    "trig-20": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {
+        "cache": {
+          "read": 9728,
+          "write": 0
+        },
+        "input": 548,
+        "output": 78,
+        "reasoning": 0,
+        "total": 10354
+      },
+      "tool_calls": 5,
+      "tool_errors": 0,
+      "valid": true
+    },
+    "trig-21": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {
+        "cache": {
+          "read": 0,
+          "write": 0
+        },
+        "input": 7992,
+        "output": 95,
+        "reasoning": 37,
+        "total": 8124
+      },
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": true
+    },
+    "trig-22": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {
+        "cache": {
+          "read": 23296,
+          "write": 0
+        },
+        "input": 190,
+        "output": 35,
+        "reasoning": 231,
+        "total": 23752
+      },
+      "tool_calls": 3,
+      "tool_errors": 0,
+      "valid": true
+    },
+    "trig-23": {
+      "invalid_reason": "ok",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {
+        "cache": {
+          "read": 0,
+          "write": 0
+        },
+        "input": 7997,
+        "output": 860,
+        "reasoning": 592,
+        "total": 9449
+      },
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": true
+    },
+    "trig-24": {
+      "invalid_reason": "no_agent_text",
+      "skill_invoked": false,
+      "skill_md_read": true,
+      "specialists": [],
+      "tokens": {
+        "cache": {
+          "read": 16384,
+          "write": 0
+        },
+        "input": 797,
+        "output": 77,
+        "reasoning": 2179,
+        "total": 19437
+      },
+      "tool_calls": 8,
+      "tool_errors": 0,
+      "valid": false
+    }
+  },
+  "without": {
+    "trig-01": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-02": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-03": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-04": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-05": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-06": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-07": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-08": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-09": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-10": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-11": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-12": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-13": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-14": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-15": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-16": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-17": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-18": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-19": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-20": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-21": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-22": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-23": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    },
+    "trig-24": {
+      "invalid_reason": "missing_transcript",
+      "skill_invoked": false,
+      "skill_md_read": false,
+      "specialists": [],
+      "tokens": {},
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "valid": false
+    }
+  }
+}

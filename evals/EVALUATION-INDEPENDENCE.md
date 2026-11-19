@@ -58,6 +58,18 @@ prompts, rubric, scorer version, and dataset directory must be recorded in the
 run `config.json`. Multiple runs must be retained; report variation, not only
 the best result. Never merge runs from different providers or models.
 
+## v1.13 status update (2026-11-19)
+
+The five-layer architecture is unchanged. For the v1.13 bounded live ablation
+(`evals/runs/v113-live-free-2026-11-19/`), layers A and B were executed on both
+arms: `verify-objective.py` is now also run in CI on the frozen control and
+produced six failures for the v1.11 control arm versus two for the v1.13
+treatment arm on the live predictions. Layer C was not run for this new
+comparison, so no rubric judgment, same-model or otherwise, is claimed for it.
+Layers D and E remain NOT VERIFIED: no separate authorized judge model or human
+adjudicator was available. The historical control's same-model judge bias is
+still disclosed and was not retroactively removed.
+
 ## Known limitations
 
 - No independent judge model or human adjudicator was available in this

@@ -2,6 +2,26 @@
 
 RCoder follows Semantic Versioning.
 
+## [1.13.0] - 2026-11-19
+
+### Added
+- Operational selection gate: a fired trigger must emit a non-empty, on-disk-valid, non-helper-only specialist set before execution; framing bases are additive and cannot be substituted by a near-neighbour module. Routing now classifies by deliverable and acceptance criteria so paraphrased and non-English prompts are not dependent on English keywords.
+- Three deterministic routing-semantic checks in `verify-objective.py` (`negative_selection_empty`, `non_helper_primary`, `expected_specialist_overlap`) plus `--strict` for gating.
+- `tool_probe.py` version detection, bounded output capture, POSIX process-group cleanup, partial-output retention, and CLI exit-code propagation (`--strict`); `model-adaptation.md` documents the verified flags.
+- `run-benchmark.py` separate dataset paths, single-arm execution, and pinned `config.json` provenance, enabling separate control/expanded dataset runs.
+- `scripts/check-dist.py` verifies rebuilt ZIP artifacts against `dist/SHA256SUMS`; CI registers it and a meta-check that every test script is wired into the workflow.
+- `docs/V1.13-DEV-LEDGER.md` and a bounded live ablation record under `evals/runs/v113-live-free-2026-11-19/`.
+
+### Changed
+- `web-platform-engineering` was added to the SKILL.md routing tables; it existed on disk but was absent from the router.
+- `validate-all` now derives the product version from SKILL.md instead of a hardcoded literal, enforces a minimum check-count floor, and requires the v1.13 records.
+- Documentation states that "opencode NOT AVAILABLE" was an observation of an earlier development shell, not a permanent host fact: the CLI is available through the verified glibc loader in this session.
+
+### Verification status
+- Local gates: 2959 structural checks plus ten Python self-tests, Node installer matrix (40 target/scope cases), npm pack dry-run, installer simulations, reproducible package build, and SHA256SUMS verification — VERIFIED locally.
+- Fresh bounded live ablation on the authorized free tier: CONTROL v1.11.0 vs TREATMENT v1.13 on 12 comparable positive triggers. Specialist F1 0.368 -> 0.476, exact-match 0.000 -> 0.083, empty positive sets 7/12 -> 5/12, trigger F1 0.957 -> 0.857 (regression), recorded tokens +0.5%, tool calls 99 -> 98 — VERIFIED computations over retained evidence, small sample, no significance claim. Full detail in the delivery record.
+- Independent judge, human adjudication, expanded-dataset live run, multilingual live run, non-OpenCode host tiers T2-T4, and subagent orchestration measurements remain NOT VERIFIED.
+
 ## [1.12.0] - 2026-11-19
 
 ### Reconciled

@@ -192,8 +192,13 @@ def main() -> int:
     parser.add_argument("--timeout", type=int, default=120)
     parser.add_argument("--parallel", type=int, default=2)
     parser.add_argument("--limit", type=int, default=0, help="0 = all cases")
+    parser.add_argument("--triggers", type=Path, default=TRIGGERS, help="Trigger dataset; use a separate file for expanded datasets")
+    parser.add_argument("--scenarios", type=Path, default=SCENARIOS, help="Scenario dataset; use a separate file for expanded datasets")
+    parser.add_argument("--scenario-files", type=Path, default=FIXTURE_FILES, help="Directory holding scenario fixture markdown")
     parser.add_argument("--triggers-only", action="store_true")
     parser.add_argument("--scenarios-only", action="store_true")
+    parser.add_argument("--arm", choices=("both", "with", "without"), default="both",
+                        help="Run one arm only for a focused comparison; 'both' is the default")
     args = parser.parse_args()
 
     run_dir = args.run_dir
@@ -202,14 +207,31 @@ def main() -> int:
     raw_dir.mkdir(exist_ok=True)
     fixture_info = prepare_fixtures(run_dir)
     (run_dir / "isolation.json").write_text(json.dumps(fixture_info, indent=2, sort_keys=True), encoding="utf-8")
+    config = {
+        "model": args.model,
+        "opencode": list(args.opencode),
+        "timeout_s": args.timeout,
+        "parallel": args.parallel,
+        "limit": args.limit,
+        "triggers_dataset": str(args.triggers),
+        "scenarios_dataset": str(args.scenarios),
+        "scenario_files": str(args.scenario_files),
+        "triggers_only": args.triggers_only,
+        "scenarios_only": args.scenarios_only,
+        "arm": args.arm,
+        "harness": "scripts/run-benchmark.py",
+    }
+    config_path = run_dir / "config.json"
+    if not config_path.exists():
+        config_path.write_text(json.dumps(config, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     cases = []
     if not args.scenarios_only:
-        for trig in load_json(TRIGGERS):
+        for trig in load_json(args.triggers):
             cases.append(("trigger", trig["id"], trig["prompt"], None))
     if not args.triggers_only:
-        for scen in load_json(SCENARIOS):
-            md = FIXTURE_FILES / (scen["id"] + ".md")
+        for scen in load_json(args.scenarios):
+            md = args.scenario_files / (scen["id"] + ".md")
             cases.append(("scenario", scen["id"], scen["prompt"], md if md.exists() else None))
     if args.limit:
         cases = cases[: args.limit]
@@ -218,7 +240,8 @@ def main() -> int:
         encoding="utf-8",
     )
 
-    jobs = [(arm, case) for case in cases for arm in ("with", "without")]
+    arms = ("with", "without") if args.arm == "both" else (args.arm,)
+    jobs = [(arm, case) for case in cases for arm in arms]
     results = []
     with ThreadPoolExecutor(max_workers=args.parallel) as pool:
         futures = {
@@ -262,7 +285,7 @@ def main() -> int:
     (run_dir / "invalid-cases.json").write_text(json.dumps(invalid, indent=2, sort_keys=True), encoding="utf-8")
 
     done = sum(1 for r in results if r["exit_code"] != 124)
-    print(f"DONE cases={len(cases)} arms=2 completed={len(results)} timeouts={len(results)-done}")
+    print(f"DONE cases={len(cases)} arms={len(arms)} completed={len(results)} timeouts={len(results)-done}")
     for arm in ("with", "without"):
         print(f"VALID {arm}={len(predictions[arm])} INVALID {arm}={len(invalid[arm])}")
     return 0

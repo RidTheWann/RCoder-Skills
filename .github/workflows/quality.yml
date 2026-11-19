@@ -29,6 +29,12 @@ jobs:
         run: python scripts/test-score-eval.py
       - name: Deterministic objective verifier self-test
         run: python scripts/test-objective.py
+      - name: CI registration meta-check
+        shell: bash
+        run: python -c "from pathlib import Path; wf=Path('.github/workflows/quality.yml').read_text(); missing=[p.name for p in Path('scripts').glob('test-*') if p.name not in wf]; assert not missing, missing"
+      - name: Objective checks on the frozen control (informational)
+        shell: bash
+        run: python scripts/verify-objective.py --predictions evals/runs/hy4-flash-openrouter-2026-11-19/WITH.jsonl --output "$RUNNER_TEMP/control-objective.jsonl" --definitions "$RUNNER_TEMP/control-objective-definitions.json"
       - name: Judge helper self-test (offline, no live model)
         run: python scripts/test-score-scenarios.py
       - name: Tool discovery and bounded fallback self-test
@@ -66,3 +72,5 @@ jobs:
         run: ./scripts/test-installers.ps1
       - name: Build reproducible packages
         run: python scripts/package
+      - name: Verify package checksums
+        run: python scripts/check-dist.py

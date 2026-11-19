@@ -51,6 +51,7 @@ Consequences:
 
 - OpenCode 1.19.6 supports project-level skill discovery: T2 and T3 are VERIFIED for that exact version only.
 - T4 has a partial WITH-arm result for hy4-flash-free; the controlled WITHOUT arm is NOT VERIFIED because the provider free-usage limit was exhausted.
+- Re-verified in the v1.13 development session: the same glibc-loader CLI returned `1.19.6` and executed an authorized live control/treatment ablation with a WITH arm in each arm directory. The earlier "opencode unavailable" statement is a time-stamped observation of a different shell, not a host capability claim. All 19 non-OpenCode hosts remain T0/T1 because no host runtime was available in this session; no universal compatibility is claimed.
 - `rg` is absent; OpenCode glob/grep/skill tools report `ripgrep execution failed`. This affects both arms identically and is an environment limitation, not an RCoder failure.
 - The user-selected reasoning variant was left unchanged; no model or provider configuration was modified.
 
