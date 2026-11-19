@@ -87,7 +87,11 @@ For non-interactive use, run `npx -y github:RidTheWann/RCoder-Skills --help`. Us
 | TRAE | `.trae/skills` | `~/.trae/skills` |
 | Factory Droid | `.factory/skills` | `~/.factory/skills` |
 
-Host discovery can vary by product version and UI surface. Path simulations do not prove that a native host will invoke the skill; see `docs/RESEARCH-TODO.md` for runtime checks.
+Host discovery can vary by product version and UI surface. Path simulations do not prove that a native host will invoke the skill. See `docs/COMPATIBILITY.md` for the five-tier evidence matrix (file install, documented discovery, native discovery, invocation, behavioral evaluation) and `docs/RESEARCH-TODO.md` for runtime checks. Observed runtimes and capability limits for the primary development shell are recorded in `docs/ENVIRONMENT.md`.
+
+## Model adaptation and orchestration
+
+RCoder adapts to the model and host actually present. The [model adaptation specialist](skills/rcoder/references/model-adaptation.md) provides an observable capability-discovery checklist, four execution profiles (Focused, Engineering, Deep Research, Long-Running Project), a smallest-sufficient-workflow rule, subagent strategy, and a reusable ablation methodology that holds model, settings, tools, permissions, fixture, prompt, and rubric constant. Capabilities that cannot be observed are recorded as UNKNOWN, not guessed. No model-specific performance claim is made without a retained evaluation; see `evals/results.md`.
 
 ## Engineering and programming coverage
 
@@ -130,8 +134,10 @@ RCoder uses progressive disclosure to reduce unnecessary context. The token-effi
 
 ## Repository structure
 
-- `skills/rcoder/SKILL.md` — portable router and operating protocol.
-- `skills/rcoder/references/` — focused engineering, cybersecurity, and reverse-engineering modules.
+- `skills/rcoder/SKILL.md` — portable router and operating protocol with a layered execution map.
+- `skills/rcoder/references/` — focused engineering, cybersecurity, reverse-engineering, and model-adaptation modules.
+- `docs/COMPATIBILITY.md` — host evidence tiers; `docs/ENVIRONMENT.md` — observed capability record.
+- `evals/ABLATION-PROTOCOL.md`, `scripts/score-eval.py` — runnable scoring and with/without-RCoder ablation.
 - `skills/rcoder/scripts/detect_stack.py` — read-only stack reconnaissance.
 - `skills/rcoder/scripts/context_snapshot.py` — bounded metadata-only repository snapshot.
 - `skills/rcoder/assets/templates/` — ADR, issue, specialist-module, context-capsule, test, and UX templates.
@@ -145,6 +151,7 @@ RCoder uses progressive disclosure to reduce unnecessary context. The token-effi
 ```sh
 python3 scripts/validate-all
 python3 scripts/test-context-snapshot.py
+python3 scripts/test-score-eval.py
 node --check scripts/rcoder.mjs
 node scripts/test-node-installer.mjs
 npm pack --dry-run --json

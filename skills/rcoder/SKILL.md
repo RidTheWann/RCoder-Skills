@@ -4,7 +4,7 @@ description: "RCoder is a model-agnostic software engineering, programming, cybe
 license: MIT
 metadata:
   author: RidTheWann
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # RCoder
@@ -33,6 +33,19 @@ RCoder is a model-agnostic engineering workflow router. It does not grant tools,
 
 Explicit user instructions > project instructions and conventions (`AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING`, formatter/linter configuration, tests, CI) > RCoder defaults. A stricter project policy always wins over an RCoder preference.
 
+## Layered execution model
+
+These layers describe responsibilities, not extra steps to perform on every task. Use the smallest sufficient workflow.
+
+| Layer | Responsibility | Where it lives |
+|---|---|---|
+| A — Discovery and classification | Identify discipline, language/runtime, platform, complexity, constraints, deliverable, verification, tools | Intake and Recon below |
+| B — Specialist selection | Choose one or more directly relevant modules; resolve cross-discipline handoffs | Expert routing below |
+| C — Expert execution | Investigate, decide, implement, recover, and verify with domain procedures | `references/*.md` |
+| D — Runtime and tool adaptation | Use only capabilities observed in the active host; never treat skill files as installed tools | `references/model-adaptation.md` |
+| E — Verification and QA | Evidence, negative tests, independent checks, reproducibility | `references/verification.md` and each module's Verification section |
+| F — Context and long tasks | Bounded reads, working ledger, context capsule, explicit handoff | `references/token-efficiency.md`, capsule template |
+
 ## Workflow: Intake → Recon → Plan → Implement → Verify → Report
 
 1. **Intake:** identify outcome, acceptance criteria, affected surface, risk, authorization, and whether this is software engineering. Keep standalone writing, slides, images, and pure concepts outside this skill.
@@ -45,6 +58,8 @@ Explicit user instructions > project instructions and conventions (`AGENTS.md`, 
 ## Expert routing
 
 Load one or more directly relevant references; do not read all modules by default. Use the programming-language router to select a narrower implementation specialist. The security and reverse-engineering routers are separate disciplines and should be combined only when the task crosses both.
+
+For unfamiliar models or hosts, choose an execution profile before routing; see [model adaptation](references/model-adaptation.md). Host evidence tiers are recorded in `docs/COMPATIBILITY.md` and observed runtime facts in `docs/ENVIRONMENT.md`. These documents are host-side metadata, not skills to load for domain tasks.
 
 ### Core engineering
 
@@ -99,6 +114,10 @@ Start with [security](references/security.md) and load the narrowest specialist:
 ### Reverse engineering and interoperability
 
 Use [software reverse engineering](references/reverse-engineering.md) for disassembly/decompilation, [RE research workflow](references/reverse-engineering-architecture.md) for evidence-led semantic reconstruction, and [binary file-format analysis](references/reverse-engineering-file-formats.md) for undocumented containers and serialization. Preserve originals and hashes, distinguish observation from inference, and keep dynamic analysis isolated and authorized.
+
+### Model adaptation and orchestration
+
+Load [model adaptation](references/model-adaptation.md) when the host or model is unfamiliar, when choosing between focused/engineering/deep-research/long-running profiles, when deciding whether delegation is worthwhile, or when measuring RCoder's effect. Discover capabilities by observation; mark unknowns explicitly. Do not hardcode assumptions about a model's context, tools, or reasoning.
 
 ### Token and context efficiency
 

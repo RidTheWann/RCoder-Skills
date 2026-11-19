@@ -4,7 +4,7 @@ These are environment-dependent checks, not claims that implementation is comple
 
 | Item | Blocker | Required evidence |
 |---|---|---|
-| GitHub Actions | v1.2.0 feature branch has not completed CI | Inspect Linux and Windows job logs; require all jobs green before merge. |
+| GitHub Actions | v1.3.0 feature branch has not completed CI | Inspect Linux and Windows job logs; require all jobs green before merge. |
 | Official `skills-ref` | Validator is not installed in the build environment | Run the official validator against `skills/rcoder`; record version and output. |
 | Windows `irm` bootstrap | Syntax checks do not execute a real HTTPS bootstrap in a clean profile | Run the exact `irm` command on PowerShell 5.1 and 7; verify PATH, launcher, Project/User install, update, dry-run, and restore. |
 | Node/npm package | CI package checks do not replace a clean networked install | Run `npx -y github:RidTheWann/RCoder-Skills` on a clean system with Node, npm, and Git. |
@@ -15,5 +15,9 @@ These are environment-dependent checks, not claims that implementation is comple
 | Reverse-engineering behavior | Static evaluation includes an RE scenario | Test on authorized fixture binaries; validate provenance, evidence-led hypotheses, isolation, and differential tests. |
 | Context helper | Unit test covers bounded fixture output | Test representative large repos on Windows and POSIX; inspect path limits and symlink handling. |
 | ZIP import | No authenticated product UI in build environment | Import the generated skill/plugin ZIP into supported hosts and perform a low-risk activation test. |
+| Model ablation (Hy4 Flash Free) | No pinned with/without run has been executed | Run the identical suite with and without RCoder under the `evals/rubric.md` methodology; retain configuration and per-criterion scores in `evals/results.md`. |
+| OpenCode CLI discovery | `opencode` is absent from PATH; plugin/SDK 1.19.6 is installed locally | Install or locate the CLI, record its exact version, verify skill discovery and configuration syntax against that version, then update `docs/COMPATIBILITY.md` and `docs/ENVIRONMENT.md`. |
+| Live ablation with the new scorer | No model prediction run has been produced; the harness is verified only on synthetic fixtures | Produce with/without prediction files using `evals/ABLATION-PROTOCOL.md`, run `scripts/score-eval.py --strict`, and retain results in `evals/results.md`. |
+| Deepened specialist behavior | Static validation checks structure, not behavioral quality | Run scenario prompts for the deepened programming, security, and reverse-engineering modules and score against their Verification sections. |
 
 Native discovery and model activation must not be inferred from successful file-copy simulations.
