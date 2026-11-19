@@ -2,6 +2,17 @@
 
 RCoder follows Semantic Versioning.
 
+## [1.7.0] - 2026-11-19
+
+### Added
+- RSaver re-anchoring: `drift` scans a transcript for objective/constraint loss, repeated commands, and completion claims with open unknowns; `anchor` builds a dual-end block with explicit IDs and source-separated facts; `reanchor` inserts both blocks and re-runs the gate budget.
+- `rsaver-anchor.md` specialist and `docs/CONTEXT-DRIFT.md` research basis covering positional attention bias, structural anchors, and compaction source discipline.
+- RSaver self-test coverage for drift signals, dual-end structure, ID references, budget warnings, and rejection paths.
+
+### Changed
+- Router applies re-anchoring when drift signals appear in a long session.
+- Synchronized version 1.7.0 across skill metadata, package/plugin manifests, changelog, package builder, and validator.
+
 ## [1.6.0] - 2026-11-19
 
 ### Added

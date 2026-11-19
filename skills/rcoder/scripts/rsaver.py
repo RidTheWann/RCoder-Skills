@@ -15,7 +15,7 @@ import re
 import sys
 from pathlib import Path
 
-VERSION = "1.6.0"
+VERSION = "1.7.0"
 PIECES = re.compile(r"[^\W\d_]+|\d+|[^\s\w]", re.UNICODE)
 DEFAULT_CRITICAL = (
     r"(?i)(error|fail|exception|traceback|fatal|panic|exit[ _-]?code|"
@@ -264,6 +264,156 @@ def emit(payload: dict, as_json: bool, text: str, label: str, text_key: str = "t
 
 SECTION_ORDER = {"prefix": 0, "working": 1, "history": 2, "tail": 3}
 PRIORITY_DROP_ORDER = {"optional": 0, "useful": 1, "required": 2}
+OBJECTIVE_RE = re.compile(r"(?i)\b(objective|goal)\s*:")
+CONSTRAINT_RE = re.compile(r"(?i)\b(constraint|must not|do not|authorization|scope)\b")
+OPEN_RE = re.compile(r"(?i)\b(unknown|unverified|not verified|hypothesis|tbd)\b")
+COMPLETE_RE = re.compile(r"(?i)\b(done|complete|finished|all tests pass)\b")
+EVIDENCE_RE = re.compile(r"(?i)\b(confirmed|proved|verified)\b")
+LABEL_RE = re.compile(r"(?i)\b(VERIFIED|INFERRED|NOT VERIFIED)\b")
+
+
+def detect_drift(lines: list[str], recent_window: int, repeat_threshold: int) -> dict:
+    signals = []
+    recent = lines[-recent_window:] if recent_window > 0 else lines
+    recent_start = max(1, len(lines) - len(recent) + 1)
+    if not any(OBJECTIVE_RE.search(line) for line in recent):
+        signals.append({"signal": "objective_absent_from_recent_window", "severity": "high",
+                        "lines": [], "action": "re-anchor the objective at the start and end of the next request"})
+    if not any(CONSTRAINT_RE.search(line) for line in recent):
+        signals.append({"signal": "constraint_absent_from_recent_window", "severity": "high",
+                        "lines": [], "action": "restate hard constraints with exact IDs"})
+    commands: dict[str, list[int]] = {}
+    for offset, line in enumerate(recent):
+        stripped = line.strip()
+        if stripped.startswith(("$ ", "CMD ", "RUN ")):
+            commands.setdefault(stripped, []).append(recent_start + offset)
+    for command, locations in commands.items():
+        if len(locations) >= repeat_threshold:
+            signals.append({"signal": "repeated_command", "severity": "medium",
+                            "lines": locations, "command": command,
+                            "action": "stop repeating and record the result before the next attempt"})
+    open_lines = [recent_start + offset for offset, line in enumerate(recent) if OPEN_RE.search(line)]
+    complete_lines = [recent_start + offset for offset, line in enumerate(recent) if COMPLETE_RE.search(line)]
+    if open_lines and complete_lines:
+        signals.append({"signal": "completion_claim_with_open_unknowns", "severity": "high",
+                        "lines": complete_lines + open_lines,
+                        "action": "separate confirmed results from unresolved hypotheses"})
+    unlabeled = [recent_start + offset for offset, line in enumerate(recent)
+                 if EVIDENCE_RE.search(line) and not LABEL_RE.search(line)]
+    if unlabeled:
+        signals.append({"signal": "unlabeled_confidence_claim", "severity": "low",
+                        "lines": unlabeled, "action": "label each claim VERIFIED, INFERRED, or NOT VERIFIED"})
+    return {
+        "tool": "RSaver", "version": VERSION, "method": "deterministic_text_signals",
+        "lines_scanned": len(lines), "recent_window": len(recent),
+        "signals": signals, "signal_count": len(signals),
+        "diagnosis": "NOT VERIFIED: signals are heuristics, not a model state diagnosis",
+    }
+
+
+def build_anchor(state: dict, max_tokens: int) -> dict:
+    objective = state.get("objective")
+    if not isinstance(objective, str) or not objective.strip():
+        raise ValueError("state must contain a non-empty objective")
+    constraints = [str(item) for item in state.get("constraints", [])]
+    facts = [str(item) for item in state.get("verified_facts", [])]
+    decisions = [str(item) for item in state.get("decisions", [])]
+    unresolved = [str(item) for item in state.get("unresolved", [])]
+    boundary = str(state.get("security_boundary", ""))
+    next_action = str(state.get("next_action", ""))
+    opening = ["===== RSAVER ANCHOR START =====",
+               "[RSAVER: refer to items by ID, not by position in the context]",
+               f"[OBJECTIVE-1] {objective.strip()}"]
+    for index, item in enumerate(constraints[:3], 1):
+        opening.append(f"[CONSTRAINT-{index}] {item}")
+    if boundary:
+        opening.append(f"[SECURITY-BOUNDARY] {boundary}")
+    for index, item in enumerate(facts[:5], 1):
+        opening.append(f"[FACT-{index}] {item}")
+    for index, item in enumerate(decisions[:3], 1):
+        opening.append(f"[DECISION-{index}] {item}")
+    for index, item in enumerate(unresolved[:3], 1):
+        opening.append(f"[UNRESOLVED-{index}] {item}")
+    if next_action:
+        opening.append(f"[NEXT-ACTION] {next_action}")
+    closing = ["===== RSAVER ANCHOR END =====",
+               f"[OBJECTIVE-1] {objective.strip()}"]
+    for index, item in enumerate(constraints[:3], 1):
+        closing.append(f"[CONSTRAINT-{index}] {item}")
+    if next_action:
+        closing.append(f"[NEXT-ACTION] {next_action}")
+    closing.append("===== END ANCHOR =====")
+    block = "\n".join(opening + closing)
+    warnings = []
+    if len(constraints) > 3:
+        warnings.append("too_many_repeated_constraints")
+    used = estimate_v2(block)
+    if used > max_tokens:
+        warnings.append("anchor_exceeds_budget")
+    return {
+        "tool": "RSaver", "version": VERSION, "method": "dual_end_explicit_id_anchor",
+        "block": block, "opening": "\n".join(opening), "closing": "\n".join(closing),
+        "estimate": used, "max_tokens": max_tokens, "warnings": warnings,
+        "ids": [f"OBJECTIVE-1"] + [f"CONSTRAINT-{i}" for i in range(1, min(len(constraints), 3) + 1)]
+        + [f"FACT-{i}" for i in range(1, min(len(facts), 5) + 1)]
+        + [f"DECISION-{i}" for i in range(1, min(len(decisions), 3) + 1)]
+        + [f"UNRESOLVED-{i}" for i in range(1, min(len(unresolved), 3) + 1)]
+        + (["NEXT-ACTION"] if next_action else []),
+    }
+
+
+def command_drift(args: argparse.Namespace) -> int:
+    lines = read_lines(args.path)
+    report = detect_drift(lines, args.recent_window, args.repeat_threshold)
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+    else:
+        print(f"RSaver drift: {report['signal_count']} signal(s) in {report['lines_scanned']} lines")
+        for signal in report["signals"]:
+            print(f"  [{signal['severity']}] {signal['signal']} lines={signal['lines']}")
+        print("RSaver drift: heuristic signals only; NOT a model state diagnosis")
+    return 0
+
+
+def command_anchor(args: argparse.Namespace) -> int:
+    state = json.loads(Path(args.state).read_text(encoding="utf-8") if args.state != "-" else sys.stdin.read())
+    result = build_anchor(state, args.max_tokens)
+    if args.json:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    else:
+        print(result["block"])
+        print(f"RSaver anchor: estimate={result['estimate']}/{result['max_tokens']} ids={len(result['ids'])}",
+              file=sys.stderr)
+        for warning in result["warnings"]:
+            print(f"RSAVER WARNING: {warning}", file=sys.stderr)
+    return 0
+
+
+def command_reanchor(args: argparse.Namespace) -> int:
+    state = json.loads(Path(args.state).read_text(encoding="utf-8"))
+    envelope = json.loads(Path(args.envelope).read_text(encoding="utf-8"))
+    anchor = build_anchor(state, args.max_tokens)
+    items = list(envelope.get("items", []))
+    items.insert(0, {"id": "rsaver-anchor-start", "section": "prefix", "tokens": estimate_v2(anchor["opening"]),
+                     "stability": "static", "priority": "required"})
+    items.append({"id": "rsaver-anchor-end", "section": "tail", "tokens": estimate_v2(anchor["closing"]),
+                  "stability": "dynamic", "priority": "required"})
+    envelope = dict(envelope)
+    envelope["items"] = items
+    plan = plan_envelope(envelope)
+    result = {"tool": "RSaver", "version": VERSION, "method": "reanchor_then_gate",
+              "anchor": anchor, "gate": plan,
+              "warnings": anchor["warnings"] + plan["warnings"]}
+    if args.json:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    else:
+        budget = plan["budget"]
+        print(f"RSaver re-anchor: anchor={anchor['estimate']} input={budget['input_estimate']} "
+              f"projected={budget['projected_total']}/{budget['window_tokens']} "
+              f"deferred={plan['deferred_count']} cache_eligible={plan['cache']['eligible']}")
+        for warning in result["warnings"]:
+            print(f"RSAVER WARNING: {warning}", file=sys.stderr)
+    return 0
 
 
 def plan_envelope(envelope: dict) -> dict:
@@ -641,6 +791,26 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"RSaver {VERSION}")
     sub = parser.add_subparsers(dest="command", required=True)
 
+    drift = sub.add_parser("drift", help="scan a transcript for deterministic drift signals")
+    drift.add_argument("path")
+    drift.add_argument("--recent-window", type=int, default=40)
+    drift.add_argument("--repeat-threshold", type=int, default=3)
+    drift.add_argument("--json", action="store_true")
+    drift.set_defaults(func=command_drift)
+
+    anchor = sub.add_parser("anchor", help="build a dual-end re-anchoring block with explicit IDs")
+    anchor.add_argument("state", help="JSON state file, or - for stdin")
+    anchor.add_argument("--max-tokens", type=int, default=400)
+    anchor.add_argument("--json", action="store_true")
+    anchor.set_defaults(func=command_anchor)
+
+    reanchor = sub.add_parser("reanchor", help="insert anchor blocks into an envelope and re-run the gate")
+    reanchor.add_argument("--envelope", required=True)
+    reanchor.add_argument("--state", required=True)
+    reanchor.add_argument("--max-tokens", type=int, default=400)
+    reanchor.add_argument("--json", action="store_true")
+    reanchor.set_defaults(func=command_reanchor)
+
     gate = sub.add_parser("gate", help="filter a context envelope against input/cache/output budgets")
     gate.add_argument("envelope", help="JSON envelope path, or - for stdin")
     gate.add_argument("--json", action="store_true")
@@ -715,6 +885,9 @@ def main() -> int:
     args = parser.parse_args()
     if getattr(args, "context", 0) < 0 or getattr(args, "max_lines", 1) < 1:
         parser.error("--context must be >= 0 and --max-lines must be >= 1")
+    for key in ("recent_window", "repeat_threshold", "max_tokens"):
+        if key in vars(args) and getattr(args, key) < 1:
+            parser.error(f"--{key.replace('_', '-')} must be >= 1")
     try:
         return args.func(args)
     except (OSError, ValueError, re.error, json.JSONDecodeError, KeyError) as error:

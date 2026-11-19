@@ -4,7 +4,7 @@ description: "RCoder is a model-agnostic software engineering, programming, cybe
 license: MIT
 metadata:
   author: RidTheWann
-  version: "1.6.0"
+  version: "1.7.0"
 ---
 
 # RCoder
@@ -58,6 +58,8 @@ These layers describe responsibilities, not extra steps to perform on every task
 ## RSaver gate (before routing)
 
 For multi-step, tool-heavy, or context-constrained work, apply the [RSaver gate](references/rsaver-gate.md) before loading specialists and again before each model boundary: reserve output and reasoning budget, keep required items, defer optional history with recovery pointers, and make the static cache prefix contiguous. `scripts/rsaver.py gate` and `budget` produce the deterministic plan; `docs/TOKEN-ECONOMICS.md` records input, cached-input, and output mechanics. RSaver is a planning and filtering layer, not a runtime interceptor: confirm cache hits from usage fields.
+
+When a long session repeats commands, loses the objective, drops constraints, or claims completion while unknowns remain, run `rsaver drift` and then load [RSaver anchor](references/rsaver-anchor.md). It restates the objective and hard constraints at both ends with explicit IDs and separates verified facts from decisions and unknowns; research findings are in `docs/CONTEXT-DRIFT.md`.
 
 ## Expert routing
 

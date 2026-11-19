@@ -49,9 +49,9 @@ def main():
         assert canonical.is_file()
         direct = subprocess.run([sys.executable, str(canonical), "--version"],
                                 text=True, capture_output=True, check=True, timeout=20)
-        assert "RSaver 1.6.0" in direct.stdout
+        assert "RSaver 1.7.0" in direct.stdout
         version = run("--version")
-        assert version.returncode == 0 and "RSaver 1.6.0" in version.stdout
+        assert version.returncode == 0 and "RSaver 1.7.0" in version.stdout
 
         calibration = {
             "prose": "The quick brown fox jumps over the lazy dog. This sentence uses common words.",
@@ -119,6 +119,52 @@ def main():
         assert run("gate", "-", "--json", stdin_text='{"window_tokens": 0, "items": []}').returncode == 2
         assert run("gate", "-", "--json", stdin_text='{"window_tokens": 10, "items": [{"id": 1}]}').returncode == 2
         assert run("budget", "--window", "10", "--output-reserve", "20").returncode == 2
+
+        transcript = root / "transcript.txt"
+        transcript.write_text("\n".join(
+            ["# session"] + [f"noise {index}" for index in range(60)]
+            + ["$ run tests", "$ run tests", "$ run tests",
+               "Unverified hypothesis about cache", "The task is complete and all tests pass"]
+        ) + "\n", encoding="utf-8")
+        drift = run_json("drift", str(transcript), "--json")
+        signals = {item["signal"] for item in drift["signals"]}
+        assert "objective_absent_from_recent_window" in signals
+        assert "constraint_absent_from_recent_window" in signals
+        assert "repeated_command" in signals
+        assert "completion_claim_with_open_unknowns" in signals
+        assert drift["diagnosis"].startswith("NOT VERIFIED")
+
+        state = root / "state.json"
+        state.write_text(json.dumps({
+            "objective": "Fix the failing parser test and add a regression case",
+            "constraints": ["No changes outside src/parser", "Keep public API stable"],
+            "verified_facts": ["baseline failure recorded"],
+            "decisions": ["Fix root cause not symptom"],
+            "unresolved": ["Cache invalidation hypothesis"],
+            "security_boundary": "No production access",
+            "next_action": "Reproduce timeout with bounded fixture",
+        }), encoding="utf-8")
+        anchor = run_json("anchor", str(state), "--json")
+        assert anchor["block"].count("RSAVER ANCHOR START") == 1
+        assert anchor["block"].count("RSAVER ANCHOR END") == 1
+        assert "[OBJECTIVE-1]" in anchor["opening"] and "[OBJECTIVE-1]" in anchor["closing"]
+        assert "[CONSTRAINT-1]" in anchor["opening"] and "[CONSTRAINT-1]" in anchor["closing"]
+        assert "[NEXT-ACTION]" in anchor["closing"]
+        assert "[FACT-1]" in anchor["opening"]
+        assert anchor["estimate"] <= anchor["max_tokens"]
+        assert anchor["warnings"] == []
+        bounded = run_json("anchor", str(state), "--max-tokens", "10", "--json")
+        assert "anchor_exceeds_budget" in bounded["warnings"]
+
+        envelope_path = root / "gate-envelope.json"
+        envelope_path.write_text(json.dumps(envelope), encoding="utf-8")
+        reanchored = run_json("reanchor", "--envelope", str(envelope_path), "--state", str(state), "--json")
+        ids = {item["id"] for item in reanchored["gate"]["decisions"]}
+        assert "rsaver-anchor-start" in ids and "rsaver-anchor-end" in ids
+        assert reanchored["gate"]["deferred_count"] >= 1
+        assert reanchored["anchor"]["estimate"] > 0
+        assert run("anchor", "-", "--json", stdin_text='{"constraints": []}').returncode == 2
+        assert run("drift", str(transcript), "--recent-window", "0", "--json").returncode == 2
 
         measured = run_json("measure", str(fixture), "--json")
         assert measured["total_estimate"] > 0
