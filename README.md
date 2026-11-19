@@ -93,6 +93,10 @@ Host discovery can vary by product version and UI surface. Path simulations do n
 
 RCoder adapts to the model and host actually present. The [model adaptation specialist](skills/rcoder/references/model-adaptation.md) provides an observable capability-discovery checklist, four execution profiles (Focused, Engineering, Deep Research, Long-Running Project), a smallest-sufficient-workflow rule, subagent strategy, and a reusable ablation methodology that holds model, settings, tools, permissions, fixture, prompt, and rubric constant. Capabilities that cannot be observed are recorded as UNKNOWN, not guessed. No model-specific performance claim is made without a retained evaluation; see `evals/results.md`.
 
+## RScan: automatic project reconnaissance
+
+After installation, a fresh session can start with `python3 skills/rcoder/scripts/rscan.py scan --root .`. RScan is read-only and bounded: it reports detected stacks, quality entry points, risk signals, and a ranked menu of development options with first commands and specialist references. For automatic launch scanning, `rscan hooks install --host claude-code|gemini-cli --scope project|user` merges a documented `SessionStart` hook with a backup and idempotence check; other hosts require manual invocation until evidence exists. See `docs/RSCAN-HOOKS.md` and `skills/rcoder/references/rscan.md`.
+
 ## Engineering and programming coverage
 
 The router selects focused specialists on demand. Coverage includes:
@@ -143,6 +147,8 @@ RCoder uses progressive disclosure to reduce unnecessary context. The token-effi
 - `skills/rcoder/scripts/detect_stack.py` — read-only stack reconnaissance.
 - `skills/rcoder/scripts/context_snapshot.py` — bounded metadata-only repository snapshot.
 - `skills/rcoder/scripts/rsaver.py` — RSaver measurement, budgeting, gating, pruning, deduplication, and recovery CLI (bundled); `scripts/rsaver.py` is a repository-root wrapper.
+- `skills/rcoder/scripts/rscan.py` — RScan bounded project scanner and session-start hook installer (bundled); `scripts/rscan.py` is a repository-root wrapper.
+- `docs/RSCAN-HOOKS.md` — evidenced host hook matrix.
 - `docs/TOKEN-ECONOMICS.md` — input, cached-input, output, and reasoning token mechanics.
 - `docs/CONTEXT-DRIFT.md` — long-context drift research and re-anchoring evidence.
 - `skills/rcoder/assets/templates/` — ADR, issue, specialist-module, context-capsule, test, and UX templates.
@@ -158,6 +164,7 @@ python3 scripts/validate-all
 python3 scripts/test-context-snapshot.py
 python3 scripts/test-score-eval.py
 python3 scripts/test-rsaver.py
+python3 scripts/test-rscan.py
 node --check scripts/rcoder.mjs
 node scripts/test-node-installer.mjs
 npm pack --dry-run --json

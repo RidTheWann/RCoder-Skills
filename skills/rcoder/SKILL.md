@@ -4,7 +4,7 @@ description: "RCoder is a model-agnostic software engineering, programming, cybe
 license: MIT
 metadata:
   author: RidTheWann
-  version: "1.7.0"
+  version: "1.8.0"
 ---
 
 # RCoder
@@ -54,6 +54,10 @@ These layers describe responsibilities, not extra steps to perform on every task
 4. **Implement:** change the smallest correct surface; follow local style, layering, error handling, accessibility, dependency, and test conventions. Add/update tests when behavior changes.
 5. **Verify:** run the narrowest relevant test first, then targeted lint/type/build checks. Expand to the documented project gate when proportionate. Inspect final diff and untracked/generated files. Record unavailable checks and why.
 6. **Report:** state outcome, files/areas changed, exact commands and observed results, assumptions, and residual risks. Label evidence `VERIFIED`, `INFERRED`, or `NOT VERIFIED`.
+
+## RScan (session start)
+
+On a new session or in an unfamiliar repository, load [RScan](references/rscan.md) and run `python3 skills/rcoder/scripts/rscan.py scan --root . --format json` (or `--format text` for a menu). Present the ranked development options with their first commands and specialist references before choosing work. Automatic launch scanning requires a verified host session-start hook; install it only for supported hosts with `rscan hooks install` and see `docs/RSCAN-HOOKS.md`. Never claim automatic invocation from file installation alone.
 
 ## RSaver gate (before routing)
 

@@ -1,10 +1,13 @@
-# RCoder project handoff — v1.7.0
+# RCoder project handoff — v1.8.0
 
 ## Delivered
 
 RCoder remains one portable Agent Skill with progressive disclosure. The core router selects focused references rather than injecting the entire specialist library into every agent context.
 
-Version 1.7.0 adds:
+Version 1.8.0 adds:
+- RScan bounded project scanner with ranked development options, risk signals, and host-specific session-start hook installation for Claude Code and Gemini CLI.
+
+Version 1.7.0 added:
 - RSaver re-anchoring for long contexts: drift signals, dual-end objective/constraint restatement with explicit IDs, source-separated facts, and budget-aware reanchoring.
 - Research basis on positional attention bias, structural anchors, and unsupported compaction entries.
 
@@ -95,11 +98,11 @@ Reverse-engineering references cover executable/binary analysis, evidence-led se
 - Deduplicated tool calls and non-overlapping subagent scopes.
 - No reduction in authorization, security, test, or data-integrity checks to save tokens.
 
-## Local verification for v1.7.0
+## Local verification for v1.8.0
 
 Run in the Termux development shell on the `feat/rsaver` branch:
 
-- `python3 scripts/validate-all` — PASS, 747 checks.
+- `python3 scripts/validate-all` — PASS, 773 checks.
 - `python3 scripts/test-context-snapshot.py` — PASS, including the new bounded-path assertion.
 - `python3 scripts/test-score-eval.py` — PASS, scorer verified on synthetic perfect, mixed, inverted, and four rejection paths.
 - `python3 scripts/test-rsaver.py` — PASS, reduction, verbatim evidence, recovery, verification, dedupe economics, estimator profiles, and external tokenizer hook.
@@ -110,7 +113,7 @@ Run in the Termux development shell on the `feat/rsaver` branch:
 - `npm pack --dry-run --json` — PASS; see the actual command output for the pinned version and entry count.
 - `python3 scripts/package` — PASS; five ZIPs created and `sha256sum -c dist/SHA256SUMS` verified all OK.
 
-**CI status for v1.7.0: NOT VERIFIED** (feature branch has not run the hosted matrix). Host-native discovery and live model activation remain separate gates. The v1.2.0 CI evidence below is historical and does not cover v1.7.0 changes.
+**CI status for v1.8.0: NOT VERIFIED** (feature branch has not run the hosted matrix). Host-native hook execution remains a separate gate. The v1.2.0 CI evidence below is historical and does not cover v1.8.0 changes.
 
 ## Historical CI evidence (v1.2.0)
 

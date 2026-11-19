@@ -29,6 +29,8 @@ jobs:
         run: python scripts/test-score-eval.py
       - name: RSaver context-reduction tests
         run: python scripts/test-rsaver.py
+      - name: RScan reconnaissance and hook tests
+        run: python scripts/test-rscan.py
       - name: Node syntax check
         run: node --check scripts/rcoder.mjs
       - name: Node installer and terminal launcher simulations
