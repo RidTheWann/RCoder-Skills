@@ -17,7 +17,7 @@ import sys
 import zlib
 from pathlib import Path
 
-VERSION = "1.10.0"
+VERSION = "1.11.0"
 PIECES = re.compile(r"[^\W\d_]+|\d+|[^\s\w]", re.UNICODE)
 DEFAULT_CRITICAL = (
     r"(?i)(error|fail|exception|traceback|fatal|panic|exit[ _-]?code|"

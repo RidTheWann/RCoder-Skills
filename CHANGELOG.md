@@ -2,6 +2,19 @@
 
 RCoder follows Semantic Versioning.
 
+## [1.11.0] - 2026-11-19
+
+### Added
+- `scripts/run-benchmark.py`: a checkpointed, isolated with/without-RCoder ablation harness that derives predictions only from observable OpenCode JSON events and records provider usage.
+- `evals/runs/hy4-flash-free-2026-11-19/`: retained configuration, per-case evidence summary, predictions, and scorer output for the first live partial run.
+- `docs/INSTALLER-SECURITY-REVIEW.md`: independent installer security review.
+- Validator assertions requiring substantive specialist section content and rejecting unfilled placeholders.
+
+### Changed
+- OpenCode RScan adapter V1 pushes a plain string into `experimental.chat.system.transform`, executes RScan through `node:child_process` with a timeout, and deduplicates by injected content rather than session ID. V2 uses the same safe execution path and per-context content guard.
+- Benchmark runner interleaves arms and marks provider-quota failures invalid instead of scoring them.
+- Synchronized version 1.11.0 across skill metadata, package/plugin manifests, changelog, package builder, and validator.
+
 ## [1.10.0] - 2026-11-19
 
 ### Added
@@ -89,7 +102,7 @@ RCoder follows Semantic Versioning.
 - Router layer map (A-F) connecting discovery, selection, execution, tool adaptation, verification, and context management to existing artifacts.
 - Full 13-section specialist authoring template covering mission, reconnaissance, decision trees, tool strategy, advanced techniques, failure modes, and output contracts.
 - Executable evaluation harness: routing expectations for all 42 triggers, a deterministic scorer for trigger/specialist/scenario metrics and ablation deltas, its self-test, a documented ablation protocol, and five additional behavioral scenarios (s15-s19).
-- Depth parity across all 54 specialist modules: every module now carries the full 13-section structure with domain-specific decision trees, tool strategy, failure modes, and verification contracts.
+- Depth parity across all 54 specialist modules then available: every module now carries the full 13-section structure with domain-specific decision trees, tool strategy, failure modes, and verification contracts. Five modules (`rsaver`, `rsaver-gate`, `rsaver-anchor`, `rsaver-crosscheck`, `rscan`) were added in later releases, making the current total 59; the historical 54 figure is not the current count.
 
 ### Changed
 - Normalized the evaluation contract: `evals/rubric.md` and `evals/results.md` now match the enforced 42-prompt, 24-positive, 18-negative, English-only, 14-scenario, four-criterion dataset; non-English activation is explicitly `NOT VERIFIED`.
