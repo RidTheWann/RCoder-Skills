@@ -71,6 +71,21 @@ OpenCode plugin/SDK packages at version 1.19.6 exist locally, and the V1 plugin 
 
 The session identifies the active model as Hy4 Flash Free (OpenCode). No claim about its architecture, training, context capacity, or tool-calling reliability is made here. Behavioral evaluation methodology is defined in `model-adaptation.md`; a recorded ablation for this model remains `NOT VERIFIED` until one is executed and retained under `evals/results.md`.
 
+## Probe log — 2026-11-19 (v1.13 development session, re-probed)
+
+This section supersedes the earlier present-tense "opencode NOT AVAILABLE" observation, which remains true of the earlier development shell but is not a property of this session.
+
+| Probe | Observed result | Status |
+|---|---|---|
+| `command -v opencode` | not found | VERIFIED |
+| glibc loader `/data/data/com.termux/files/usr/glibc/lib/ld-linux-aarch64.so.1 --version` | GNU libc for Android/com.termux 2.44 | VERIFIED |
+| `ld-linux-aarch64.so.1 --library-path /data/data/com.termux/files/usr/glibc/lib <opencode-ELF> --version` | `1.19.6`, exit 0 | VERIFIED |
+| Free-tier live probe with `opencode/hy4-flash-free` | real `text` event and `step_finish` token block, exit 0 | VERIFIED |
+| Bounded control/treatment ablation | 24 trigger IDs per arm; 12 positive IDs comparable after shared invalid exclusion | VERIFIED |
+| Post-run free-tier probe | timeout (quota exhausted); no paid substitute used | VERIFIED |
+| `command -v rg` | not found | VERIFIED |
+| `gh auth status` | authenticated as `RidTheWann`, scopes `repo`, `workflow` | VERIFIED |
+
 ## Reusable discovery procedure
 
 For any new session or host, follow the capability-discovery checklist in `skills/rcoder/references/model-adaptation.md`, record only observable evidence here, and mark anything else `UNKNOWN`. Do not ask a model to guess its own internals. See `docs/COMPATIBILITY.md` for host evidence tiers and installation constraints.

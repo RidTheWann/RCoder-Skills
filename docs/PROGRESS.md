@@ -1,12 +1,25 @@
 # RCoder build progress — 2026-11-19
 
-## Release objective
+## v1.13.0 execution status
+
+- [x] Verified original main SHA `b34aaa0c050be9893d2e97301483af9352ad14df`, clean tree, no open PRs, 60 specialist references, 20 host integrations, and all nine immutable control hashes.
+- [x] Re-probed the runtime: `opencode` is not on PATH but OpenCode 1.19.6 executes through the verified glibc loader; the authorized free tier returned a real response.
+- [x] Case-level error analysis of the frozen control: nine empty positive sets, `security` FN 5, `systems-programming` FN 4, `verification` FP 3, plus near-neighbour substitutions.
+- [x] Implemented the selection gate, additive base-plus-narrow rules, helper guard, sharper disambiguation, and deliverable-based classification for paraphrased and non-English prompts.
+- [x] Expanded deterministic verification and hardened tool discovery with regression tests; 2959 structural checks and ten self-test suites pass locally.
+- [x] Executed a bounded live ablation, control v1.11.0 vs treatment v1.13, on 12 comparable positive triggers with shared invalid exclusion. Specialist F1 0.368 -> 0.476, exact-match 0.000 -> 0.083, empty sets 7/12 -> 5/12; trigger F1 0.957 -> 0.857 (regression). Evidence in `evals/runs/v113-live-free-2026-11-19/`.
+- [ ] Full 42-trigger / 19-scenario live run, expanded dataset live run, and multilingual live run: BLOCKED after the free-tier probe timed out; no paid provider was used.
+- [ ] Independent judge / human adjudication and non-OpenCode host tiers T2-T4: BLOCKED (no separate authorized model or host runtime).
+
+The earlier v1.12 status below is retained as a historical record. Its "BLOCKED" lines were true of the development shell at that time; they were superseded by the 2026-11-19 v1.13 re-probe above.
+
+## Release objective (historical, v1.12.0)
 
 Build v1.12.0 as a safe extension of the verified v1.11.0 product baseline (`06ec22c3f051f376a240139f89a459acea622435`, PR #8). Preserve both installers, the Agent Skill format, plugin manifests, the canonical skill directory, the frozen evaluation control, and all existing specialist capabilities while improving routing intelligence, evaluation independence, and deterministic verification.
 
 ## v1.12.0 execution status
 
-- [x] Baseline audit: main SHA, clean tree, origin sync, version inconsistency, 59 specialists, control dataset hashes (`evals/runs/BASELINE-LEDGER.md`).
+- [x] Baseline audit: main SHA, clean tree, origin sync, version inconsistency, 59 specialists before the v1.12 addition (60 after), control dataset hashes (`evals/runs/BASELINE-LEDGER.md`).
 - [x] Case-level routing diagnosis from the pinned control: 10/24 positive prompts with empty specialist sets, `security` FN=5, `systems-programming` FN=3, `verification` FP=3, wrong-neighbour substitutions.
 - [x] Implemented staged routing architecture and selection contract in `specialist-routing.md` and `SKILL.md`.
 - [x] Implemented deterministic objective verifier and expanded scorer with regression tests.

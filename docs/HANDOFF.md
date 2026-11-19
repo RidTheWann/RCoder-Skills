@@ -1,8 +1,15 @@
-# RCoder project handoff — v1.12.0
+# RCoder project handoff — v1.13.0
 
 ## Delivered
 
 RCoder remains one portable Agent Skill with progressive disclosure. The core router selects focused references rather than injecting the entire specialist library into every agent context.
+
+Version 1.13.0 adds:
+- An operational selection gate and stronger base-plus-narrow composition in `specialist-routing.md` and SKILL.md, derived from case-level control errors and checked in a fresh, bounded live ablation against the unmodified v1.11.0 skill.
+- Three new deterministic routing-semantic checks and `--strict` in `verify-objective.py`; version detection, bounded capture, process-group cleanup, and CLI exit codes in `tool_probe.py`.
+- Separate dataset paths and pinned config provenance in the benchmark harness, plus package-checksum verification and CI registration checks.
+- Honest reconciliation of the earlier "opencode unavailable" statement: it described an earlier development shell. OpenCode 1.19.6 is executable through the verified glibc loader in the 2026-11-19 session, and the authorized free tier was used for the live ablation. No paid call, credential, or provider change was made.
+- Full evidence and classification in `docs/V1.13-DELIVERY.md` and `docs/V1.13-DEV-LEDGER.md`.
 
 Version 1.12.0 adds:
 - Evidence-driven routing architecture (`specialist-routing.md`): staged selection, a selection record, primary/supporting/verifier roles, cross-domain base-plus-narrow composition, disambiguation of overlapping specialists, and anti-over-selection rules. Derived from case-level analysis of the v1.11 control run (specialist F1 0.444, exact-match 0.167, 10/24 positive prompts with an empty specialist set).
@@ -60,9 +67,9 @@ Version 1.2.0 added:
 - 42 trigger prompts and 14 behavioral evaluation scenarios.
 
 Repository: https://github.com/RidTheWann/RCoder-Skills
-Main branch: `main` (verified baseline `6472c7090e580317b9b26142422455aba5092c7c`, v1.10.0)
-Latest merged milestone: PR [#6](https://github.com/RidTheWann/RCoder-Skills/pull/6), merge commit `6472c7090e580317b9b26142422455aba5092c7c`
-Current release: PR [#7](https://github.com/RidTheWann/RCoder-Skills/pull/7), merged as `3f1cfc1c46cff2be56c921a09566f0247c8a7a3c` with a green hosted matrix on Linux and Windows. Follow-up PR for the completed live ablation: see `evals/runs/hy4-flash-openrouter-2026-11-19/` (61 cases × 2 arms, strict scorer exit 0).
+Historical baseline (as recorded on 2026-11-19): `main` at `6472c7090e580317b9b26142422455aba5092c7c` (v1.10.0, PR [#6](https://github.com/RidTheWann/RCoder-Skills/pull/6)). PR [#7](https://github.com/RidTheWann/RCoder-Skills/pull/7) merged as `3f1cfc1c46cff2be56c921a09566f0247c8a7a3c`. PR [#9](https://github.com/RidTheWann/RCoder-Skills/pull/9) delivered v1.12.0 and PR [#10](https://github.com/RidTheWann/RCoder-Skills/pull/10) its delivery record.
+Verified v1.13 baseline: `main` at `b34aaa0c050be9893d2e97301483af9352ad14df`.
+Current release: v1.13.0 on `feat/v1.13-empirical-intelligence`; PR link and merge status are recorded in `docs/V1.13-DELIVERY.md` after delivery. The frozen historical control remains `evals/runs/hy4-flash-openrouter-2026-11-19/` (61 cases × 2 arms, strict scorer exit 0).
 
 ## Installation
 
