@@ -185,7 +185,7 @@ Windows CI also parses the PowerShell entry points and runs the PowerShell insta
 
 ## Evaluation
 
-Static gates verify structure, installers, and packaging; they do not prove model improvement. `docs/LIVE-BENCHMARK.md` defines the controlled with/without-RCoder protocol for Hy4 Flash Free on OpenCode. A first live run produced 30 valid WITH-arm trigger cases before the provider free-usage limit stopped the baseline and scenario arms; see `evals/results.md` and `evals/runs/hy4-flash-free-2026-11-19/`. No with-versus-without delta is claimed. Native skill discovery was directly observed in OpenCode 1.19.6, but automatic RScan activation is not claimed until end-to-end menu injection is confirmed in a fully running session.
+Static gates verify structure, installers, and packaging; they do not prove model improvement. `docs/LIVE-BENCHMARK.md` defines the controlled with/without-RCoder protocol for Hy4 Flash Free on OpenCode. A completed controlled ablation (61 cases × 2 arms, strict scorer exit 0) is retained in `evals/runs/hy4-flash-openrouter-2026-11-19/` and summarized in `evals/results.md`; the earlier quota-limited partial run is retained separately. Native skill discovery and end-to-end RScan menu injection were both directly observed in OpenCode 1.19.6. Results apply only to the pinned model and configuration recorded with the run.
 
 ## License
 

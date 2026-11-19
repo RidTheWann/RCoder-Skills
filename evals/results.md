@@ -10,25 +10,32 @@
 
 A synthetic perfect-fixture smoke run scored 24 true positives, 18 true negatives, zero false positives/negatives, specialist F1 1.0, and 19/19 scenarios passed. This validates the harness only; it is not a model result.
 
-## Live behavior — partial run, 2026-11-19
+## Live behavior — completed ablation, 2026-11-19
 
-The controlled protocol is in `docs/LIVE-BENCHMARK.md`; retained artifacts are in `evals/runs/hy4-flash-free-2026-11-19/`.
+The controlled protocol is in `docs/LIVE-BENCHMARK.md`; retained artifacts for the completed run are in `evals/runs/hy4-flash-openrouter-2026-11-19/`.
 
-**Environment (VERIFIED):** OpenCode CLI 1.19.6 via glibc loader; model `opencode/hy4-flash-free`; default reasoning variant unchanged; isolated fixtures with the canonical skill present only in the WITH arm; native skill discovery observed (`skill` tool `name: rcoder`, `SKILL.md` read). `rg` is absent, so OpenCode glob/grep/skill tools report `ripgrep execution failed` in both arms equally.
+**Environment (VERIFIED):** OpenCode CLI 1.19.6 via glibc loader; model `openrouter/tencent/hy4-flash` (same Hy4 Flash family as the quota-blocked `opencode/hy4-flash-free` attempt, different provider path authorized by the user); default reasoning variant unchanged; isolated fixtures with the canonical skill present only in the WITH arm; native skill discovery observed (`skill` tool `name: rcoder`, `SKILL.md` read). `rg` is absent, so OpenCode glob/grep/skill tools report `ripgrep execution failed` in both arms equally. No credential is stored in any artifact.
 
-**Completion counts (VERIFIED):** WITH arm 30/42 triggers valid, 0/19 scenarios, 12 triggers invalid; WITHOUT arm 0/61 cases. The run stopped when the provider returned `AI_APICallError: Free usage limit reached`. Cases without agent text or with provider errors were excluded, not scored.
+**Completion (VERIFIED):** all 61 cases (42 triggers + 19 scenarios) × 2 arms completed; four timeout cases were re-run with a longer timeout, so `python3 scripts/score-eval.py --predictions WITH.jsonl --baseline WITHOUT.jsonl --strict --json` exited 0 with zero missing trigger predictions.
 
-**WITH-arm trigger metrics on the valid 30-case subset (VERIFIED, scorer output retained):** TP 15, FP 0, TN 12, FN 3, precision 1.000, recall 0.833, F1 0.909, accuracy 0.643 over all 42 (12 predictions missing). Trigger detection was strong on programming/security prompts; the three misses were positive engineering prompts where the agent answered without loading RCoder.
+| Metric | WITHOUT RCoder | WITH RCoder | Delta |
+|---|---|---|---|
+| Triggers TP / FP / TN / FN | 0 / 0 / 18 / 24 | 20 / 1 / 17 / 4 | — |
+| Trigger precision | 0.000 | 0.952 | +0.952 |
+| Trigger recall | 0.000 | 0.833 | +0.833 |
+| Trigger F1 | 0.000 | 0.889 | +0.889 |
+| Trigger accuracy | 0.429 | 0.881 | +0.452 |
+| Specialist F1 / exact-match | — | 0.444 / 4 of 24 (0.167) | — |
+| Scenarios passed | 4 / 19 | 6 / 19 | +2 |
+| Rubric criteria pass rate | 0.500 | 0.592 | +0.092 |
 
-**Specialist selection (VERIFIED):** on the 18 positive cases with expected sets, precision 0.722, recall 0.302, F1 0.426, exact-match 1/18 (0.056). This is a genuine weakness: the agent usually loaded the correct discipline family but not the full expected module set.
+**Interpretation (VERIFIED for this configuration):** RCoder changed trigger behavior strongly — the baseline never activated, while the WITH arm activated on 20 of 24 positives with one false positive. Specialist selection remains the weak dimension: exact match was only 4/24. Scenario pass rates improved modestly. Scenario rubric items were scored by the same pinned model as an LLM judge over bounded transcripts (same-model bias disclosed; raw responses retained). These numbers apply only to this pinned model, host, prompt set, and fixture; they do not generalise to other models or hosts.
 
-**Comparison:** no with-minus-without delta is reported because the baseline arm has zero valid cases. Any ablation claim remains `NOT VERIFIED`. A synthetic perfect fixture still validates only the scorer, not this model.
-
-To finish, rerun the harness with available quota/an authorized provider so both arms complete, add scenario rubric scoring from retained transcripts, and replace this section with the full comparison.
+**Earlier partial run:** `evals/runs/hy4-flash-free-2026-11-19/` retains the first attempt, which was stopped by provider free-usage quota after 30 WITH-arm triggers with no baseline arm. It is not combined with the completed numbers above.
 
 ## Environment-dependent coverage
 
 - Non-English (for example Indonesian) user-request activation is `NOT VERIFIED`; see the language rule in `rubric.md`.
 - Native discovery and skill invocation in the twenty catalog hosts are `NOT VERIFIED`; see `docs/COMPATIBILITY.md`.
-- Model-specific performance claims for Hy4 Flash Free or any other model are `NOT VERIFIED` until an ablation is executed and retained here.
-- Capability discovery, tool adaptation, context handoff, finding classification, and evidence-led reverse engineering now have dedicated scenarios (s15-s19) but no recorded live runs.
+- Model-specific results are retained above for `openrouter/tencent/hy4-flash` only. Results for `opencode/hy4-flash-free` remain a partial run, and results for any other model are `NOT VERIFIED`.
+- Capability discovery, tool adaptation, context handoff, finding classification, and evidence-led reverse engineering have dedicated scenarios (s15-s19) with live runs; their pass/fail outcomes are in `evals/runs/hy4-flash-openrouter-2026-11-19/score-final.json`.
