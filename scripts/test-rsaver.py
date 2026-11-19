@@ -13,7 +13,8 @@ RSAVER = ROOT / "scripts" / "rsaver.py"
 def run(*arguments, stdin_text=None):
     return subprocess.run(
         [sys.executable, str(RSAVER), *[str(arg) for arg in arguments]],
-        text=True, capture_output=True, check=False, timeout=20, input=stdin_text,
+        text=True, encoding="utf-8", errors="replace", capture_output=True,
+        check=False, timeout=20, input=stdin_text,
     )
 
 
