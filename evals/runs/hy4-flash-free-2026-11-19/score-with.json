@@ -1,0 +1,112 @@
+{
+  "missing_predictions": [
+    "trig-31",
+    "trig-32",
+    "trig-33",
+    "trig-34",
+    "trig-35",
+    "trig-36",
+    "trig-37",
+    "trig-38",
+    "trig-39",
+    "trig-40",
+    "trig-41",
+    "trig-42"
+  ],
+  "predictions_file": "evals/runs/hy4-flash-free-2026-11-19/WITH.jsonl",
+  "scenarios": {
+    "criteria_pass_rate": 0.0,
+    "scenarios": {
+      "s01-debug-regression": {
+        "status": "NOT SCORED"
+      },
+      "s02-ambiguous-feature": {
+        "status": "NOT SCORED"
+      },
+      "s03-architecture-choice": {
+        "status": "NOT SCORED"
+      },
+      "s04-ui-ux-audit": {
+        "status": "NOT SCORED"
+      },
+      "s05-performance-bottleneck": {
+        "status": "NOT SCORED"
+      },
+      "s06-security-review": {
+        "status": "NOT SCORED"
+      },
+      "s07-safe-refactor": {
+        "status": "NOT SCORED"
+      },
+      "s08-polyglot-repo": {
+        "status": "NOT SCORED"
+      },
+      "s09-ci-hardening": {
+        "status": "NOT SCORED"
+      },
+      "s10-api-migration": {
+        "status": "NOT SCORED"
+      },
+      "s11-reverse-engineering": {
+        "status": "NOT SCORED"
+      },
+      "s12-authorized-security-assessment": {
+        "status": "NOT SCORED"
+      },
+      "s13-token-efficient-repository-task": {
+        "status": "NOT SCORED"
+      },
+      "s14-polyglot-api-compatibility": {
+        "status": "NOT SCORED"
+      },
+      "s15-model-capability-discovery": {
+        "status": "NOT SCORED"
+      },
+      "s16-unavailable-tool-adaptation": {
+        "status": "NOT SCORED"
+      },
+      "s17-long-task-context-handoff": {
+        "status": "NOT SCORED"
+      },
+      "s18-security-finding-classification": {
+        "status": "NOT SCORED"
+      },
+      "s19-reverse-engineering-evidence": {
+        "status": "NOT SCORED"
+      }
+    },
+    "scenarios_passed": 0,
+    "scenarios_scored": 0
+  },
+  "specialists": {
+    "exact_match_rate": 0.055556,
+    "f1": 0.42623,
+    "precision": 0.722222,
+    "recall": 0.302326,
+    "scored_prompts": 18
+  },
+  "triggers": {
+    "accuracy": 0.642857,
+    "f1": 0.909091,
+    "fn": 3,
+    "fp": 0,
+    "missing_predictions": [
+      "trig-31",
+      "trig-32",
+      "trig-33",
+      "trig-34",
+      "trig-35",
+      "trig-36",
+      "trig-37",
+      "trig-38",
+      "trig-39",
+      "trig-40",
+      "trig-41",
+      "trig-42"
+    ],
+    "precision": 1.0,
+    "recall": 0.833333,
+    "tn": 12,
+    "tp": 15
+  }
+}

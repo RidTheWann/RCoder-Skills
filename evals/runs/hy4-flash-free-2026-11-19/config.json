@@ -1,0 +1,12 @@
+{
+  "host": "OpenCode CLI 1.19.6 (opencode-linux-arm64) via glibc loader",
+  "model": "opencode/hy4-flash-free",
+  "variant": "default (unchanged)",
+  "fixture": "isolated temp fixtures; canonical RCoder skill copied only in WITH arm",
+  "with_skill_sha256": "3876bae1d01b6527d117aa3f50ceb704703a20e6779d2f32f69e4b1169b7f46a",
+  "without_has_rcoder": false,
+  "started_utc": "2026-11-19T09:22:45Z",
+  "stopped_utc": "2026-11-19T09:27:00Z",
+  "stop_reason": "provider free usage limit reached",
+  "valid_with": 30
+}
