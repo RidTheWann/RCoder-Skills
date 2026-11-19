@@ -42,9 +42,9 @@ def build_project(root: Path, complete: bool) -> None:
 def main():
     assert CANONICAL.is_file() and WRAPPER.is_file()
     version = run("--version")
-    assert version.returncode == 0 and "RScan 1.8.0" in version.stdout
+    assert version.returncode == 0 and "RScan 1.10.0" in version.stdout
     wrapper = run("--version", entrypoint=WRAPPER)
-    assert wrapper.returncode == 0 and "RScan 1.8.0" in wrapper.stdout
+    assert wrapper.returncode == 0 and "RScan 1.10.0" in wrapper.stdout
 
     with tempfile.TemporaryDirectory(prefix="rcoder-rscan-test-") as temporary:
         root = Path(temporary)
@@ -52,7 +52,7 @@ def main():
         minimal.mkdir()
         build_project(minimal, complete=False)
         scan = run_json("scan", "--root", str(minimal), "--format", "json")
-        assert scan["tool"] == "RScan" and scan["version"] == "1.8.0"
+        assert scan["tool"] == "RScan" and scan["version"] == "1.10.0"
         assert "Node.js / JavaScript / TypeScript" in scan["stacks"]
         assert scan["quality"]["ci"] is False and scan["quality"]["tests"] is False
         risk_ids = {item["id"] for item in scan["risk_signals"]}
@@ -81,6 +81,8 @@ def main():
         assert "Development options" in claude["hookSpecificOutput"]["additionalContext"]
         gemini = run_json("scan", "--root", str(minimal), "--hook", "gemini")
         assert "systemMessage" in gemini and "additionalContext" in gemini["hookSpecificOutput"]
+        opencode = run("scan", "--root", str(minimal), "--hook", "opencode")
+        assert opencode.returncode == 0 and "Development options" in opencode.stdout
 
         for host in ("claude-code", "gemini-cli"):
             preview = run_json("hooks", "preview", "--host", host)
@@ -100,6 +102,25 @@ def main():
         second = run("hooks", "install", "--host", "claude-code", "--scope", "project", "--root", str(complete))
         assert second.returncode == 0 and "already installed" in second.stdout
         assert len(list(settings_path.parent.glob("settings.json.rscan-backup-*"))) == 1
+
+        adapter_root = root / "adapter-project"
+        adapter_root.mkdir()
+        adapter = run("hooks", "adapter", "--host", "opencode", "--api", "v1",
+                      "--scope", "project", "--root", str(adapter_root))
+        assert adapter.returncode == 0, adapter.stderr
+        plugin_path = adapter_root / ".opencode" / "plugins" / "rscan.js"
+        assert plugin_path.is_file()
+        plugin_text = plugin_path.read_text(encoding="utf-8")
+        assert "experimental.chat.system.transform" in plugin_text
+        assert "--hook opencode" in plugin_text
+        assert run("hooks", "adapter", "--host", "opencode", "--api", "v1",
+                   "--scope", "project", "--root", str(adapter_root)).returncode == 0
+        preview = run("hooks", "adapter", "--host", "opencode", "--api", "v2",
+                      "--scope", "project", "--root", str(adapter_root), "--dry-run")
+        assert preview.returncode == 0 and "Plugin.define" in preview.stdout
+        v2 = run("hooks", "adapter", "--host", "opencode", "--api", "v2",
+                 "--scope", "project", "--root", str(adapter_root))
+        assert v2.returncode == 0 and "ctx.session.hook" in plugin_path.read_text(encoding="utf-8")
 
         invalid = run("scan", "--root", str(root / "missing"))
         assert invalid.returncode == 2

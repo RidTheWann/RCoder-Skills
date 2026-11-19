@@ -15,7 +15,7 @@ import sys
 import time
 from pathlib import Path
 
-VERSION = "1.8.0"
+VERSION = "1.10.0"
 SKIP = {
     ".git", ".hg", ".svn", "node_modules", "vendor", "dist", "build", "target",
     ".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache", ".next",
@@ -275,6 +275,8 @@ def hook_payload(report: dict, host: str) -> str:
     elif host == "gemini":
         payload = {"systemMessage": f"RScan found {len(report['development_options'])} development options.",
                    "hookSpecificOutput": {"additionalContext": render_menu(report)}}
+    elif host == "opencode":
+        return render_menu(report)
     else:
         raise ValueError(f"unsupported hook host: {host}")
     return json.dumps(payload, ensure_ascii=True)
@@ -330,7 +332,77 @@ def build_hook_config(host: str, settings: dict) -> dict:
     return updated
 
 
+def opencode_plugin_source(api: str) -> str:
+    python = sys.executable
+    script = Path(__file__).resolve()
+    if api == "v1":
+        body = '''
+export const RScanPlugin = async ({ $, directory }) => {
+  const seen = new Set();
+  const python = "__PY__";
+  const rscan = "__RS__";
+  return {
+    "experimental.chat.system.transform": async (input, output) => {
+      if (!input.sessionID || seen.has(input.sessionID)) return;
+      seen.add(input.sessionID);
+      try {
+        const text = await $`${python} ${rscan} scan --root ${directory} --hook opencode`.text();
+        output.system.push({ type: "text", text });
+      } catch (error) {
+        console.error("RScan skipped:", error);
+      }
+    }
+  };
+};
+'''
+    else:
+        body = '''
+import { Plugin } from "@opencode/plugin";
+export default Plugin.define({
+  id: "rcoder.rscan",
+  async setup(ctx) {
+    const python = "__PY__";
+    const rscan = "__RS__";
+    let injected = false;
+    await ctx.session.hook("context", async (event) => {
+      if (injected) return;
+      injected = true;
+      const proc = Bun.spawn([python, rscan, "scan", "--root", ctx.location.directory, "--hook", "opencode"], {
+        stdout: "pipe", stderr: "pipe"
+      });
+      const text = await new Response(proc.stdout).text();
+      event.system.push({ type: "text", text });
+    });
+  }
+});
+'''
+    return body.replace("__PY__", python).replace("__RS__", str(script))
+
+
 def command_hooks(args: argparse.Namespace) -> int:
+    if args.action == "adapter":
+        if args.host != "opencode":
+            raise ValueError("adapter generation is only available for OpenCode")
+        root = Path(args.root).expanduser().resolve()
+        relative = (".opencode/plugins/rscan.js" if args.scope == "project"
+                    else ".config/opencode/plugins/rscan.js")
+        target = (root / relative) if args.scope == "project" else (Path.home() / relative)
+        source = opencode_plugin_source(args.api)
+        if target.is_file() and target.read_text(encoding="utf-8") == source:
+            print(f"RScan adapter already current: {target}")
+            return 0
+        if args.dry_run:
+            print(source)
+            return 0
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.is_file():
+            backup = target.with_name(target.name + f".rscan-backup-{int(time.time())}")
+            shutil.copy2(target, backup)
+            print(f"RScan adapter backup: {backup}")
+        target.write_text(source, encoding="utf-8")
+        print(f"RScan OpenCode {args.api} adapter installed: {target}")
+        print("RScan adapter: NOT VERIFIED until tested with the exact installed OpenCode CLI", file=sys.stderr)
+        return 0
     if args.action == "preview":
         print(json.dumps(build_hook_config(args.host, {}), indent=2, sort_keys=True))
         return 0
@@ -374,12 +446,14 @@ def main() -> int:
     scan.add_argument("--root", default=".")
     scan.add_argument("--max-paths", type=int, default=80)
     scan.add_argument("--format", choices=("text", "json", "markdown"), default="text")
-    scan.add_argument("--hook", choices=("claude", "gemini"), help="emit a session-start hook payload")
+    scan.add_argument("--hook", choices=("claude", "gemini", "opencode"),
+                      help="emit a session-start hook payload")
     scan.set_defaults(func=command_scan)
 
     hooks = sub.add_parser("hooks", help="preview or install session-start hooks")
-    hooks.add_argument("action", choices=("preview", "install"))
-    hooks.add_argument("--host", choices=tuple(HOST_SETTINGS), default="claude-code")
+    hooks.add_argument("action", choices=("preview", "install", "adapter"))
+    hooks.add_argument("--host", choices=(*HOST_SETTINGS, "opencode"), default="claude-code")
+    hooks.add_argument("--api", choices=("v1", "v2"), default="v1")
     hooks.add_argument("--scope", choices=("project", "user"), default="project")
     hooks.add_argument("--root", default=".")
     hooks.add_argument("--dry-run", action="store_true")

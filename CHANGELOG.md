@@ -2,6 +2,17 @@
 
 RCoder follows Semantic Versioning.
 
+## [1.10.0] - 2026-11-19
+
+### Added
+- OpenCode RScan adapter generator (`rscan hooks adapter --host opencode --api v1|v2`) with version-specific V1/V2 templates and an explicit NOT VERIFIED gate.
+- `docs/LIVE-BENCHMARK.md` defining the controlled with/without-RCoder evaluation protocol for Hy4 Flash Free on OpenCode.
+
+### Changed
+- Validator now enforces all 13 specialist headings, not only three.
+- Environment, compatibility, research TODO, and handoff records reconciled with merged PRs #3-#5 and the observed OpenCode 1.19.6 package/binary status.
+- Synchronized version 1.10.0 across skill metadata, package/plugin manifests, changelog, package builder, and validator.
+
 ## [1.9.0] - 2026-11-19
 
 ### Added

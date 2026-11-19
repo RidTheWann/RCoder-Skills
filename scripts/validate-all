@@ -52,7 +52,7 @@ def main():
         return 1
 
     meta, body = parse_frontmatter(skill_file)
-    version = "1.9.0"
+    version = "1.10.0"
     check(meta.get("name") == "rcoder", "G1: skill name must be rcoder")
     check(bool(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(meta.get("name", "")))), "G1: invalid skill name")
     check(isinstance(meta.get("description"), str) and 1 <= len(meta["description"]) <= 1024,
@@ -66,7 +66,13 @@ def main():
     for module in references:
         content = read(module)
         check(len(content.splitlines()) <= 300, f"G1: {module.name} exceeds 300 lines")
-        for heading in ("## Activate when", "## Procedure", "## Verification"):
+        for heading in (
+            "## Activate when", "## Mission and expertise", "## Mental model",
+            "## Prerequisites and reconnaissance", "## Procedure", "## Decision tree",
+            "## Tool strategy", "## Advanced techniques", "## Failure modes",
+            "## Quality checklist", "## Anti-patterns", "## Verification",
+            "## Output format",
+        ):
             check(heading in content, f"G1: {module.name} missing {heading}")
     for required in (
         "programming-languages.md", "systems-programming.md", "polyglot-ecosystems.md",
@@ -253,7 +259,7 @@ def main():
         "docs/PROGRESS.md",         "docs/RESEARCH-TODO.md",
         "docs/COMPATIBILITY.md", "docs/ENVIRONMENT.md", "docs/TOKEN-ECONOMICS.md",
         "docs/CONTEXT-DRIFT.md", "docs/RSCAN-HOOKS.md",
-        "docs/BILLING-AND-CROSSCHECK.md"
+        "docs/BILLING-AND-CROSSCHECK.md", "docs/LIVE-BENCHMARK.md"
     ):
         check((ROOT / required).is_file(), f"G6: required documentation missing: {required}")
     for rel in ("README.md", "docs/HANDOFF.md", "docs/PROGRESS.md"):

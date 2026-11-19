@@ -183,6 +183,10 @@ python3 scripts/package
 
 Windows CI also parses the PowerShell entry points and runs the PowerShell installer matrix. Static checks and simulations do not prove that every host model discovers or invokes the skill; native activation remains a separate verification gate.
 
+## Evaluation
+
+Static gates verify structure, installers, and packaging; they do not prove model improvement. `docs/LIVE-BENCHMARK.md` defines the controlled with/without-RCoder protocol for Hy4 Flash Free on OpenCode, and `evals/results.md` records the current live status as NOT VERIFIED.
+
 ## License
 
 MIT. See `LICENSE`.

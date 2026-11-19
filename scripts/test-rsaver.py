@@ -50,9 +50,9 @@ def main():
         assert canonical.is_file()
         direct = subprocess.run([sys.executable, str(canonical), "--version"],
                                 text=True, capture_output=True, check=True, timeout=20)
-        assert "RSaver 1.9.0" in direct.stdout
+        assert "RSaver 1.10.0" in direct.stdout
         version = run("--version")
-        assert version.returncode == 0 and "RSaver 1.9.0" in version.stdout
+        assert version.returncode == 0 and "RSaver 1.10.0" in version.stdout
 
         calibration = {
             "prose": "The quick brown fox jumps over the lazy dog. This sentence uses common words.",

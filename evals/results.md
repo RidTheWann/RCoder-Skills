@@ -12,6 +12,8 @@ A synthetic perfect-fixture smoke run scored 24 true positives, 18 true negative
 
 ## Live behavior
 
+The controlled protocol for the first live run is in `docs/LIVE-BENCHMARK.md`. It pins host, model, settings, tools, permissions, fixture, and prompt set, then scores with `scripts/score-eval.py --strict`.
+
 **NOT VERIFIED.** No controlled model runtime, pinned agent version, or host-native activation gate was available for the recorded runs. A static trigger label is not proof that an agent selects the correct specialist, and a successful file-copy simulation is not proof that a host discovers or invokes the skill.
 
 To produce live results, pin model and tool versions, record permissions, run every trigger and scenario with and without RCoder under identical conditions, score each rubric item against transcript and test evidence, and retain configuration and results without secrets or personal data. Record observed capability discovery separately from assumed capabilities.

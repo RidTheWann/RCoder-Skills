@@ -45,7 +45,7 @@ All twenty hosts share one canonical `skills/rcoder/` folder; roots are defined 
 
 Observable results in the development shell: `opencode --version` returned `command not found`, and no CLI binary exists on `PATH` or in common installation locations. The session's model is reachable through the agent platform, but that does not expose the CLI, its configuration schema, or its skill-discovery behavior for inspection here.
 
-Local package evidence: `~/.config/opencode/package.json` declares `@opencode-ai/plugin` 1.19.6, and the installed plugin package reports version 1.19.6 with `@opencode-ai/sdk` 1.19.6. The configuration file contains only `$schema: https://opencode.ai/config.json`. This establishes the installed plugin/SDK version, not CLI behavior. Version-specific configuration syntax must still be checked against the installed CLI before use.
+Local package evidence: `~/.config/opencode/package.json` declares `@opencode-ai/plugin` 1.19.6, and the installed plugin package reports version 1.19.6 with `@opencode-ai/sdk` 1.19.6. The installed type definitions expose V1 hooks (`chat.message`, `experimental.chat.system.transform`) but no `session.start`. The global `opencode-linux-arm64@1.19.6` package exists, yet its ELF cannot execute in this Termux shell and no CLI shim is on PATH. RScan therefore generates a version-specific plugin adapter (`--api v1` for 1.19.x, `--api v2` only after confirming the V2 API) rather than applying one major version's syntax to another. Adapter execution remains NOT VERIFIED.
 
 Consequences:
 
