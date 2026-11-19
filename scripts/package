@@ -8,7 +8,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parent.parent
 SKILL = ROOT / 'skills' / 'rcoder'
 DIST = ROOT / 'dist'
-VERSION = '1.10.0'
+VERSION = '1.11.0'
 FIXED_TIME = (2026, 1, 1, 0, 0, 0)
 
 def add_file(archive, path, archive_name):

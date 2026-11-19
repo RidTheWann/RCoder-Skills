@@ -31,6 +31,15 @@ jobs:
         run: python scripts/test-rsaver.py
       - name: RScan reconnaissance and hook tests
         run: python scripts/test-rscan.py
+      - name: Benchmark harness syntax check
+        run: python -m py_compile scripts/run-benchmark.py
+      - name: RScan OpenCode adapter syntax checks
+        shell: bash
+        run: |
+          python scripts/rscan.py hooks adapter --host opencode --api v1 --scope project --root . --dry-run > "$RUNNER_TEMP/rscan-v1.js"
+          node --check "$RUNNER_TEMP/rscan-v1.js"
+          python scripts/rscan.py hooks adapter --host opencode --api v2 --scope project --root . --dry-run > "$RUNNER_TEMP/rscan-v2.js"
+          node --check "$RUNNER_TEMP/rscan-v2.js"
       - name: Node syntax check
         run: node --check scripts/rcoder.mjs
       - name: Node installer and terminal launcher simulations

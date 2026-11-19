@@ -4,7 +4,7 @@ description: "RCoder is a model-agnostic software engineering, programming, cybe
 license: MIT
 metadata:
   author: RidTheWann
-  version: "1.10.0"
+  version: "1.11.0"
 ---
 
 # RCoder

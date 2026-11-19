@@ -2,7 +2,16 @@
 
 ## Release objective
 
-Build v1.10.0 as a safe extension of v1.9.0. Preserve both installers, the Agent Skill format, plugin manifests, the canonical skill directory, and all existing specialist capabilities while adding the live-benchmark protocol, OpenCode adapter, and full specialist-structure enforcement.
+Build v1.11.0 as a safe extension of the verified v1.10.0 baseline (`6472c7090e580317b9b26142422455aba5092c7c`, PR #6). Preserve both installers, the Agent Skill format, plugin manifests, the canonical skill directory, and all existing specialist capabilities while executing the live benchmark, verifying native OpenCode integration, fixing the RScan adapter, auditing specialist content, and reconciling documentation.
+
+## v1.11.0 execution status
+
+- [x] Re-probed the environment: OpenCode CLI 1.19.6 runs via glibc loader; `gh` and PowerShell 7 are available.
+- [x] Built the isolated, checkpointed benchmark harness in `scripts/run-benchmark.py`.
+- [x] Executed a genuine partial live run: 30 valid WITH-arm trigger cases; provider quota blocked the baseline and all scenarios.
+- [x] Verified native OpenCode skill discovery and invocation; corrected the RScan V1/V2 adapters against the installed API.
+- [x] Added specialist-content validator assertions and an installer security review.
+- [ ] Complete the with/without ablation when provider quota or an authorized provider is available.
 
 ## Implementation checklist
 

@@ -1,0 +1,374 @@
+{
+  "with": [
+    {
+      "id": "trig-31",
+      "reason": "no_agent_text"
+    },
+    {
+      "id": "trig-32",
+      "reason": "no_agent_text"
+    },
+    {
+      "id": "trig-33",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "trig-34",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "trig-35",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "trig-36",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "trig-37",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "trig-38",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "trig-39",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "trig-40",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "trig-41",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "trig-42",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s01-debug-regression",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s02-ambiguous-feature",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s03-architecture-choice",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s04-ui-ux-audit",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s05-performance-bottleneck",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s06-security-review",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s07-safe-refactor",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s08-polyglot-repo",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s09-ci-hardening",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s10-api-migration",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s11-reverse-engineering",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s12-authorized-security-assessment",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s13-token-efficient-repository-task",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s14-polyglot-api-compatibility",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s15-model-capability-discovery",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s16-unavailable-tool-adaptation",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s17-long-task-context-handoff",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s18-security-finding-classification",
+      "reason": "missing_transcript"
+    },
+    {
+      "id": "s19-reverse-engineering-evidence",
+      "reason": "missing_transcript"
+    }
+  ],
+  "without": [
+    {
+      "id": "trig-01",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-02",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-03",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-04",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-05",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-06",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-07",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-08",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-09",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-10",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-11",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-12",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-13",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-14",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-15",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-16",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-17",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-18",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-19",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-20",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-21",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-22",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-23",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-24",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-25",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-26",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-27",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-28",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-29",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-30",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-31",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-32",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-33",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-34",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-35",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-36",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-37",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-38",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-39",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-40",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-41",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "trig-42",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s01-debug-regression",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s02-ambiguous-feature",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s03-architecture-choice",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s04-ui-ux-audit",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s05-performance-bottleneck",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s06-security-review",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s07-safe-refactor",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s08-polyglot-repo",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s09-ci-hardening",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s10-api-migration",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s11-reverse-engineering",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s12-authorized-security-assessment",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s13-token-efficient-repository-task",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s14-polyglot-api-compatibility",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s15-model-capability-discovery",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s16-unavailable-tool-adaptation",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s17-long-task-context-handoff",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s18-security-finding-classification",
+      "reason": "not_run_quota_exhausted"
+    },
+    {
+      "id": "s19-reverse-engineering-evidence",
+      "reason": "not_run_quota_exhausted"
+    }
+  ]
+}

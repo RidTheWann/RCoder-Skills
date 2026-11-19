@@ -10,13 +10,21 @@
 
 A synthetic perfect-fixture smoke run scored 24 true positives, 18 true negatives, zero false positives/negatives, specialist F1 1.0, and 19/19 scenarios passed. This validates the harness only; it is not a model result.
 
-## Live behavior
+## Live behavior — partial run, 2026-11-19
 
-The controlled protocol for the first live run is in `docs/LIVE-BENCHMARK.md`. It pins host, model, settings, tools, permissions, fixture, and prompt set, then scores with `scripts/score-eval.py --strict`.
+The controlled protocol is in `docs/LIVE-BENCHMARK.md`; retained artifacts are in `evals/runs/hy4-flash-free-2026-11-19/`.
 
-**NOT VERIFIED.** No controlled model runtime, pinned agent version, or host-native activation gate was available for the recorded runs. A static trigger label is not proof that an agent selects the correct specialist, and a successful file-copy simulation is not proof that a host discovers or invokes the skill.
+**Environment (VERIFIED):** OpenCode CLI 1.19.6 via glibc loader; model `opencode/hy4-flash-free`; default reasoning variant unchanged; isolated fixtures with the canonical skill present only in the WITH arm; native skill discovery observed (`skill` tool `name: rcoder`, `SKILL.md` read). `rg` is absent, so OpenCode glob/grep/skill tools report `ripgrep execution failed` in both arms equally.
 
-To produce live results, pin model and tool versions, record permissions, run every trigger and scenario with and without RCoder under identical conditions, score each rubric item against transcript and test evidence, and retain configuration and results without secrets or personal data. Record observed capability discovery separately from assumed capabilities.
+**Completion counts (VERIFIED):** WITH arm 30/42 triggers valid, 0/19 scenarios, 12 triggers invalid; WITHOUT arm 0/61 cases. The run stopped when the provider returned `AI_APICallError: Free usage limit reached`. Cases without agent text or with provider errors were excluded, not scored.
+
+**WITH-arm trigger metrics on the valid 30-case subset (VERIFIED, scorer output retained):** TP 15, FP 0, TN 12, FN 3, precision 1.000, recall 0.833, F1 0.909, accuracy 0.643 over all 42 (12 predictions missing). Trigger detection was strong on programming/security prompts; the three misses were positive engineering prompts where the agent answered without loading RCoder.
+
+**Specialist selection (VERIFIED):** on the 18 positive cases with expected sets, precision 0.722, recall 0.302, F1 0.426, exact-match 1/18 (0.056). This is a genuine weakness: the agent usually loaded the correct discipline family but not the full expected module set.
+
+**Comparison:** no with-minus-without delta is reported because the baseline arm has zero valid cases. Any ablation claim remains `NOT VERIFIED`. A synthetic perfect fixture still validates only the scorer, not this model.
+
+To finish, rerun the harness with available quota/an authorized provider so both arms complete, add scenario rubric scoring from retained transcripts, and replace this section with the full comparison.
 
 ## Environment-dependent coverage
 

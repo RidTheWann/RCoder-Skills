@@ -49,7 +49,23 @@ Observed in-session tool surface: shell command execution, structured file read,
 
 Not established in this environment: context window size, exact reasoning-mode implementation, reliable subagent output quality, web-access policy in other hosts, native OpenCode skill discovery, multimodal input from the user, long-task continuity mechanisms, and the selected model's internal architecture. All of these remain `UNKNOWN` and must not be described as capabilities.
 
-OpenCode plugin/SDK packages at version 1.19.6 exist locally, and the V1 plugin hook names were confirmed from the installed type definitions. However the packaged ELF cannot execute in this Termux environment and no CLI shim is on PATH, so live skill discovery, native hook execution, and the RScan adapter remain `NOT VERIFIED`. The adapter is generated version-specifically rather than applying one major version's syntax to another. PowerShell 7.6.10 was installed locally on 19 November to run the Windows installer matrix; hosted CI results are recorded per run URL, not inferred.
+OpenCode plugin/SDK packages at version 1.19.6 exist locally, and the V1 plugin hook names were confirmed from the installed type definitions. Direct execution of the packaged ELF fails, but the CLI runs through the Termux glibc loader (`ld-linux-aarch64.so.1 --library-path <glibc/lib> <opencode-ELF>`). This unlocked live probing on 19 November 2026: `opencode run --format json` produced genuine hy4-flash-free responses and provider token fields; the `rcoder` skill was **natively discovered and invoked** from `.opencode/skills/rcoder/SKILL.md` (permission `skill pattern=rcoder`, `tool_use tool=skill name=rcoder`, direct `SKILL.md` read); and a probe plugin proved that `experimental.chat.system.transform` injects text into model context and fires twice per session. The RScan V1 adapter was generated, loaded by the real CLI, ran `rscan.py` successfully, and its hook fired; end-to-end menu visibility to the answering agent was not re-confirmed after the free-usage limit was reached. PowerShell 7.6.10 and `gh` are available locally; hosted CI results are recorded per run URL, not inferred.
+
+## Probe log — 2026-11-19 (Termux development shell, re-probed)
+
+| Probe | Observed result | Status |
+|---|---|---|
+| Baseline `git rev-parse HEAD` on `main` | `6472c7090e580317b9b26142422455aba5092c7c` (v1.10.0, PR #6) | VERIFIED |
+| `gh pr list` / `gh run list` | PRs #1-#6 merged; latest main CI `44491687529` success | VERIFIED |
+| `opencode` via glibc loader, `--version` | `1.19.6` | VERIFIED |
+| `opencode run --model opencode/hy4-flash-free --format json` | Real JSON events, step_finish token counts | VERIFIED |
+| Native skill discovery from `.opencode/skills/rcoder/` | `skill` tool invoked, SKILL.md read, references loaded | VERIFIED |
+| RScan V1 plugin in real CLI | Plugin loaded, hook fired, `rscan.py` produced 887-char menu | VERIFIED (plugin/menu); end-to-end injection to final answer NOT VERIFIED |
+| `command -v gh` / `pwsh --version` | `gh` 2.105.0; PowerShell 7.6.10 | VERIFIED |
+| `command -v rg` | not found; OpenCode glob/grep/skill tools report `ripgrep execution failed` | VERIFIED (affects both benchmark arms equally) |
+| Live ablation, WITH arm | 30/42 triggers valid before provider quota exhaustion | VERIFIED (partial) |
+| Live ablation, WITHOUT arm | 0/61 cases (harness ordering + provider quota) | NOT VERIFIED |
+| Provider free usage | `AI_APICallError: Free usage limit reached` | VERIFIED (external blocker) |
 
 ## Model note
 

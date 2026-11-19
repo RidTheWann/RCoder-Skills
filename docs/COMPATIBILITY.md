@@ -27,7 +27,7 @@ All twenty hosts share one canonical `skills/rcoder/` folder; roots are defined 
 | copilot | `.github/skills` | `~/.copilot/skills` | T0 | T1 | T2 NOT VERIFIED | T3 NOT VERIFIED | T4 NOT VERIFIED |
 | agents | `.agents/skills` | `~/.agents/skills` | T0 | T1 | T2 NOT VERIFIED | T3 NOT VERIFIED | T4 NOT VERIFIED |
 | qoder | `.qoder/skills` | `~/.qoder/skills` | T0 | NOT VERIFIED | T2 NOT VERIFIED | T3 NOT VERIFIED | T4 NOT VERIFIED |
-| opencode | `.opencode/skills` | `~/.config/opencode/skills` | T0 | NOT VERIFIED for installed version | T2 NOT VERIFIED | T3 NOT VERIFIED | T4 NOT VERIFIED |
+| opencode | `.opencode/skills` | `~/.config/opencode/skills` | T0 | T1 (verified 1.19.6 docs) | T2 VERIFIED (1.19.6) | T3 VERIFIED (1.19.6) | T4 PARTIAL (WITH arm only) |
 | antigravity | `.agents/skills` | `~/.gemini/config/skills` | T0 | NOT VERIFIED | T2 NOT VERIFIED | T3 NOT VERIFIED | T4 NOT VERIFIED |
 | amp | `.agents/skills` | `~/.config/agents/skills` | T0 | NOT VERIFIED | T2 NOT VERIFIED | T3 NOT VERIFIED | T4 NOT VERIFIED |
 | zed | `.agents/skills` | `~/.agents/skills` | T0 | NOT VERIFIED | T2 NOT VERIFIED | T3 NOT VERIFIED | T4 NOT VERIFIED |
@@ -41,17 +41,18 @@ All twenty hosts share one canonical `skills/rcoder/` folder; roots are defined 
 | trae | `.trae/skills` | `~/.trae/skills` | T0 | NOT VERIFIED (community-documented path) | T2 NOT VERIFIED | T3 NOT VERIFIED | T4 NOT VERIFIED |
 | factory | `.factory/skills` | `~/.factory/skills` | T0 | NOT VERIFIED | T2 NOT VERIFIED | T3 NOT VERIFIED | T4 NOT VERIFIED |
 
-## OpenCode observation (Termux, 2026-11-18)
+## OpenCode observation (Termux, re-probed 2026-11-19)
 
-Observable results in the development shell: `opencode --version` returned `command not found`, and no CLI binary exists on `PATH` or in common installation locations. The session's model is reachable through the agent platform, but that does not expose the CLI, its configuration schema, or its skill-discovery behavior for inspection here.
+`opencode` is not on `PATH`, and direct execution of the bundled ELF fails on Termux. The CLI runs when invoked through the installed glibc loader, which reported version `1.19.6`. Version-matched local evidence: `@opencode-ai/plugin` and `@opencode-ai/sdk` both report `1.19.6`; their type definitions expose V1 hooks (`chat.message`, `experimental.chat.system.transform`) and no `session.start`. Official V1 and V2 plugin contracts were reviewed; V2 (`Plugin.define`, `ctx.session.hook`) must not be applied to the installed V1 runtime, so the adapter requires an explicit `--api` choice.
 
-Local package evidence: `~/.config/opencode/package.json` declares `@opencode-ai/plugin` 1.19.6, and the installed plugin package reports version 1.19.6 with `@opencode-ai/sdk` 1.19.6. The installed type definitions expose V1 hooks (`chat.message`, `experimental.chat.system.transform`) but no `session.start`. The global `opencode-linux-arm64@1.19.6` package exists, yet its ELF cannot execute in this Termux shell and no CLI shim is on PATH. RScan therefore generates a version-specific plugin adapter (`--api v1` for 1.19.x, `--api v2` only after confirming the V2 API) rather than applying one major version's syntax to another. Adapter execution remains NOT VERIFIED.
+With the loader-based CLI, native discovery from `.opencode/skills/rcoder/SKILL.md` was directly observed: the model invoked the `skill` tool with `name: "rcoder"`, read `SKILL.md`, and loaded specialist references. A separate probe plugin confirmed that `experimental.chat.system.transform` reaches model context and fires multiple times per session. The generated V1 RScan adapter loaded in the real CLI, ran the scanner, and its hook fired; full end-to-end menu visibility in the final answer was not re-confirmed after provider quota exhaustion. The V2 adapter is syntax-checked only and remains NOT VERIFIED at runtime.
 
 Consequences:
 
-- OpenCode configuration syntax must be checked against the actually installed version before use. No version-specific OpenCode configuration is shipped by RCoder.
-- OpenCode skill discovery in the installed version is `NOT VERIFIED`.
-- Existing state records a user-selected reasoning variant; do not change the selected model as part of RCoder work.
+- OpenCode 1.19.6 supports project-level skill discovery: T2 and T3 are VERIFIED for that exact version only.
+- T4 has a partial WITH-arm result for hy4-flash-free; the controlled WITHOUT arm is NOT VERIFIED because the provider free-usage limit was exhausted.
+- `rg` is absent; OpenCode glob/grep/skill tools report `ripgrep execution failed`. This affects both arms identically and is an environment limitation, not an RCoder failure.
+- The user-selected reasoning variant was left unchanged; no model or provider configuration was modified.
 
 ## Termux observation (2026-11-18)
 

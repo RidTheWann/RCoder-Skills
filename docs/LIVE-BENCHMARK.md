@@ -28,6 +28,10 @@ This is the evidence gate that static validation cannot replace. Until it is exe
 - Label every claim `VERIFIED`, `INFERRED`, or `NOT VERIFIED`. A synthetic perfect fixture validates the scorer, not the model.
 - Re-run after any routing, specialist, RSaver, or RScan change to detect regression.
 
-## Current status
+## Current status (2026-11-19)
 
-`NOT VERIFIED`. In the development shell the OpenCode npm package 1.19.6 exists, but the bundled ELF binary cannot execute on Termux (`required file not found`), so no live OpenCode run has been produced. See `docs/ENVIRONMENT.md`.
+**PARTIAL — WITH arm only.** The OpenCode 1.19.6 CLI runs in this shell through the installed glibc loader, so live runs were produced with `opencode run --model opencode/hy4-flash-free --format json` and an unchanged default reasoning variant. Isolated fixtures proved RCoder was present only in the WITH arm (SHA-256 of installed skill recorded; WITHOUT fixture had no `.opencode/skills/rcoder`). Native discovery was directly observed in the WITH arm.
+
+Retained evidence: `evals/runs/hy4-flash-free-2026-11-19/` (config, per-case evidence, predictions, scorer output). Validity filtering kept 30/42 trigger cases with genuine agent text; 12 triggers, 19 scenarios, and the entire WITHOUT arm were not completed because the provider returned `AI_APICallError: Free usage limit reached`. The scorer was run on the valid WITH subset only; its 12 missing predictions are reported, not hidden. No ablation delta is claimed.
+
+External blocker: provider free-tier quota. Minimum action required to finish: rerun `python3 scripts/run-benchmark.py --run-dir <new-dir> --opencode <opencode-command>` with available quota or an authorized provider, then regenerate predictions and score both arms. Do not describe this partial run as a complete benchmark.

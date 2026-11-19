@@ -1,0 +1,358 @@
+[
+  {
+    "id": "trig-01",
+    "kind": "trigger",
+    "predicted_trigger": true,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 5,
+    "tool_errors": 0,
+    "tokens_total": 28563,
+    "duration_s": 39.705
+  },
+  {
+    "id": "trig-02",
+    "kind": "trigger",
+    "predicted_trigger": false,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 4,
+    "tool_errors": 0,
+    "tokens_total": 24306,
+    "duration_s": 27.101
+  },
+  {
+    "id": "trig-03",
+    "kind": "trigger",
+    "predicted_trigger": false,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 5,
+    "tool_errors": 1,
+    "tokens_total": 22542,
+    "duration_s": 26.362
+  },
+  {
+    "id": "trig-04",
+    "kind": "trigger",
+    "predicted_trigger": true,
+    "skill_invoked": true,
+    "specialists": [
+      "performance"
+    ],
+    "tool_calls": 8,
+    "tool_errors": 2,
+    "tokens_total": 25083,
+    "duration_s": 42.455
+  },
+  {
+    "id": "trig-05",
+    "kind": "trigger",
+    "predicted_trigger": true,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 5,
+    "tool_errors": 0,
+    "tokens_total": 18056,
+    "duration_s": 54.374
+  },
+  {
+    "id": "trig-06",
+    "kind": "trigger",
+    "predicted_trigger": true,
+    "skill_invoked": true,
+    "specialists": [
+      "database-engineering"
+    ],
+    "tool_calls": 6,
+    "tool_errors": 1,
+    "tokens_total": 32011,
+    "duration_s": 75.498
+  },
+  {
+    "id": "trig-07",
+    "kind": "trigger",
+    "predicted_trigger": true,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 7,
+    "tool_errors": 0,
+    "tokens_total": 15818,
+    "duration_s": 27.395
+  },
+  {
+    "id": "trig-08",
+    "kind": "trigger",
+    "predicted_trigger": true,
+    "skill_invoked": true,
+    "specialists": [],
+    "tool_calls": 6,
+    "tool_errors": 2,
+    "tokens_total": 35488,
+    "duration_s": 62.593
+  },
+  {
+    "id": "trig-09",
+    "kind": "trigger",
+    "predicted_trigger": true,
+    "skill_invoked": true,
+    "specialists": [],
+    "tool_calls": 7,
+    "tool_errors": 1,
+    "tokens_total": 28059,
+    "duration_s": 38.093
+  },
+  {
+    "id": "trig-10",
+    "kind": "trigger",
+    "predicted_trigger": false,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 4,
+    "tool_errors": 0,
+    "tokens_total": 25296,
+    "duration_s": 22.903
+  },
+  {
+    "id": "trig-11",
+    "kind": "trigger",
+    "predicted_trigger": true,
+    "skill_invoked": true,
+    "specialists": [
+      "build-toolchain-engineering",
+      "test-engineering",
+      "testing-qa"
+    ],
+    "tool_calls": 8,
+    "tool_errors": 1,
+    "tokens_total": 26507,
+    "duration_s": 42.487
+  },
+  {
+    "id": "trig-12",
+    "kind": "trigger",
+    "predicted_trigger": true,
+    "skill_invoked": true,
+    "specialists": [
+      "architecture",
+      "documentation"
+    ],
+    "tool_calls": 12,
+    "tool_errors": 1,
+    "tokens_total": 33259,
+    "duration_s": 59.433
+  },
+  {
+    "id": "trig-13",
+    "kind": "trigger",
+    "predicted_trigger": false,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 2,
+    "tool_errors": 0,
+    "tokens_total": 9213,
+    "duration_s": 21.314
+  },
+  {
+    "id": "trig-14",
+    "kind": "trigger",
+    "predicted_trigger": false,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 0,
+    "tool_errors": 0,
+    "tokens_total": 7939,
+    "duration_s": 9.682
+  },
+  {
+    "id": "trig-15",
+    "kind": "trigger",
+    "predicted_trigger": false,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 0,
+    "tool_errors": 0,
+    "tokens_total": 7854,
+    "duration_s": 7.589
+  },
+  {
+    "id": "trig-16",
+    "kind": "trigger",
+    "predicted_trigger": false,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 4,
+    "tool_errors": 0,
+    "tokens_total": 9289,
+    "duration_s": 23.063
+  },
+  {
+    "id": "trig-17",
+    "kind": "trigger",
+    "predicted_trigger": false,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 3,
+    "tool_errors": 0,
+    "tokens_total": 30460,
+    "duration_s": 24.778
+  },
+  {
+    "id": "trig-18",
+    "kind": "trigger",
+    "predicted_trigger": false,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 1,
+    "tool_errors": 0,
+    "tokens_total": 16898,
+    "duration_s": 12.369
+  },
+  {
+    "id": "trig-19",
+    "kind": "trigger",
+    "predicted_trigger": false,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 0,
+    "tool_errors": 0,
+    "tokens_total": 7831,
+    "duration_s": 6.998
+  },
+  {
+    "id": "trig-20",
+    "kind": "trigger",
+    "predicted_trigger": false,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 9,
+    "tool_errors": 0,
+    "tokens_total": 11722,
+    "duration_s": 43.276
+  },
+  {
+    "id": "trig-21",
+    "kind": "trigger",
+    "predicted_trigger": false,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 0,
+    "tool_errors": 0,
+    "tokens_total": 7854,
+    "duration_s": 7.282
+  },
+  {
+    "id": "trig-22",
+    "kind": "trigger",
+    "predicted_trigger": false,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 2,
+    "tool_errors": 0,
+    "tokens_total": 8279,
+    "duration_s": 15.058
+  },
+  {
+    "id": "trig-23",
+    "kind": "trigger",
+    "predicted_trigger": false,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 0,
+    "tool_errors": 0,
+    "tokens_total": 9428,
+    "duration_s": 21.363
+  },
+  {
+    "id": "trig-24",
+    "kind": "trigger",
+    "predicted_trigger": false,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 15,
+    "tool_errors": 2,
+    "tokens_total": 20665,
+    "duration_s": 78.447
+  },
+  {
+    "id": "trig-25",
+    "kind": "trigger",
+    "predicted_trigger": true,
+    "skill_invoked": true,
+    "specialists": [],
+    "tool_calls": 11,
+    "tool_errors": 2,
+    "tokens_total": 21461,
+    "duration_s": 41.725
+  },
+  {
+    "id": "trig-26",
+    "kind": "trigger",
+    "predicted_trigger": true,
+    "skill_invoked": true,
+    "specialists": [
+      "penetration-testing"
+    ],
+    "tool_calls": 10,
+    "tool_errors": 1,
+    "tokens_total": 31389,
+    "duration_s": 45.198
+  },
+  {
+    "id": "trig-27",
+    "kind": "trigger",
+    "predicted_trigger": true,
+    "skill_invoked": false,
+    "specialists": [],
+    "tool_calls": 6,
+    "tool_errors": 0,
+    "tokens_total": 16043,
+    "duration_s": 25.491
+  },
+  {
+    "id": "trig-28",
+    "kind": "trigger",
+    "predicted_trigger": true,
+    "skill_invoked": true,
+    "specialists": [
+      "mobile-engineering",
+      "polyglot-ecosystems"
+    ],
+    "tool_calls": 11,
+    "tool_errors": 1,
+    "tokens_total": 38121,
+    "duration_s": 76.744
+  },
+  {
+    "id": "trig-29",
+    "kind": "trigger",
+    "predicted_trigger": true,
+    "skill_invoked": true,
+    "specialists": [
+      "performance",
+      "polyglot-ecosystems",
+      "ui-ux-accessibility",
+      "verification"
+    ],
+    "tool_calls": 19,
+    "tool_errors": 2,
+    "tokens_total": 48757,
+    "duration_s": 100.094
+  },
+  {
+    "id": "trig-30",
+    "kind": "trigger",
+    "predicted_trigger": true,
+    "skill_invoked": true,
+    "specialists": [
+      "cloud-container-security",
+      "identity-crypto-secrets",
+      "secure-code-review",
+      "security"
+    ],
+    "tool_calls": 9,
+    "tool_errors": 1,
+    "tokens_total": 21305,
+    "duration_s": 31.756
+  }
+]

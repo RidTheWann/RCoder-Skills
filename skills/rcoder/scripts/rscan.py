@@ -15,7 +15,7 @@ import sys
 import time
 from pathlib import Path
 
-VERSION = "1.10.0"
+VERSION = "1.11.0"
 SKIP = {
     ".git", ".hg", ".svn", "node_modules", "vendor", "dist", "build", "target",
     ".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache", ".next",
@@ -337,19 +337,30 @@ def opencode_plugin_source(api: str) -> str:
     script = Path(__file__).resolve()
     if api == "v1":
         body = '''
-export const RScanPlugin = async ({ $, directory }) => {
-  const seen = new Set();
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
+
+export const RScanPlugin = async ({ directory }) => {
   const python = "__PY__";
   const rscan = "__RS__";
   return {
     "experimental.chat.system.transform": async (input, output) => {
-      if (!input.sessionID || seen.has(input.sessionID)) return;
-      seen.add(input.sessionID);
       try {
-        const text = await $`${python} ${rscan} scan --root ${directory} --hook opencode`.text();
-        output.system.push({ type: "text", text });
+        const already = output.system.some((item) => String(item).startsWith("RScan:"));
+        if (already) return;
+        const { stdout } = await execFileAsync(
+          python,
+          [rscan, "scan", "--root", directory, "--hook", "opencode"],
+          { timeout: 10000, maxBuffer: 2000000, encoding: "utf8" }
+        );
+        const text = stdout.trimEnd();
+        if (text && !output.system.some((item) => String(item).startsWith("RScan:"))) {
+          output.system.push(text);
+        }
       } catch (error) {
-        console.error("RScan skipped:", error);
+        console.error("RScan skipped:", error && error.message ? error.message : String(error));
       }
     }
   };
@@ -358,25 +369,40 @@ export const RScanPlugin = async ({ $, directory }) => {
     else:
         body = '''
 import { Plugin } from "@opencode/plugin";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
+
 export default Plugin.define({
   id: "rcoder.rscan",
   async setup(ctx) {
     const python = "__PY__";
     const rscan = "__RS__";
-    let injected = false;
+    const directory = ctx.location.directory;
     await ctx.session.hook("context", async (event) => {
-      if (injected) return;
-      injected = true;
-      const proc = Bun.spawn([python, rscan, "scan", "--root", ctx.location.directory, "--hook", "opencode"], {
-        stdout: "pipe", stderr: "pipe"
-      });
-      const text = await new Response(proc.stdout).text();
-      event.system.push({ type: "text", text });
+      try {
+        const textOf = (item) => typeof item === "string" ? item : (item && item.text) || "";
+        if (event.system.some((item) => textOf(item).startsWith("RScan:"))) return;
+        const { stdout } = await execFileAsync(
+          python,
+          [rscan, "scan", "--root", directory, "--hook", "opencode"],
+          { timeout: 10000, maxBuffer: 2000000, encoding: "utf8" }
+        );
+        const text = stdout.trimEnd();
+        if (text && !event.system.some((item) => textOf(item).startsWith("RScan:"))) {
+          event.system.push({ type: "text", text });
+        }
+      } catch (error) {
+        console.error("RScan skipped:", error && error.message ? error.message : String(error));
+      }
     });
   }
 });
 '''
-    return body.replace("__PY__", python).replace("__RS__", str(script))
+    return body.replace('"__PY__"', json.dumps(python, ensure_ascii=True)).replace(
+        '"__RS__"', json.dumps(str(script), ensure_ascii=True)
+    )
 
 
 def command_hooks(args: argparse.Namespace) -> int:
