@@ -15,7 +15,7 @@ import re
 import sys
 from pathlib import Path
 
-VERSION = "1.5.0"
+VERSION = "1.6.0"
 PIECES = re.compile(r"[^\W\d_]+|\d+|[^\s\w]", re.UNICODE)
 DEFAULT_CRITICAL = (
     r"(?i)(error|fail|exception|traceback|fatal|panic|exit[ _-]?code|"
@@ -262,6 +262,166 @@ def emit(payload: dict, as_json: bool, text: str, label: str, text_key: str = "t
     return 0
 
 
+SECTION_ORDER = {"prefix": 0, "working": 1, "history": 2, "tail": 3}
+PRIORITY_DROP_ORDER = {"optional": 0, "useful": 1, "required": 2}
+
+
+def plan_envelope(envelope: dict) -> dict:
+    window = int(envelope.get("window_tokens", 0))
+    output_reserve = int(envelope.get("output_reserve", 0))
+    reasoning_reserve = int(envelope.get("reasoning_reserve", 0))
+    tool_schema = int(envelope.get("tool_schema_tokens", 0))
+    cache_min = int(envelope.get("cache_min_tokens", 0))
+    items = envelope.get("items", [])
+    if window <= 0:
+        raise ValueError("window_tokens must be positive")
+    if not isinstance(items, list):
+        raise ValueError("items must be a list")
+    for index, item in enumerate(items):
+        if not isinstance(item, dict) or not isinstance(item.get("id"), str):
+            raise ValueError(f"item {index}: missing string id")
+        if int(item.get("tokens", 0)) < 0:
+            raise ValueError(f"item {item['id']}: tokens must be non-negative")
+        if item.get("section", "working") not in SECTION_ORDER:
+            raise ValueError(f"item {item['id']}: invalid section")
+        if item.get("priority", "useful") not in PRIORITY_DROP_ORDER:
+            raise ValueError(f"item {item['id']}: invalid priority")
+        if item.get("stability", "dynamic") not in {"static", "dynamic"}:
+            raise ValueError(f"item {item['id']}: invalid stability")
+
+    ordered = sorted(enumerate(items), key=lambda pair: (SECTION_ORDER[pair[1].get("section", "working")], pair[0]))
+    available_input = window - output_reserve - reasoning_reserve
+    if available_input < 0:
+        raise ValueError("output and reasoning reserves exceed the context window")
+    item_budget = max(0, available_input - tool_schema)
+
+    required = [pair for pair in ordered if pair[1].get("priority", "useful") == "required"]
+    optional = [pair for pair in ordered if pair[1].get("priority", "useful") == "optional"]
+    useful = [pair for pair in ordered if pair[1].get("priority", "useful") == "useful"]
+    kept_ids = {pair[1]["id"] for pair in required}
+    used = sum(int(pair[1].get("tokens", 0)) for pair in required)
+    for group in (optional, useful):
+        for _, item in group:
+            cost = int(item.get("tokens", 0))
+            if used + cost <= item_budget:
+                kept_ids.add(item["id"])
+                used += cost
+    warnings = []
+    if used > item_budget:
+        warnings.append("required_items_exceed_budget")
+    if tool_schema > available_input:
+        warnings.append("tool_schema_exceeds_available_input")
+
+    decisions = []
+    seen_dynamic = False
+    cache_prefix_tokens = 0
+    cache_fragmented = False
+    input_estimate = tool_schema
+    for _, item in ordered:
+        kept = item["id"] in kept_ids
+        static = item.get("stability", "dynamic") == "static"
+        cacheable = kept and static and not seen_dynamic
+        if static and seen_dynamic and kept:
+            cache_fragmented = True
+        if not static:
+            seen_dynamic = True
+        if cacheable:
+            cache_prefix_tokens += int(item.get("tokens", 0))
+        if kept:
+            input_estimate += int(item.get("tokens", 0))
+        reason = "kept_required" if item.get("priority", "useful") == "required" else (
+            "kept_within_budget" if kept else "deferred_by_budget")
+        decisions.append({
+            "id": item["id"],
+            "section": item.get("section", "working"),
+            "tokens": int(item.get("tokens", 0)),
+            "priority": item.get("priority", "useful"),
+            "stability": item.get("stability", "dynamic"),
+            "decision": "keep" if kept else "defer",
+            "reason": reason,
+            "cacheable_prefix": cacheable,
+            "recover": None if kept else f"restore item {item['id']} from its source",
+        })
+    cache_prefix_tokens += tool_schema
+    cache_eligible = cache_min > 0 and cache_prefix_tokens >= cache_min
+    if cache_min > 0 and not cache_eligible:
+        warnings.append("cache_prefix_below_minimum")
+    if cache_fragmented:
+        warnings.append("cache_prefix_fragmented_by_dynamic_item")
+
+    projected_total = input_estimate + output_reserve + reasoning_reserve
+    return {
+        "tool": "RSaver",
+        "version": VERSION,
+        "budget": {
+            "window_tokens": window,
+            "output_reserve": output_reserve,
+            "reasoning_reserve": reasoning_reserve,
+            "tool_schema_tokens": tool_schema,
+            "available_input": available_input,
+            "item_budget": item_budget,
+            "input_estimate": input_estimate,
+            "cacheable_prefix_estimate": cache_prefix_tokens,
+            "ordinary_input_estimate": input_estimate - cache_prefix_tokens,
+            "projected_total": projected_total,
+            "headroom": window - projected_total,
+        },
+        "cache": {
+            "minimum_tokens": cache_min,
+            "eligible": cache_eligible,
+            "contiguous_static_prefix": not cache_fragmented,
+        },
+        "decisions": decisions,
+        "deferred_count": sum(1 for decision in decisions if decision["decision"] == "defer"),
+        "warnings": warnings,
+        "estimate_method": "caller_supplied_token_counts",
+    }
+
+
+def command_gate(args: argparse.Namespace) -> int:
+    source = Path(args.envelope).read_text(encoding="utf-8") if args.envelope != "-" else sys.stdin.read()
+    envelope = json.loads(source)
+    plan = plan_envelope(envelope)
+    if args.json:
+        print(json.dumps(plan, indent=2, sort_keys=True))
+        return 0
+    budget = plan["budget"]
+    print(f"RSaver Gate: input={budget['input_estimate']} cacheable={budget['cacheable_prefix_estimate']} "
+          f"ordinary={budget['ordinary_input_estimate']} output_reserve={budget['output_reserve']} "
+          f"reasoning_reserve={budget['reasoning_reserve']} projected={budget['projected_total']}/{budget['window_tokens']} "
+          f"headroom={budget['headroom']}")
+    print(f"RSaver Gate: kept={len(plan['decisions']) - plan['deferred_count']} deferred={plan['deferred_count']} "
+          f"cache_eligible={plan['cache']['eligible']}")
+    for warning in plan["warnings"]:
+        print(f"RSaver WARNING: {warning}", file=sys.stderr)
+    return 0
+
+
+def command_budget(args: argparse.Namespace) -> int:
+    window = args.window
+    output_reserve = args.output_reserve
+    reasoning_reserve = args.reasoning_reserve
+    available = window - output_reserve - reasoning_reserve
+    if available < 0:
+        raise ValueError("output and reasoning reserves exceed the context window")
+    result = {
+        "tool": "RSaver", "version": VERSION,
+        "window_tokens": window,
+        "output_reserve": output_reserve,
+        "reasoning_reserve": reasoning_reserve,
+        "tool_schema_tokens": args.tool_schema,
+        "available_input": available,
+        "item_budget": max(0, available - args.tool_schema),
+        "reserve_percent": round(100 * (output_reserve + reasoning_reserve) / window, 2),
+    }
+    if args.json:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    else:
+        print(f"RSaver Budget: window={window} output={output_reserve} reasoning={reasoning_reserve} "
+              f"tool_schema={args.tool_schema} available_input={available} item_budget={result['item_budget']}")
+    return 0
+
+
 def command_measure(args: argparse.Namespace) -> int:
     rows = []
     for path in args.paths:
@@ -480,6 +640,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", action="version", version=f"RSaver {VERSION}")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    gate = sub.add_parser("gate", help="filter a context envelope against input/cache/output budgets")
+    gate.add_argument("envelope", help="JSON envelope path, or - for stdin")
+    gate.add_argument("--json", action="store_true")
+    gate.set_defaults(func=command_gate)
+
+    budget = sub.add_parser("budget", help="allocate a context window across input, output, and reasoning")
+    budget.add_argument("--window", type=int, required=True)
+    budget.add_argument("--output-reserve", type=int, default=4096)
+    budget.add_argument("--reasoning-reserve", type=int, default=8192)
+    budget.add_argument("--tool-schema", type=int, default=0)
+    budget.add_argument("--json", action="store_true")
+    budget.set_defaults(func=command_budget)
 
     measure = sub.add_parser("measure", help="estimate the size of files or stdin")
     measure.add_argument("paths", nargs="+")

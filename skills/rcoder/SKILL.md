@@ -4,7 +4,7 @@ description: "RCoder is a model-agnostic software engineering, programming, cybe
 license: MIT
 metadata:
   author: RidTheWann
-  version: "1.5.0"
+  version: "1.6.0"
 ---
 
 # RCoder
@@ -54,6 +54,10 @@ These layers describe responsibilities, not extra steps to perform on every task
 4. **Implement:** change the smallest correct surface; follow local style, layering, error handling, accessibility, dependency, and test conventions. Add/update tests when behavior changes.
 5. **Verify:** run the narrowest relevant test first, then targeted lint/type/build checks. Expand to the documented project gate when proportionate. Inspect final diff and untracked/generated files. Record unavailable checks and why.
 6. **Report:** state outcome, files/areas changed, exact commands and observed results, assumptions, and residual risks. Label evidence `VERIFIED`, `INFERRED`, or `NOT VERIFIED`.
+
+## RSaver gate (before routing)
+
+For multi-step, tool-heavy, or context-constrained work, apply the [RSaver gate](references/rsaver-gate.md) before loading specialists and again before each model boundary: reserve output and reasoning budget, keep required items, defer optional history with recovery pointers, and make the static cache prefix contiguous. `scripts/rsaver.py gate` and `budget` produce the deterministic plan; `docs/TOKEN-ECONOMICS.md` records input, cached-input, and output mechanics. RSaver is a planning and filtering layer, not a runtime interceptor: confirm cache hits from usage fields.
 
 ## Expert routing
 
@@ -121,7 +125,7 @@ Load [model adaptation](references/model-adaptation.md) when the host or model i
 
 ### Token and context efficiency
 
-For multi-step or large-repository work, load [token-efficient engineering](references/token-efficiency.md). Use the bounded [context snapshot helper](scripts/context_snapshot.py) and the [context capsule template](assets/templates/context-capsule-template.md). For oversized tool output or measured context reduction, load [RSaver](references/rsaver.md) and use `scripts/rsaver.py` (or the bundled `skills/rcoder/scripts/rsaver.py`) to measure, prune, and recover evidence. Optimize total engineering cost without weakening safety, verification, or evidence.
+For multi-step or large-repository work, load [token-efficient engineering](references/token-efficiency.md). Use the bounded [context snapshot helper](scripts/context_snapshot.py) and the [context capsule template](assets/templates/context-capsule-template.md). For oversized tool output or measured context reduction, load [RSaver](references/rsaver.md) and use `scripts/rsaver.py` (or the bundled `skills/rcoder/scripts/rsaver.py`) to measure, prune, and recover evidence; use the gate module above for the per-step budget decision. Optimize total engineering cost without weakening safety, verification, or evidence.
 
 ## Stack reconnaissance helper
 

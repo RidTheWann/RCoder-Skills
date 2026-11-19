@@ -2,7 +2,7 @@
 
 ## Release objective
 
-Build v1.5.0 as a safe extension of v1.4.0. Preserve both installers, the Agent Skill format, plugin manifests, the canonical skill directory, and all existing specialist capabilities while improving RSaver token estimation accuracy from observed tokenizer behavior.
+Build v1.6.0 as a safe extension of v1.5.0. Preserve both installers, the Agent Skill format, plugin manifests, the canonical skill directory, and all existing specialist capabilities while adding RSaver Gate budgeting and filtering above the skill layer.
 
 ## Implementation checklist
 
@@ -12,9 +12,10 @@ Build v1.5.0 as a safe extension of v1.4.0. Preserve both installers, the Agent 
 - [x] Add a host compatibility evidence matrix and an environment/capability record.
 - [x] Deepen all 54 specialists to the full 13-section structure without removing existing modules.
 - [x] Add an executable evaluation scorer, routing expectations, self-test, ablation protocol, and five behavioral scenarios (19 total).
-- [x] Re-run the full local gate set and installer/packaging regressions for v1.4.0: validator (733 checks), context snapshot test, evaluation scorer test, RSaver test, Node syntax, 40 Node target/scope cases, 40 POSIX target/scope cases, npm pack dry-run, and five reproducible ZIP packages with verified checksums.
+- [x] Re-run the full local gate set and installer/packaging regressions for v1.6.0: validator (740 checks), context snapshot test, evaluation scorer test, RSaver gate test, Node syntax, 40 Node target/scope cases, 40 POSIX target/scope cases, npm pack dry-run, and five reproducible ZIP packages with verified checksums.
 - [x] Add RSaver with hash-checked manifests, dedupe economics, and a deterministic self-test.
 - [x] Research tokenization and calibrate a content-class estimator v2 with model profiles and optional exact counting.
+- [x] Add RSaver Gate with input/cache/output/reasoning budgeting, priority filtering, and cache-prefix checks.
 - [x] Add a global terminal manager invoked by typing `RCoder`.
 - [x] Add multi-target and Project/User selection, shared-root deduplication, install/update, uninstall, backup, and restore.
 - [x] Add a Windows-native PowerShell launcher independent of Node.js.

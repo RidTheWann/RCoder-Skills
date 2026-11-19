@@ -49,9 +49,9 @@ def main():
         assert canonical.is_file()
         direct = subprocess.run([sys.executable, str(canonical), "--version"],
                                 text=True, capture_output=True, check=True, timeout=20)
-        assert "RSaver 1.5.0" in direct.stdout
+        assert "RSaver 1.6.0" in direct.stdout
         version = run("--version")
-        assert version.returncode == 0 and "RSaver 1.5.0" in version.stdout
+        assert version.returncode == 0 and "RSaver 1.6.0" in version.stdout
 
         calibration = {
             "prose": "The quick brown fox jumps over the lazy dog. This sentence uses common words.",
@@ -71,6 +71,54 @@ def main():
         assert hooked["rows"][0]["exact"] is not None
         assert hooked["rows"][0]["exact_source"] == "external-tokenizer-command"
         assert hooked["rows"][0]["v2_error_percent"] is not None
+
+        budget = run_json("budget", "--window", "100000", "--output-reserve", "4000",
+                          "--reasoning-reserve", "8000", "--tool-schema", "1000", "--json")
+        assert budget["available_input"] == 88000
+        assert budget["item_budget"] == 87000
+
+        envelope = {
+            "window_tokens": 10000, "output_reserve": 1000, "reasoning_reserve": 2000,
+            "tool_schema_tokens": 500, "cache_min_tokens": 1000,
+            "items": [
+                {"id": "system", "section": "prefix", "tokens": 700,
+                 "stability": "static", "priority": "required"},
+                {"id": "tools", "section": "prefix", "tokens": 500,
+                 "stability": "static", "priority": "required"},
+                {"id": "skill", "section": "working", "tokens": 2000,
+                 "stability": "dynamic", "priority": "useful"},
+                {"id": "old-log", "section": "history", "tokens": 8000,
+                 "stability": "dynamic", "priority": "optional"},
+                {"id": "prompt", "section": "tail", "tokens": 100,
+                 "stability": "dynamic", "priority": "required"},
+            ],
+        }
+        gate = run_json("gate", "-", "--json", stdin_text=json.dumps(envelope))
+        decisions = {item["id"]: item["decision"] for item in gate["decisions"]}
+        assert decisions["system"] == "keep" and decisions["tools"] == "keep"
+        assert decisions["prompt"] == "keep" and decisions["old-log"] == "defer"
+        assert decisions["skill"] == "keep"
+        assert gate["budget"]["input_estimate"] == 3800
+        assert gate["budget"]["projected_total"] == 6800
+        assert gate["budget"]["headroom"] == 3200
+        assert gate["cache"]["eligible"] is True
+        assert gate["deferred_count"] == 1
+        assert gate["warnings"] == []
+
+        fragmented = json.loads(json.dumps(envelope))
+        fragmented["items"][4]["stability"] = "static"
+        fragmented_plan = run_json("gate", "-", "--json", stdin_text=json.dumps(fragmented))
+        assert "cache_prefix_fragmented_by_dynamic_item" in fragmented_plan["warnings"]
+
+        short_prefix = json.loads(json.dumps(envelope))
+        short_prefix["cache_min_tokens"] = 99999
+        short_plan = run_json("gate", "-", "--json", stdin_text=json.dumps(short_prefix))
+        assert short_plan["cache"]["eligible"] is False
+        assert "cache_prefix_below_minimum" in short_plan["warnings"]
+
+        assert run("gate", "-", "--json", stdin_text='{"window_tokens": 0, "items": []}').returncode == 2
+        assert run("gate", "-", "--json", stdin_text='{"window_tokens": 10, "items": [{"id": 1}]}').returncode == 2
+        assert run("budget", "--window", "10", "--output-reserve", "20").returncode == 2
 
         measured = run_json("measure", str(fixture), "--json")
         assert measured["total_estimate"] > 0

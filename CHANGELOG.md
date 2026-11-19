@@ -2,6 +2,18 @@
 
 RCoder follows Semantic Versioning.
 
+## [1.6.0] - 2026-11-19
+
+### Added
+- RSaver Gate: a pre-routing process filter with a `gate` subcommand for context envelopes and a `budget` subcommand for window allocation across input, cached prefix, output, and reasoning reserves.
+- `rsaver-gate.md` documenting the prompt -> gate -> model -> skills/reasoning/search -> gate -> response pipeline and its runtime limits.
+- `docs/TOKEN-ECONOMICS.md` documenting input, cached-input, output, and reasoning tokens, caching prefixes/TTL/minimums, usage fields, and break-even arithmetic with source links.
+
+### Changed
+- Router applies the gate before specialist selection and again at each model boundary for multi-step or context-constrained work.
+- RSaver self-test now covers budget arithmetic, required/deferred decisions, cache eligibility and fragmentation, and invalid envelopes.
+- Synchronized version 1.6.0 across skill metadata, package/plugin manifests, changelog, package builder, and validator.
+
 ## [1.5.0] - 2026-11-19
 
 ### Added
