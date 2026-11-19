@@ -45,3 +45,11 @@ The dataset and protocol are VERIFIED as files and structure. Runtime routing
 accuracy for these prompts is NOT VERIFIED: no live model run was executed in the
 v1.12 development environment (`opencode` unavailable). Do not report a
 multilingual accuracy number until a pinned run exists.
+
+Update (2026-11-19, v1.13): a live runtime is now available through the verified
+glibc loader, but the free-tier quota was exhausted after the bounded English
+control/treatment ablation. No multilingual live run was executed. The routing
+instructions now classify by deliverable and acceptance criteria rather than
+English keywords, which is an INFERRED improvement for these prompts only; it is
+not a measured multilingual result. The separate dataset and policy remain
+unchanged and must be evaluated as their own experiment.

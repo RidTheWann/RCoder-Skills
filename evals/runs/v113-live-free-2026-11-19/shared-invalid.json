@@ -1,0 +1,18 @@
+{
+  "with": [
+    "trig-19",
+    "trig-20",
+    "trig-21",
+    "trig-22",
+    "trig-23",
+    "trig-24"
+  ],
+  "without": [
+    "trig-19",
+    "trig-20",
+    "trig-21",
+    "trig-22",
+    "trig-23",
+    "trig-24"
+  ]
+}
