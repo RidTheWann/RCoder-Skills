@@ -1,0 +1,326 @@
+{
+  "with/s01-debug-regression": {
+    "response": "[false,false,false,false]",
+    "parsed": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "with/s02-ambiguous-feature": {
+    "response": "[true,true,true,false]",
+    "parsed": [
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "with/s03-architecture-choice": {
+    "response": "[true,true,true,true]",
+    "parsed": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "with/s04-ui-ux-audit": {
+    "response": "[true,true,true,true]",
+    "parsed": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "with/s05-performance-bottleneck": {
+    "response": "[false,false,false,false]",
+    "parsed": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "with/s06-security-review": {
+    "response": "[true,true,true,true]",
+    "parsed": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "with/s07-safe-refactor": {
+    "response": "[false,true,true,false]",
+    "parsed": [
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "with/s08-polyglot-repo": {
+    "response": "[true,false,false,false]",
+    "parsed": [
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "with/s09-ci-hardening": {
+    "response": "[true,true,true,true]",
+    "parsed": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "with/s10-api-migration": {
+    "response": "[true,true,true,true]",
+    "parsed": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "with/s11-reverse-engineering": {
+    "response": "[false,true,false,false]",
+    "parsed": [
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "with/s12-authorized-security-assessment": {
+    "response": "[false,false,false,false]",
+    "parsed": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "with/s13-token-efficient-repository-task": {
+    "response": "[false,false,false,true]",
+    "parsed": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "with/s14-polyglot-api-compatibility": {
+    "response": "[false,true,true,true]",
+    "parsed": [
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "with/s15-model-capability-discovery": {
+    "response": "[true,true,true,true]",
+    "parsed": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "with/s16-unavailable-tool-adaptation": {
+    "response": "[true,true,true,false]",
+    "parsed": [
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "with/s17-long-task-context-handoff": {
+    "response": "[true,false,true,true]",
+    "parsed": [
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "with/s18-security-finding-classification": {
+    "response": "[false,true,true,true]",
+    "parsed": [
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "with/s19-reverse-engineering-evidence": {
+    "response": "[false,false,true,false]",
+    "parsed": [
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "without/s01-debug-regression": {
+    "response": "[false,false,false,false]",
+    "parsed": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "without/s02-ambiguous-feature": {
+    "response": "[true,false,true,false]",
+    "parsed": [
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "without/s03-architecture-choice": {
+    "response": "[false,false,false,false]",
+    "parsed": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "without/s04-ui-ux-audit": {
+    "response": "[true,true,true,true]",
+    "parsed": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "without/s05-performance-bottleneck": {
+    "response": "[false,false,false,false]",
+    "parsed": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "without/s06-security-review": {
+    "response": "[true,true,true,true]",
+    "parsed": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "without/s08-polyglot-repo": {
+    "response": "[true,false,false,false]",
+    "parsed": [
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "without/s09-ci-hardening": {
+    "response": "[true,true,true,true]",
+    "parsed": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "without/s10-api-migration": {
+    "response": "[true,true,true,true]",
+    "parsed": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "without/s11-reverse-engineering": {
+    "response": "[false,true,false,false]",
+    "parsed": [
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "without/s13-token-efficient-repository-task": {
+    "response": "[true,true,true,false]",
+    "parsed": [
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "without/s14-polyglot-api-compatibility": {
+    "response": "[false,true,true,true]",
+    "parsed": [
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "without/s15-model-capability-discovery": {
+    "response": "[false,false,false,true]",
+    "parsed": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "without/s16-unavailable-tool-adaptation": {
+    "response": "[true,true,true,false]",
+    "parsed": [
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "without/s17-long-task-context-handoff": {
+    "response": "[true,false,true,true]",
+    "parsed": [
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "without/s18-security-finding-classification": {
+    "response": "[false,true,true,false]",
+    "parsed": [
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "without/s19-reverse-engineering-evidence": {
+    "response": "[false,true,true,false]",
+    "parsed": [
+      false,
+      true,
+      true,
+      false
+    ]
+  }
+}

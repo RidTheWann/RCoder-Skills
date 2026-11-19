@@ -1,0 +1,17 @@
+{
+  "host": "OpenCode CLI 1.19.6 (opencode-linux-arm64) via glibc loader",
+  "model": "openrouter/tencent/hy4-flash",
+  "model_note": "Same Hy4 Flash model family as the quota-blocked opencode/hy4-flash-free run; provider path changed to OpenRouter with user-supplied credentials passed only as a per-process OPENROUTER_API_KEY environment variable. No credential is stored in this artifact.",
+  "variant": "default (unchanged)",
+  "fixture": "isolated temp fixtures; canonical RCoder skill (v1.11.0) present only in WITH arm",
+  "isolated_with_sha256": "1e57f4d2014ad473ea9a32f27c2636ee010f7754a285a7df47b46178963b7927",
+  "started_utc": "2026-11-19T10:00:00Z",
+  "finished_utc": "2026-11-19T10:40:00Z",
+  "cases": 61,
+  "arms": 2,
+  "parallel": 4,
+  "timeout_s": 120,
+  "recovered_timeout_cases": 4,
+  "scoring": "python3 scripts/score-eval.py --predictions WITH.jsonl --baseline WITHOUT.jsonl --strict --json",
+  "scenario_judge": "same pinned model, bounded transcript summary + objective rubric; same-model bias disclosed"
+}

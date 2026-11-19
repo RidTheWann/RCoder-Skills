@@ -1,0 +1,10 @@
+{
+  "with": [
+    "trig-35"
+  ],
+  "without": [
+    "trig-34",
+    "s07-safe-refactor",
+    "s12-authorized-security-assessment"
+  ]
+}
