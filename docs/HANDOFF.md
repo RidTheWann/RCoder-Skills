@@ -69,7 +69,7 @@ Version 1.2.0 added:
 Repository: https://github.com/RidTheWann/RCoder-Skills
 Historical baseline (as recorded on 2026-11-19): `main` at `6472c7090e580317b9b26142422455aba5092c7c` (v1.10.0, PR [#6](https://github.com/RidTheWann/RCoder-Skills/pull/6)). PR [#7](https://github.com/RidTheWann/RCoder-Skills/pull/7) merged as `3f1cfc1c46cff2be56c921a09566f0247c8a7a3c`. PR [#9](https://github.com/RidTheWann/RCoder-Skills/pull/9) delivered v1.12.0 and PR [#10](https://github.com/RidTheWann/RCoder-Skills/pull/10) its delivery record.
 Verified v1.13 baseline: `main` at `b34aaa0c050be9893d2e97301483af9352ad14df`.
-Current release: v1.13.0 on `feat/v1.13-empirical-intelligence`; PR link and merge status are recorded in `docs/V1.13-DELIVERY.md` after delivery. The frozen historical control remains `evals/runs/hy4-flash-openrouter-2026-11-19/` (61 cases × 2 arms, strict scorer exit 0).
+Current release: v1.13.0 on `feat/v1.13-empirical-intelligence`, PR [#11](https://github.com/RidTheWann/RCoder-Skills/pull/11); Linux and Windows matrix [44526085390](https://github.com/RidTheWann/RCoder-Skills/actions/runs/44526085390) PASS. Merge status is recorded in `docs/V1.13-DELIVERY.md` after delivery. The frozen historical control remains `evals/runs/hy4-flash-openrouter-2026-11-19/` (61 cases × 2 arms, strict scorer exit 0).
 
 ## Installation
 
