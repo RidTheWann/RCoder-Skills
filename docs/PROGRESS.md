@@ -10,7 +10,8 @@ Build v1.3.0 as a safe extension of v1.2.0. Preserve both installers, the Agent 
 - [x] Normalize the evaluation contract across `evals/rubric.md`, `evals/results.md`, and `scripts/validate-all`.
 - [x] Add model-adaptation capability discovery, adaptive execution profiles, and evaluation methodology.
 - [x] Add a host compatibility evidence matrix and an environment/capability record.
-- [x] Deepen core engineering, security, and reverse-engineering specialists without removing existing modules.
+- [x] Deepen all 54 specialists to the full 13-section structure without removing existing modules.
+- [x] Add an executable evaluation scorer, routing expectations, self-test, ablation protocol, and five behavioral scenarios (19 total).
 - [x] Re-run the full local gate set and installer/packaging regressions for v1.3.0: validator (654 checks), context snapshot test, Node syntax, 40 Node target/scope cases, 40 POSIX target/scope cases, npm pack dry-run, and five reproducible ZIP packages with verified checksums.
 - [x] Add a global terminal manager invoked by typing `RCoder`.
 - [x] Add multi-target and Project/User selection, shared-root deduplication, install/update, uninstall, backup, and restore.

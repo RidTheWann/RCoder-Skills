@@ -10,6 +10,8 @@ Version 1.3.0 adds:
 - An environment and capability record for the Termux/OpenCode development shell, with observed runtimes and explicitly unknown capabilities.
 - A compact router layer map (A-F) and an English-only 13-section specialist authoring template.
 - A normalized evaluation contract; `rubric.md` and `results.md` now match the enforced dataset and label non-English activation and model performance claims `NOT VERIFIED`.
+- Depth parity across all 54 specialist modules (full 13-section structure) without removing any module.
+- An executable evaluation harness: routing expectations, a deterministic scorer with ablation deltas, its self-test, an ablation protocol, and five additional scenarios (s15-s19) for capability discovery, tool adaptation, context handoff, finding classification, and evidence-led reverse engineering.
 
 Version 1.2.0 added:
 - A global terminal manager invoked by typing `RCoder`.
@@ -81,8 +83,10 @@ Reverse-engineering references cover executable/binary analysis, evidence-led se
 
 Run in the Termux development shell on the `feat/adaptive-specialist-system` branch:
 
-- `python3 scripts/validate-all` — PASS, 654 checks.
+- `python3 scripts/validate-all` — PASS, 708 checks.
 - `python3 scripts/test-context-snapshot.py` — PASS, including the new bounded-path assertion.
+- `python3 scripts/test-score-eval.py` — PASS, scorer verified on synthetic perfect, mixed, inverted, and four rejection paths.
+- `python3 scripts/score-eval.py --predictions <synthetic-fixture> --strict` — PASS on a generated fixture: 24 TP / 18 TN, specialist F1 1.0, 19/19 scenarios (synthetic only, not a model result).
 - `node --check scripts/rcoder.mjs` — PASS (exit 0).
 - `node scripts/test-node-installer.mjs` — PASS, all 40 target/scope combinations plus backup restore and launcher checks.
 - `bash scripts/test-installers.sh` — PASS, all 40 POSIX target/scope combinations.

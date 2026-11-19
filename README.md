@@ -137,6 +137,7 @@ RCoder uses progressive disclosure to reduce unnecessary context. The token-effi
 - `skills/rcoder/SKILL.md` — portable router and operating protocol with a layered execution map.
 - `skills/rcoder/references/` — focused engineering, cybersecurity, reverse-engineering, and model-adaptation modules.
 - `docs/COMPATIBILITY.md` — host evidence tiers; `docs/ENVIRONMENT.md` — observed capability record.
+- `evals/ABLATION-PROTOCOL.md`, `scripts/score-eval.py` — runnable scoring and with/without-RCoder ablation.
 - `skills/rcoder/scripts/detect_stack.py` — read-only stack reconnaissance.
 - `skills/rcoder/scripts/context_snapshot.py` — bounded metadata-only repository snapshot.
 - `skills/rcoder/assets/templates/` — ADR, issue, specialist-module, context-capsule, test, and UX templates.
@@ -150,6 +151,7 @@ RCoder uses progressive disclosure to reduce unnecessary context. The token-effi
 ```sh
 python3 scripts/validate-all
 python3 scripts/test-context-snapshot.py
+python3 scripts/test-score-eval.py
 node --check scripts/rcoder.mjs
 node scripts/test-node-installer.mjs
 npm pack --dry-run --json

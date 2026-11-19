@@ -43,7 +43,9 @@ All twenty hosts share one canonical `skills/rcoder/` folder; roots are defined 
 
 ## OpenCode observation (Termux, 2026-11-18)
 
-Observable result in the development shell: `opencode --version` returned `command not found`; the binary is not on `PATH` in that shell. The session's model is reachable through the agent platform, but that does not expose the CLI, its version, its configuration schema, or its skill-discovery behavior for inspection here. A previously reported `1.19.6` screenshot is historical context only and was not re-verified.
+Observable results in the development shell: `opencode --version` returned `command not found`, and no CLI binary exists on `PATH` or in common installation locations. The session's model is reachable through the agent platform, but that does not expose the CLI, its configuration schema, or its skill-discovery behavior for inspection here.
+
+Local package evidence: `~/.config/opencode/package.json` declares `@opencode-ai/plugin` 1.19.6, and the installed plugin package reports version 1.19.6 with `@opencode-ai/sdk` 1.19.6. The configuration file contains only `$schema: https://opencode.ai/config.json`. This establishes the installed plugin/SDK version, not CLI behavior. Version-specific configuration syntax must still be checked against the installed CLI before use.
 
 Consequences:
 
@@ -53,4 +55,4 @@ Consequences:
 
 ## Termux observation (2026-11-18)
 
-Verified runtimes in the development shell: Linux aarch64 (kernel `6.1.164-JetKernel-Venus`), Bash 5.3.15, Python 3.14.10, Node 24.22.3, npm 12.2.3, Git 2.56.1. The POSIX helper tests can run here; Windows PowerShell, the `irm` bootstrap, and host-native activation cannot and are recorded as `NOT VERIFIED` in this environment. Ordinary RCoder functionality must not require root, desktop Linux services, or shared-storage access. See `docs/ENVIRONMENT.md` for the capability-discovery record.
+Verified runtimes in the development shell: Linux aarch64 (kernel `6.1.164-JetKernel-Venus`), Bash 5.3.15, Python 3.14.10, Node 24.22.3, npm 12.2.3, Git 2.56.1. The POSIX helper tests can run here; `gh`, `pwsh`, and `powershell` are absent, so Windows PowerShell, the `irm` bootstrap, hosted CI, and host-native activation cannot be executed and are recorded as `NOT VERIFIED` in this environment. Ordinary RCoder functionality must not require root, desktop Linux services, or shared-storage access. See `docs/ENVIRONMENT.md` for the capability-discovery record.
