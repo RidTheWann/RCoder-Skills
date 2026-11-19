@@ -52,7 +52,7 @@ def main():
         return 1
 
     meta, body = parse_frontmatter(skill_file)
-    version = "1.10.0"
+    version = "1.11.0"
     check(meta.get("name") == "rcoder", "G1: skill name must be rcoder")
     check(bool(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(meta.get("name", "")))), "G1: invalid skill name")
     check(isinstance(meta.get("description"), str) and 1 <= len(meta["description"]) <= 1024,
@@ -74,6 +74,16 @@ def main():
             "## Output format",
         ):
             check(heading in content, f"G1: {module.name} missing {heading}")
+        sections = re.split(r"\n(?=## )", content)
+        bodies = {part.splitlines()[0].strip(): part for part in sections if part.startswith("## ")}
+        for heading in (
+            "## Mission and expertise", "## Mental model", "## Procedure",
+            "## Decision tree", "## Failure modes", "## Anti-patterns", "## Verification",
+        ):
+            body = bodies.get(heading, "")
+            check(len(body.split()) >= 8, f"G1: {module.name} {heading} lacks substantive content")
+        check(not re.search(r"(?m)^\s*(TODO|TBD|FIXME)\s*$", content),
+              f"G1: {module.name} contains an unfilled placeholder")
     for required in (
         "programming-languages.md", "systems-programming.md", "polyglot-ecosystems.md",
         "python-engineering.md", "javascript-typescript.md", "dotnet-java-engineering.md",
