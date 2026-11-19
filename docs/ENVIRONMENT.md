@@ -29,6 +29,10 @@ This record separates observed runtime facts from capabilities that could not be
 | `python3 scripts/rsaver.py budget --window 100000 --output-reserve 4000 --reasoning-reserve 8000 --tool-schema 1000` | available_input 88000, item_budget 87000 | VERIFIED |
 | `python3 scripts/rsaver.py drift <synthetic-transcript> --json` | objective/constraint absence, repeated command, and completion-with-unknowns signals detected | VERIFIED (synthetic fixture only) |
 | `python3 scripts/rsaver.py anchor <synthetic-state> --json` | Dual-end block, explicit IDs, estimate within budget | VERIFIED (synthetic fixture only) |
+| `python3 scripts/rscan.py scan --root . --format json` | Stacks, risk signals, ranked options; bounded sample | VERIFIED |
+| `python3 scripts/rscan.py hooks preview --host claude-code|gemini-cli` | Valid `SessionStart` config payloads | VERIFIED (templates only; live host execution NOT VERIFIED) |
+| `python3 scripts/rsaver.py pack <repeated-text> --json` / `unpack` | Estimate reduced ~93%, SHA-256 verified exact restoration | VERIFIED (synthetic fixture) |
+| `python3 scripts/rsaver.py crosscheck --expect ... --diff ... --test-log ... --usage ... --json` | FAIL verdict with evidence lines; usage copied, billing unchanged | VERIFIED (synthetic fixture) |
 | `python3 scripts/score-eval.py --predictions <synthetic> --strict` | 24 TP / 18 TN / 0 FP / 0 FN; 19/19 scenarios PASS | VERIFIED (synthetic fixture only) |
 | `command -v opencode` | `command not found` | VERIFIED |
 | `~/.config/opencode/package.json` | Declares `@opencode-ai/plugin` 1.19.6 | VERIFIED (file read) |

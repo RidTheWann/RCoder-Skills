@@ -2,6 +2,29 @@
 
 RCoder follows Semantic Versioning.
 
+## [1.9.0] - 2026-11-19
+
+### Added
+- RSaver `crosscheck`: verifies completion claims against diff/test artifacts, checks scope boundaries, copies provider usage without altering it, and emits a line-referenced failure evidence pack.
+- RSaver `pack`/`unpack`: zlib-based exact-recovery compression accepted only when the estimated token count decreases, with SHA-256 verification.
+- `rsaver-crosscheck.md` and `docs/BILLING-AND-CROSSCHECK.md` documenting the provider billing boundary explicitly.
+
+### Changed
+- Router invokes crosscheck after failed or claimed-complete work.
+- Synchronized version 1.9.0 across skill metadata, package/plugin manifests, changelog, package builder, and validator.
+
+## [1.8.0] - 2026-11-19
+
+### Added
+- RScan, a read-only bounded project scanner that reports stacks, quality entry points, risk signals, and a ranked menu of development options with first commands and specialist references.
+- Host session-start adapters for Claude Code and Gemini CLI (`rscan hooks preview|install`) with idempotent merging, backups, and dry-run; unsupported hosts are documented rather than guessed.
+- Installer optional tool selection for RSaver and RScan across the Node CLI, interactive managers, PowerShell bootstrap, and POSIX helper, recorded in a per-target feature manifest.
+- `rscan.md` specialist and `docs/RSCAN-HOOKS.md` evidence table.
+
+### Changed
+- Router starts unfamiliar sessions with RScan before specialist selection.
+- Synchronized version 1.8.0 across skill metadata, package/plugin manifests, changelog, package builder, and validator.
+
 ## [1.7.0] - 2026-11-19
 
 ### Added

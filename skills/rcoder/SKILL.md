@@ -4,7 +4,7 @@ description: "RCoder is a model-agnostic software engineering, programming, cybe
 license: MIT
 metadata:
   author: RidTheWann
-  version: "1.7.0"
+  version: "1.9.0"
 ---
 
 # RCoder
@@ -55,11 +55,15 @@ These layers describe responsibilities, not extra steps to perform on every task
 5. **Verify:** run the narrowest relevant test first, then targeted lint/type/build checks. Expand to the documented project gate when proportionate. Inspect final diff and untracked/generated files. Record unavailable checks and why.
 6. **Report:** state outcome, files/areas changed, exact commands and observed results, assumptions, and residual risks. Label evidence `VERIFIED`, `INFERRED`, or `NOT VERIFIED`.
 
+## RScan (session start)
+
+On a new session or in an unfamiliar repository, load [RScan](references/rscan.md) and run `python3 skills/rcoder/scripts/rscan.py scan --root . --format json` (or `--format text` for a menu). Present the ranked development options with their first commands and specialist references before choosing work. Automatic launch scanning requires a verified host session-start hook; install it only for supported hosts with `rscan hooks install` and see `docs/RSCAN-HOOKS.md`. Never claim automatic invocation from file installation alone. Check `<target-root>/.rcoder-features.json` to see whether RScan and RSaver were enabled at install time.
+
 ## RSaver gate (before routing)
 
 For multi-step, tool-heavy, or context-constrained work, apply the [RSaver gate](references/rsaver-gate.md) before loading specialists and again before each model boundary: reserve output and reasoning budget, keep required items, defer optional history with recovery pointers, and make the static cache prefix contiguous. `scripts/rsaver.py gate` and `budget` produce the deterministic plan; `docs/TOKEN-ECONOMICS.md` records input, cached-input, and output mechanics. RSaver is a planning and filtering layer, not a runtime interceptor: confirm cache hits from usage fields.
 
-When a long session repeats commands, loses the objective, drops constraints, or claims completion while unknowns remain, run `rsaver drift` and then load [RSaver anchor](references/rsaver-anchor.md). It restates the objective and hard constraints at both ends with explicit IDs and separates verified facts from decisions and unknowns; research findings are in `docs/CONTEXT-DRIFT.md`.
+When a long session repeats commands, loses the objective, drops constraints, or claims completion while unknowns remain, run `rsaver drift` and then load [RSaver anchor](references/rsaver-anchor.md). It restates the objective and hard constraints at both ends with explicit IDs and separates verified facts from decisions and unknowns; research findings are in `docs/CONTEXT-DRIFT.md`. When a model claims completion or a run fails, load [RSaver crosscheck](references/rsaver-crosscheck.md) and run `rsaver crosscheck` to verify the claim against diff/test artifacts. RSaver cannot change provider billing; it prevents waste and records failure evidence.
 
 ## Expert routing
 

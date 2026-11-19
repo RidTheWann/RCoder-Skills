@@ -3,9 +3,24 @@ param(
  [ValidateSet('claude-code','codex','cursor','gemini-cli','copilot','agents','qoder','opencode','antigravity','amp','zed','pi','openclaw','autohand','warp','kilocode','cline','roo-code','trae','factory')][string]$Target='agents',
  [ValidateSet('project','user')][string]$Scope='project',
  [string]$ProjectDir=(Get-Location).Path,[string]$HomeDir=$HOME,
- [switch]$DryRun,[switch]$Uninstall
+  [switch]$DryRun,[switch]$Uninstall,
+  [string]$Features='rsaver,rscan',[switch]$ListFeatures
 )
 $ErrorActionPreference='Stop'
+if($ListFeatures){
+ Write-Output 'RSaver: Context pruning, budgeting, and re-anchoring for long sessions'
+ Write-Output 'RScan: Read-only project scan with ranked development options at session start'
+ exit 0
+}
+$selectedFeatures=@()
+if($Features -and $Features -ne 'none'){
+ foreach($part in ($Features -split ',')){
+  $name=$part.Trim().ToLowerInvariant()
+  if($name -notin @('rsaver','rscan')){throw "Unknown optional tool: $name"}
+  if($selectedFeatures -contains $name){throw "Duplicate optional tool: $name"}
+  $selectedFeatures+=$name
+ }
+}
 $scriptDir=Split-Path -Parent $MyInvocation.MyCommand.Path
 $sourceDir=[IO.Path]::GetFullPath((Join-Path $scriptDir '..\skills\rcoder'))
 $catalog=Get-Content -LiteralPath (Join-Path $scriptDir '..\targets.json') -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -47,8 +62,10 @@ if($Uninstall){
  if(Test-Path -LiteralPath $dest -PathType Container){New-Item -ItemType Directory -Force -Path $backup|Out-Null;Move-Item -LiteralPath $dest -Destination (Join-Path $backup "uninstalled-$stamp")}else{Write-Output 'No active RCoder installation found.'}
  $restore=Get-ChildItem -LiteralPath $backup -Directory -Filter 'install-*' -ErrorAction SilentlyContinue|Sort-Object Name|Select-Object -Last 1
  if($null -eq $restore){$restore=Get-ChildItem -LiteralPath $legacyBackup -Directory -Filter 'install-*' -ErrorAction SilentlyContinue|Sort-Object Name|Select-Object -Last 1}
- if($null -ne $restore){New-Item -ItemType Directory -Force -Path $parent|Out-Null;Move-Item -LiteralPath $restore.FullName -Destination $dest;Write-Output "Restored previous installation: $dest"}
- exit 0
+  if($null -ne $restore){New-Item -ItemType Directory -Force -Path $parent|Out-Null;Move-Item -LiteralPath $restore.FullName -Destination $dest;Write-Output "Restored previous installation: $dest"}
+  $featureManifest=Join-Path $targetRoot '.rcoder-features.json'
+  if(Test-Path -LiteralPath $featureManifest){Remove-Item -LiteralPath $featureManifest -Force}
+  exit 0
 }
 if(-not(Test-Path -LiteralPath (Join-Path $sourceDir 'SKILL.md') -PathType Leaf)){throw "Skill source missing: $sourceDir\SKILL.md"}
 if(Same-Tree -A $sourceDir -B $dest){Write-Output "RCoder is already current at $dest";exit 0}
@@ -60,8 +77,13 @@ try{
  Copy-Item -LiteralPath $sourceDir -Destination $stage -Recurse
  if(Test-Path -LiteralPath $dest){$saved=Join-Path $backup "install-$stamp";Move-Item -LiteralPath $dest -Destination $saved}
  Move-Item -LiteralPath $stage -Destination $dest
- Write-Output "Installed RCoder for $Target ($Scope): $dest"
-}catch{
+  Write-Output "Installed RCoder for $Target ($Scope): $dest"
+  $featureManifest=Join-Path $targetRoot '.rcoder-features.json'
+  $version=(Get-Content -LiteralPath (Join-Path $scriptDir '..\package.json') -Raw -Encoding UTF8 | ConvertFrom-Json).version
+  $state=@{schema_version=1;version=$version;rsaver=($selectedFeatures -contains 'rsaver');rscan=($selectedFeatures -contains 'rscan')}|ConvertTo-Json
+  Set-Content -LiteralPath $featureManifest -Value $state -Encoding UTF8
+  Write-Output "Enabled optional tools: $Features"
+ }catch{
  if(Test-Path -LiteralPath $stage){Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue}
  if($saved -and (Test-Path -LiteralPath $saved) -and -not(Test-Path -LiteralPath $dest)){Move-Item -LiteralPath $saved -Destination $dest}
  throw

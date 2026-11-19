@@ -50,9 +50,9 @@ def main():
         assert canonical.is_file()
         direct = subprocess.run([sys.executable, str(canonical), "--version"],
                                 text=True, capture_output=True, check=True, timeout=20)
-        assert "RSaver 1.7.0" in direct.stdout
+        assert "RSaver 1.9.0" in direct.stdout
         version = run("--version")
-        assert version.returncode == 0 and "RSaver 1.7.0" in version.stdout
+        assert version.returncode == 0 and "RSaver 1.9.0" in version.stdout
 
         calibration = {
             "prose": "The quick brown fox jumps over the lazy dog. This sentence uses common words.",
@@ -166,6 +166,53 @@ def main():
         assert reanchored["anchor"]["estimate"] > 0
         assert run("anchor", "-", "--json", stdin_text='{"constraints": []}').returncode == 2
         assert run("drift", str(transcript), "--recent-window", "0", "--json").returncode == 2
+
+        pack_source = root / "pack-source.txt"
+        pack_source.write_text("\n".join(["INFO repeated heartbeat line with several words here"] * 40) + "\n",
+                               encoding="utf-8")
+        packed = run_json("pack", str(pack_source), "--json")
+        assert packed["worthwhile"] is True
+        assert packed["saved_percent"] > 50.0
+        pack_manifest = root / "pack.json"
+        pack_manifest.write_text(json.dumps(packed), encoding="utf-8")
+        restored = root / "restored.txt"
+        unpacked = run("unpack", "--manifest", str(pack_manifest), "--out", str(restored))
+        assert unpacked.returncode == 0, unpacked.stderr
+        assert restored.read_text(encoding="utf-8") == pack_source.read_text(encoding="utf-8")
+        assert run("unpack", "--manifest", str(pack_manifest), "--json").returncode == 0
+
+        expectation = root / "expect.json"
+        expectation.write_text(json.dumps({
+            "objective": "Fix the parser", "required_files": ["src/parser.py"],
+            "forbidden_paths": ["/etc"],
+        }), encoding="utf-8")
+        diff_file = root / "diff.txt"
+        diff_file.write_text("--- a/src/parser.py\n+++ b/src/parser.py\n+return fixed\n", encoding="utf-8")
+        test_log = root / "test.txt"
+        test_log.write_text("ERROR: still failing\n", encoding="utf-8")
+        claim_file = root / "claim.txt"
+        claim_file.write_text("Task done\n", encoding="utf-8")
+        usage_file = root / "usage.json"
+        usage_file.write_text(json.dumps({
+            "input_tokens": 1000, "output_tokens": 200,
+            "input_tokens_details": {"cached_tokens": 300},
+            "output_tokens_details": {"reasoning_tokens": 150},
+        }), encoding="utf-8")
+        cross = run_json("crosscheck", "--expect", str(expectation), "--diff", str(diff_file),
+                         "--test-log", str(test_log), "--claim", str(claim_file),
+                         "--usage", str(usage_file), "--json")
+        assert cross["verdict"] == "FAIL"
+        statuses = {item["id"]: item["status"] for item in cross["checks"]}
+        assert statuses["required_edits"] == "pass"
+        assert statuses["test_result"] == "fail"
+        assert statuses["claim_consistency"] == "fail"
+        assert cross["usage"]["input_tokens"] == 1000
+        assert "cannot zero" in cross["billing_note"].lower()
+        passing_log = root / "pass.txt"
+        passing_log.write_text("PASS all tests\n", encoding="utf-8")
+        passed = run_json("crosscheck", "--expect", str(expectation), "--diff", str(diff_file),
+                          "--test-log", str(passing_log), "--claim", str(claim_file), "--json")
+        assert passed["verdict"] == "PASS"
 
         measured = run_json("measure", str(fixture), "--json")
         assert measured["total_estimate"] > 0
