@@ -117,6 +117,9 @@ def main():
           "G2: malformed or empty trigger prompt")
     check(all(item.get("language") == "EN" for item in triggers),
           "G2: trigger prompts must be English-only")
+    expectations = load_json(ROOT / "evals" / "routing-expectations.json").get("expectations", {})
+    check(set(expectations) == {item.get("id") for item in triggers},
+          "G2: routing expectations must cover exactly the trigger IDs")
 
     scenarios = load_json(ROOT / "evals" / "scenarios.json")
     check(len(scenarios) >= 14, "G3: fewer than 14 behavioral scenarios")
@@ -125,8 +128,14 @@ def main():
         scenario_id = scenario.get("id", "")
         check(bool(scenario_id) and bool(scenario.get("prompt")), "G3: scenario missing ID/prompt")
         check(len(scenario.get("rubric", [])) >= 4, f"G3: {scenario_id} has too few rubric items")
-        check((ROOT / "evals" / "scenarios" / f"{scenario_id}.md").is_file(),
-              f"G3: missing scenario fixture {scenario_id}")
+        fixture = ROOT / "evals" / "scenarios" / f"{scenario_id}.md"
+        check(fixture.is_file(), f"G3: missing scenario fixture {scenario_id}")
+        if fixture.is_file():
+            check(len(read(fixture)) >= 80, f"G3: scenario fixture too short: {scenario_id}")
+    for required in ("score-eval.py", "test-score-eval.py"):
+        check((ROOT / "scripts" / required).is_file(), f"G3: evaluation harness missing: {required}")
+    check((ROOT / "evals" / "ABLATION-PROTOCOL.md").is_file(),
+          "G3: ablation protocol missing")
 
     manifest_paths = (
         "plugin.json", ".claude-plugin/plugin.json",
