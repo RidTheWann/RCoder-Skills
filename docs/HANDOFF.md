@@ -56,7 +56,7 @@ Version 1.2.0 added:
 Repository: https://github.com/RidTheWann/RCoder-Skills
 Main branch: `main` (verified baseline `6472c7090e580317b9b26142422455aba5092c7c`, v1.10.0)
 Latest merged milestone: PR [#6](https://github.com/RidTheWann/RCoder-Skills/pull/6), merge commit `6472c7090e580317b9b26142422455aba5092c7c`
-Current release: PR [#7](https://github.com/RidTheWann/RCoder-Skills/pull/7), branch `feat/v1.11-blocker-elimination`, hosted quality matrix green on Linux and Windows before merge. The live benchmark is a documented partial run (WITH arm only); no ablation delta is claimed.
+Current release: PR [#7](https://github.com/RidTheWann/RCoder-Skills/pull/7), merged as `3f1cfc1c46cff2be56c921a09566f0247c8a7a3c` with a green hosted matrix on Linux and Windows. Follow-up PR for the completed live ablation: see `evals/runs/hy4-flash-openrouter-2026-11-19/` (61 cases × 2 arms, strict scorer exit 0).
 
 ## Installation
 

@@ -1,0 +1,141 @@
+{
+  "ablation_delta": {
+    "accuracy": 0.452381,
+    "f1": 0.888889,
+    "precision": 0.952381,
+    "recall": 0.833333
+  },
+  "baseline": {
+    "accuracy": 0.428571,
+    "f1": 0.0,
+    "fn": 24,
+    "fp": 0,
+    "missing_predictions": [],
+    "precision": 0.0,
+    "recall": 0.0,
+    "tn": 18,
+    "tp": 0
+  },
+  "missing_predictions": [],
+  "predictions_file": "/data/data/com.termux/files/usr/tmp/opencode/rerun-or/WITH.jsonl",
+  "scenarios": {
+    "criteria_pass_rate": 0.592105,
+    "scenarios": {
+      "s01-debug-regression": {
+        "criteria_passed": 0,
+        "criteria_total": 4,
+        "status": "FAIL"
+      },
+      "s02-ambiguous-feature": {
+        "criteria_passed": 3,
+        "criteria_total": 4,
+        "status": "FAIL"
+      },
+      "s03-architecture-choice": {
+        "criteria_passed": 4,
+        "criteria_total": 4,
+        "status": "PASS"
+      },
+      "s04-ui-ux-audit": {
+        "criteria_passed": 4,
+        "criteria_total": 4,
+        "status": "PASS"
+      },
+      "s05-performance-bottleneck": {
+        "criteria_passed": 0,
+        "criteria_total": 4,
+        "status": "FAIL"
+      },
+      "s06-security-review": {
+        "criteria_passed": 4,
+        "criteria_total": 4,
+        "status": "PASS"
+      },
+      "s07-safe-refactor": {
+        "criteria_passed": 2,
+        "criteria_total": 4,
+        "status": "FAIL"
+      },
+      "s08-polyglot-repo": {
+        "criteria_passed": 1,
+        "criteria_total": 4,
+        "status": "FAIL"
+      },
+      "s09-ci-hardening": {
+        "criteria_passed": 4,
+        "criteria_total": 4,
+        "status": "PASS"
+      },
+      "s10-api-migration": {
+        "criteria_passed": 4,
+        "criteria_total": 4,
+        "status": "PASS"
+      },
+      "s11-reverse-engineering": {
+        "criteria_passed": 1,
+        "criteria_total": 4,
+        "status": "FAIL"
+      },
+      "s12-authorized-security-assessment": {
+        "criteria_passed": 0,
+        "criteria_total": 4,
+        "status": "FAIL"
+      },
+      "s13-token-efficient-repository-task": {
+        "criteria_passed": 1,
+        "criteria_total": 4,
+        "status": "FAIL"
+      },
+      "s14-polyglot-api-compatibility": {
+        "criteria_passed": 3,
+        "criteria_total": 4,
+        "status": "FAIL"
+      },
+      "s15-model-capability-discovery": {
+        "criteria_passed": 4,
+        "criteria_total": 4,
+        "status": "PASS"
+      },
+      "s16-unavailable-tool-adaptation": {
+        "criteria_passed": 3,
+        "criteria_total": 4,
+        "status": "FAIL"
+      },
+      "s17-long-task-context-handoff": {
+        "criteria_passed": 3,
+        "criteria_total": 4,
+        "status": "FAIL"
+      },
+      "s18-security-finding-classification": {
+        "criteria_passed": 3,
+        "criteria_total": 4,
+        "status": "FAIL"
+      },
+      "s19-reverse-engineering-evidence": {
+        "criteria_passed": 1,
+        "criteria_total": 4,
+        "status": "FAIL"
+      }
+    },
+    "scenarios_passed": 6,
+    "scenarios_scored": 19
+  },
+  "specialists": {
+    "exact_match_rate": 0.166667,
+    "f1": 0.444444,
+    "precision": 0.52381,
+    "recall": 0.385965,
+    "scored_prompts": 24
+  },
+  "triggers": {
+    "accuracy": 0.880952,
+    "f1": 0.888889,
+    "fn": 4,
+    "fp": 1,
+    "missing_predictions": [],
+    "precision": 0.952381,
+    "recall": 0.833333,
+    "tn": 17,
+    "tp": 20
+  }
+}
