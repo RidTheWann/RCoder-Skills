@@ -42,9 +42,9 @@ def build_project(root: Path, complete: bool) -> None:
 def main():
     assert CANONICAL.is_file() and WRAPPER.is_file()
     version = run("--version")
-    assert version.returncode == 0 and "RScan 1.10.0" in version.stdout
+    assert version.returncode == 0 and "RScan 1.11.0" in version.stdout
     wrapper = run("--version", entrypoint=WRAPPER)
-    assert wrapper.returncode == 0 and "RScan 1.10.0" in wrapper.stdout
+    assert wrapper.returncode == 0 and "RScan 1.11.0" in wrapper.stdout
 
     with tempfile.TemporaryDirectory(prefix="rcoder-rscan-test-") as temporary:
         root = Path(temporary)
@@ -52,7 +52,7 @@ def main():
         minimal.mkdir()
         build_project(minimal, complete=False)
         scan = run_json("scan", "--root", str(minimal), "--format", "json")
-        assert scan["tool"] == "RScan" and scan["version"] == "1.10.0"
+        assert scan["tool"] == "RScan" and scan["version"] == "1.11.0"
         assert "Node.js / JavaScript / TypeScript" in scan["stacks"]
         assert scan["quality"]["ci"] is False and scan["quality"]["tests"] is False
         risk_ids = {item["id"] for item in scan["risk_signals"]}
@@ -112,7 +112,11 @@ def main():
         assert plugin_path.is_file()
         plugin_text = plugin_path.read_text(encoding="utf-8")
         assert "experimental.chat.system.transform" in plugin_text
-        assert "--hook opencode" in plugin_text
+        assert '"--hook"' in plugin_text and '"opencode"' in plugin_text
+        assert "output.system.push(text)" in plugin_text
+        assert "node:child_process" in plugin_text and "timeout: 10000" in plugin_text
+        assert "startsWith(\"RScan:\")" in plugin_text
+        assert "let injected" not in plugin_text
         assert run("hooks", "adapter", "--host", "opencode", "--api", "v1",
                    "--scope", "project", "--root", str(adapter_root)).returncode == 0
         preview = run("hooks", "adapter", "--host", "opencode", "--api", "v2",
@@ -120,7 +124,10 @@ def main():
         assert preview.returncode == 0 and "Plugin.define" in preview.stdout
         v2 = run("hooks", "adapter", "--host", "opencode", "--api", "v2",
                  "--scope", "project", "--root", str(adapter_root))
-        assert v2.returncode == 0 and "ctx.session.hook" in plugin_path.read_text(encoding="utf-8")
+        v2_text = plugin_path.read_text(encoding="utf-8")
+        assert v2.returncode == 0 and "ctx.session.hook(\"context\"" in v2_text
+        assert "startsWith(\"RScan:\")" in v2_text
+        assert "let injected" not in v2_text and "Bun.spawn" not in v2_text
 
         invalid = run("scan", "--root", str(root / "missing"))
         assert invalid.returncode == 2
