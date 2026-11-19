@@ -323,7 +323,7 @@ def main():
         "docs/CONTEXT-DRIFT.md", "docs/RSCAN-HOOKS.md",
         "docs/BILLING-AND-CROSSCHECK.md", "docs/LIVE-BENCHMARK.md",
         "evals/EVALUATION-INDEPENDENCE.md", "evals/MULTILINGUAL-POLICY.md",
-        "evals/runs/BASELINE-LEDGER.md"
+        "evals/runs/BASELINE-LEDGER.md", "docs/V1.12-DELIVERY.md"
     ):
         check((ROOT / required).is_file(), f"G6: required documentation missing: {required}")
     for rel in ("README.md", "docs/HANDOFF.md", "docs/PROGRESS.md"):
