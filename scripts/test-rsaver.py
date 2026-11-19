@@ -66,8 +66,8 @@ def main():
         assert cjk_v2 > cjk_v1, "CJK scripts must not be undercounted by v2"
         o200k = run_json("measure", "-", "--profile", "openai-o200k", "--json", stdin_text=calibration["cjk"])
         assert o200k["files"][0]["estimate"] < cjk_v2, "profile must change CJK density"
-        hooked = run_json("compare", "-", "--tokenizer-command",
-                          "python3 -c 'import sys; print(len(sys.stdin.read().split()))'",
+        counter_command = f'"{sys.executable}" -c "import sys; print(len(sys.stdin.read().split()))"'
+        hooked = run_json("compare", "-", "--tokenizer-command", counter_command,
                           "--json", stdin_text=calibration["prose"])
         assert hooked["rows"][0]["exact"] is not None
         assert hooked["rows"][0]["exact_source"] == "external-tokenizer-command"
