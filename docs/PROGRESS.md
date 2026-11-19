@@ -2,7 +2,7 @@
 
 ## Release objective
 
-Build v1.9.0 as a safe extension of v1.8.0. Preserve both installers, the Agent Skill format, plugin manifests, the canonical skill directory, and all existing specialist capabilities while adding RSaver crosscheck and exact-recovery compression.
+Build v1.10.0 as a safe extension of v1.9.0. Preserve both installers, the Agent Skill format, plugin manifests, the canonical skill directory, and all existing specialist capabilities while adding the live-benchmark protocol, OpenCode adapter, and full specialist-structure enforcement.
 
 ## Implementation checklist
 
@@ -12,13 +12,14 @@ Build v1.9.0 as a safe extension of v1.8.0. Preserve both installers, the Agent 
 - [x] Add a host compatibility evidence matrix and an environment/capability record.
 - [x] Deepen all 54 specialists to the full 13-section structure without removing existing modules.
 - [x] Add an executable evaluation scorer, routing expectations, self-test, ablation protocol, and five behavioral scenarios (19 total).
-- [x] Re-run the full local gate set and installer/packaging regressions for v1.9.0: validator (785 checks), context snapshot test, evaluation scorer test, RSaver drift/anchor/gate/crosscheck/pack test, RScan scan/hook test, Node syntax, 40 Node target/scope cases each for Node, POSIX, and PowerShell with optional-tool selection, npm pack dry-run, and five reproducible ZIP packages with verified checksums.
+- [x] Re-run the full local gate set and installer/packaging regressions for v1.10.0: validator (1376 checks, including all 13 headings per specialist), context snapshot test, evaluation scorer test, RSaver drift/anchor/gate/crosscheck/pack test, RScan scan/hook/adapter test, Node syntax, 40 Node target/scope cases each for Node, POSIX, and PowerShell with optional-tool selection, npm pack dry-run, and five reproducible ZIP packages with verified checksums.
 - [x] Add RSaver with hash-checked manifests, dedupe economics, and a deterministic self-test.
 - [x] Research tokenization and calibrate a content-class estimator v2 with model profiles and optional exact counting.
 - [x] Add RSaver Gate with input/cache/output/reasoning budgeting, priority filtering, and cache-prefix checks.
 - [x] Add RSaver drift detection, dual-end anchor blocks with explicit IDs, and budget-aware reanchoring.
 - [x] Add RScan bounded scanner, development-option menu, and evidenced session-start hook installers.
 - [x] Add RSaver crosscheck and economy-checked exact-recovery compression with a documented billing boundary.
+- [x] Add the live benchmark protocol, OpenCode V1/V2 adapter generator, and 13-heading specialist enforcement.
 - [x] Add a global terminal manager invoked by typing `RCoder`.
 - [x] Add multi-target and Project/User selection, shared-root deduplication, install/update, uninstall, backup, and restore.
 - [x] Add a Windows-native PowerShell launcher independent of Node.js.

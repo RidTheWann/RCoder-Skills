@@ -6,7 +6,7 @@ RScan can be invoked manually or wired to a host's session-start mechanism. A sk
 |---|---|---|---|
 | Claude Code | `SessionStart` command hook in `.claude/settings.json` (project) or `~/.claude/settings.json` (user); matcher `startup`; stdout plain text or `hookSpecificOutput.additionalContext` is added to context | Official hooks reference documents the event, command hooks, matchers, and context injection | `rscan hooks install --host claude-code --scope project|user`; payload uses `additionalContext` and `sessionTitle` |
 | Gemini CLI | `SessionStart` command hook in `.gemini/settings.json` (project) or `~/.gemini/settings.json` (user); matcher `startup`; strict JSON on stdout with `hookSpecificOutput.additionalContext` | Official hooks documentation documents the event, schema, exit codes, and JSON-only stdout | `rscan hooks install --host gemini-cli --scope project|user`; payload is JSON only |
-| OpenCode | Plugins subscribe to `session.created`; V1 offers `experimental.chat.system.transform`, V2 uses `ctx.session.hook("context", ...)` | Official plugin docs and event list show plugin-based events rather than JSON settings hooks | No installer generated. Manual adapter possible but version-specific and **NOT VERIFIED** in this repository |
+| OpenCode | V1 plugin hooks `chat.message` and `experimental.chat.system.transform`; V2 uses `ctx.session.hook("context", ...)`. Local plugin types at 1.19.6 confirm the V1 names. | Official plugin docs plus the installed `@opencode-ai/plugin` 1.19.6 type definitions | `rscan hooks adapter --host opencode --api v1|v2` writes `.opencode/plugins/rscan.js`; both templates are **NOT VERIFIED** until run with the exact CLI |
 | Other catalog hosts | Hook support varies by product version and UI surface | No verified evidence collected here | No auto-install; invoke `rscan scan` manually from the agent prompt |
 
 ## Installer behavior
@@ -19,7 +19,7 @@ RScan can be invoked manually or wired to a host's session-start mechanism. A sk
 - Is idempotent: a second install detects the existing RScan command and makes no change.
 - Supports `--dry-run` and `hooks preview` for review before writing.
 
-Project scope writes into the current project; user scope writes into the home directory. Only the two hosts in the table above are installable. Host settings may be gated by trust prompts or disabled by policy; enable hooks in the host and confirm the first session shows the RScan menu.
+Project scope writes into the current project; user scope writes into the home directory. Claude Code and Gemini CLI use settings hooks. OpenCode uses a generated plugin file via `rscan hooks adapter`; choose `--api v1` for 1.19.x (locally evidenced) and `--api v2` only after confirming the installed CLI uses the V2 plugin API. Other hosts remain manual. Host settings may be gated by trust prompts or disabled by policy; enable hooks in the host and confirm the first session shows the RScan menu.
 
 ## Safety and limits
 

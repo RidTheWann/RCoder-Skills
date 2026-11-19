@@ -37,6 +37,9 @@ This record separates observed runtime facts from capabilities that could not be
 | `command -v opencode` | `command not found` | VERIFIED |
 | `~/.config/opencode/package.json` | Declares `@opencode-ai/plugin` 1.19.6 | VERIFIED (file read) |
 | Installed `@opencode-ai/plugin/package.json` | Version 1.19.6; depends on `@opencode-ai/sdk` 1.19.6 | VERIFIED (file read) |
+| `npm ls -g` | `opencode-linux-arm64@1.19.6` is installed globally, but no `opencode` shim is on PATH | VERIFIED |
+| Direct execution of the bundled `opencode` ELF | Fails with `cannot execute: required file not found` on Termux | VERIFIED (environment limitation) |
+| Installed plugin type definitions | 1.19.6 exposes V1 hooks including `chat.message` and `experimental.chat.system.transform`; no `session.start` | VERIFIED (file read) |
 | `~/.config/opencode/opencode.jsonc` | Contains only `$schema: https://opencode.ai/config.json` | VERIFIED (file read) |
 | `command -v gh`, `command -v pwsh`, `command -v powershell` | All not found | VERIFIED |
 
@@ -46,7 +49,7 @@ Observed in-session tool surface: shell command execution, structured file read,
 
 Not established in this environment: context window size, exact reasoning-mode implementation, reliable subagent output quality, web-access policy in other hosts, native OpenCode skill discovery, multimodal input from the user, long-task continuity mechanisms, and the selected model's internal architecture. All of these remain `UNKNOWN` and must not be described as capabilities.
 
-OpenCode plugin/SDK packages at version 1.19.6 exist in the configuration directory, so the historical version is now supported by local package evidence rather than a screenshot alone. The absence of the CLI means its version command, configuration schema behavior at runtime, and skill-discovery behavior remain unverified. No version-specific OpenCode configuration syntax is applied on the basis of the package version alone. The absence of `gh` and PowerShell prevents hosted CI and Windows verification from this shell.
+OpenCode plugin/SDK packages at version 1.19.6 exist locally, and the V1 plugin hook names were confirmed from the installed type definitions. However the packaged ELF cannot execute in this Termux environment and no CLI shim is on PATH, so live skill discovery, native hook execution, and the RScan adapter remain `NOT VERIFIED`. The adapter is generated version-specifically rather than applying one major version's syntax to another. PowerShell 7.6.10 was installed locally on 19 November to run the Windows installer matrix; hosted CI results are recorded per run URL, not inferred.
 
 ## Model note
 

@@ -1,10 +1,13 @@
-# RCoder project handoff — v1.9.0
+# RCoder project handoff — v1.10.0
 
 ## Delivered
 
 RCoder remains one portable Agent Skill with progressive disclosure. The core router selects focused references rather than injecting the entire specialist library into every agent context.
 
-Version 1.9.0 adds:
+Version 1.10.0 adds:
+- Version-specific OpenCode RScan adapter generator, a written live-benchmark protocol, and a validator that locks all 13 specialist headings.
+
+Version 1.9.0 added:
 - RSaver crosscheck for failed or claimed-complete work, with artifact evidence and a documented billing boundary, plus exact-recovery compression accepted only when it saves tokens.
 
 Version 1.8.0 added:
@@ -102,11 +105,11 @@ Reverse-engineering references cover executable/binary analysis, evidence-led se
 - Deduplicated tool calls and non-overlapping subagent scopes.
 - No reduction in authorization, security, test, or data-integrity checks to save tokens.
 
-## Local verification for v1.9.0
+## Local verification for v1.10.0
 
 Run in the Termux development shell on the `feat/rsaver` branch:
 
-- `python3 scripts/validate-all` — PASS, 785 checks.
+- `python3 scripts/validate-all` — PASS, 1376 checks.
 - `python3 scripts/test-context-snapshot.py` — PASS, including the new bounded-path assertion.
 - `python3 scripts/test-score-eval.py` — PASS, scorer verified on synthetic perfect, mixed, inverted, and four rejection paths.
 - `python3 scripts/test-rsaver.py` — PASS, reduction, verbatim evidence, recovery, verification, dedupe economics, estimator profiles, and external tokenizer hook.
@@ -117,7 +120,7 @@ Run in the Termux development shell on the `feat/rsaver` branch:
 - `npm pack --dry-run --json` — PASS; see the actual command output for the pinned version and entry count.
 - `python3 scripts/package` — PASS; five ZIPs created and `sha256sum -c dist/SHA256SUMS` verified all OK.
 
-**CI status for v1.9.0: NOT VERIFIED** (feature branch has not run the hosted matrix). Host-native hook execution remains a separate gate. The v1.2.0 CI evidence below is historical and does not cover v1.9.0 changes.
+**CI status for v1.10.0: NOT VERIFIED** (feature branch has not run the hosted matrix). Host-native hook execution and live model evaluation remain separate gates. The v1.2.0 CI evidence below is historical and does not cover v1.10.0 changes.
 
 ## Historical CI evidence (v1.2.0)
 

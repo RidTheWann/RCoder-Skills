@@ -4,7 +4,7 @@ These are environment-dependent checks, not claims that implementation is comple
 
 | Item | Blocker | Required evidence |
 |---|---|---|
-| GitHub Actions | v1.3.0 feature branch has not completed CI | Inspect Linux and Windows job logs; require all jobs green before merge. |
+| GitHub Actions | Hosted CI for v1.10.0 has not been observed in this session | Check the PR run URL and job conclusions; record the exact commit before merge. Historical PRs #3, #4, and #5 are merged with green CI. |
 | Official `skills-ref` | Validator is not installed in the build environment | Run the official validator against `skills/rcoder`; record version and output. |
 | Windows `irm` bootstrap | Syntax checks do not execute a real HTTPS bootstrap in a clean profile | Run the exact `irm` command on PowerShell 5.1 and 7; verify PATH, launcher, Project/User install, update, dry-run, and restore. |
 | Node/npm package | CI package checks do not replace a clean networked install | Run `npx -y github:RidTheWann/RCoder-Skills` on a clean system with Node, npm, and Git. |
@@ -16,8 +16,11 @@ These are environment-dependent checks, not claims that implementation is comple
 | Context helper | Unit test covers bounded fixture output | Test representative large repos on Windows and POSIX; inspect path limits and symlink handling. |
 | ZIP import | No authenticated product UI in build environment | Import the generated skill/plugin ZIP into supported hosts and perform a low-risk activation test. |
 | Model ablation (Hy4 Flash Free) | No pinned with/without run has been executed | Run the identical suite with and without RCoder under the `evals/rubric.md` methodology; retain configuration and per-criterion scores in `evals/results.md`. |
-| OpenCode CLI discovery | `opencode` is absent from PATH; plugin/SDK 1.19.6 is installed locally | Install or locate the CLI, record its exact version, verify skill discovery and configuration syntax against that version, then update `docs/COMPATIBILITY.md` and `docs/ENVIRONMENT.md`. |
+| OpenCode CLI discovery | Package 1.19.6 is installed globally, but its ELF cannot execute on Termux and no CLI shim is on PATH | Run the CLI on a supported host, record its version, verify skill discovery, then update `docs/COMPATIBILITY.md` and `docs/ENVIRONMENT.md`. |
+| OpenCode RScan adapter | V1 and V2 plugin templates are generated but never executed in a real OpenCode session | Install `rscan hooks adapter --host opencode` on the exact target version, confirm the menu is injected once per session, and record the outcome. |
 | Live ablation with the new scorer | No model prediction run has been produced; the harness is verified only on synthetic fixtures | Produce with/without prediction files using `evals/ABLATION-PROTOCOL.md`, run `scripts/score-eval.py --strict`, and retain results in `evals/results.md`. |
 | Deepened specialist behavior | Static validation checks structure, not behavioral quality | Run scenario prompts for the deepened programming, security, and reverse-engineering modules and score against their Verification sections. |
+| Specialist quality gate | Validator enforces all 13 headings but cannot judge substance | Use model evaluation results and negative cases to audit each specialist's decision tree, sources, and verification contract. |
+| Live benchmark execution | `docs/LIVE-BENCHMARK.md` defines the protocol but no run exists | Produce with/without prediction files and score with `scripts/score-eval.py --strict`; retain results in `evals/results.md`. |
 
 Native discovery and model activation must not be inferred from successful file-copy simulations.
