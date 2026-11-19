@@ -33,6 +33,32 @@ The controlled protocol is in `docs/LIVE-BENCHMARK.md`; retained artifacts for t
 
 **Earlier partial run:** `evals/runs/hy4-flash-free-2026-11-19/` retains the first attempt, which was stopped by provider free-usage quota after 30 WITH-arm triggers with no baseline arm. It is not combined with the completed numbers above.
 
+## v1.12.0 case-level analysis and instrumented re-score
+
+The original control artifacts are immutable (hashes in `evals/runs/BASELINE-LEDGER.md`). Re-scoring them with the v1.12 deterministic scorer does NOT produce a new model result; it adds measurements that the older scorer omitted.
+
+Re-score command (read-only; output written outside the run directory):
+`python3 scripts/score-eval.py --predictions evals/runs/hy4-flash-openrouter-2026-11-19/WITH.jsonl --baseline evals/runs/hy4-flash-openrouter-2026-11-19/WITHOUT.jsonl --invalid-cases evals/runs/hy4-flash-openrouter-2026-11-19/invalid-cases.json --strict --json`
+
+**Newly exposed evidence (VERIFIED as deterministic re-computation over retained artifacts):**
+
+| Measurement | Value |
+|---|---|
+| Invalid cases excluded by v1.12 scorer | WITH: `trig-34`, `trig-35`; WITHOUT: `s07-safe-refactor`, `s12-authorized-security-assessment` |
+| Trigger F1 after invalid exclusion | 0.878 (old aggregate 0.889) |
+| Specialist F1 / exact-match after invalid exclusion | 0.488 / 0.182 (old aggregate 0.444 / 0.167) |
+| Positive prompts with an empty specialist set | 10 / 24 = 0.417 |
+| Specialist false activations on negative prompts | 0 / 18 = 0.000 |
+| Negative prompt rejection rate | 0.944 (one false activation: `trig-24`) |
+| Cross-domain subset (8 scored) | F1 0.457, exact-match 0.125 |
+| `security` | TP 1, FN 5 |
+| `systems-programming` | TP 0, FN 3 |
+| `verification` | TP 0, FP 3 |
+
+The old scorer included invalid case `trig-35` because predictions never carried a validity signal; v1.12 excludes it by default. Strict mode now reports missing predictions for the excluded positives, which is the correct behaviour. Primary diagnosed causes: (1) description-matching failures producing empty selections after activation; (2) missing cross-domain base-plus-narrow composition; (3) near-neighbour substitutions (`testing-qa`/`test-engineering`, `debugging`/`debugging-advanced`); (4) helper over-application. Several expectation labels are also arguably ambiguous (for example `trig-35` expecting `model-adaptation`), so exact-match instability is partly a dataset defect, not only a router defect.
+
+**No new model run was executed for v1.12**: `opencode` was unavailable in the development shell and no paid run was authorized. Routing improvements are therefore implemented and structurally tested but their effect on the pinned metrics is INFERRED, NOT VERIFIED.
+
 ## Environment-dependent coverage
 
 - Non-English (for example Indonesian) user-request activation is `NOT VERIFIED`; see the language rule in `rubric.md`.

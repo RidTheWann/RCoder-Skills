@@ -2,7 +2,19 @@
 
 ## Release objective
 
-Build v1.11.0 as a safe extension of the verified v1.10.0 baseline (`6472c7090e580317b9b26142422455aba5092c7c`, PR #6). Preserve both installers, the Agent Skill format, plugin manifests, the canonical skill directory, and all existing specialist capabilities while executing the live benchmark, verifying native OpenCode integration, fixing the RScan adapter, auditing specialist content, and reconciling documentation.
+Build v1.12.0 as a safe extension of the verified v1.11.0 product baseline (`06ec22c3f051f376a240139f89a459acea622435`, PR #8). Preserve both installers, the Agent Skill format, plugin manifests, the canonical skill directory, the frozen evaluation control, and all existing specialist capabilities while improving routing intelligence, evaluation independence, and deterministic verification.
+
+## v1.12.0 execution status
+
+- [x] Baseline audit: main SHA, clean tree, origin sync, version inconsistency, 59 specialists, control dataset hashes (`evals/runs/BASELINE-LEDGER.md`).
+- [x] Case-level routing diagnosis from the pinned control: 10/24 positive prompts with empty specialist sets, `security` FN=5, `systems-programming` FN=3, `verification` FP=3, wrong-neighbour substitutions.
+- [x] Implemented staged routing architecture and selection contract in `specialist-routing.md` and `SKILL.md`.
+- [x] Implemented deterministic objective verifier and expanded scorer with regression tests.
+- [x] Hardened scenario judging: arm blinding, non-destructive output, separate judge model, full response retention.
+- [x] Expanded dataset additively; preserved frozen control and documented multilingual policy.
+- [x] Extended `validate-all` with semantic specialist checks, dataset validation, and control-hash integrity enforcement (2936 checks pass locally).
+- [ ] Live model-dependent ablation after routing changes: BLOCKED (no `opencode` CLI and no authorized paid run in this environment).
+- [ ] Independent judge model / human adjudication run: BLOCKED (no separate authorized model available).
 
 ## v1.11.0 execution status
 

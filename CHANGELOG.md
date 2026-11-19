@@ -2,6 +2,32 @@
 
 RCoder follows Semantic Versioning.
 
+## [1.12.0] - 2026-11-19
+
+### Reconciled
+- Product version advanced to 1.12.0 across SKILL.md, all four plugin/package manifests, marketplace manifest, package builder, changelog, and validator. The prior "v1.11.1" label existed only in commit and PR titles; the actual product version on main was 1.11.0 (evidence: `evals/runs/BASELINE-LEDGER.md`).
+- Specialist inventory verified at 59 reference modules before the change; one (`specialist-routing`) was added for a demonstrated routing-coverage gap, for 60 total. All 60 retain the 13-section structure.
+
+### Added
+- `specialist-routing.md`: evidence-driven multi-stage routing architecture (request understanding through verification), an explicit specialist selection contract, primary/supporting/verifier roles, cross-discipline base+narrow rules, a disambiguation table for overlapping domains, and anti-over-selection rules. Derived from case-level analysis of the v1.11 control run.
+- `scripts/verify-objective.py`: deterministic objective verifier producing `objective_checks` flag maps from prediction artifacts without using the tested model as judge.
+- `scripts/test-score-scenarios.py`: judge helper unit tests (strict flag parsing, blinding, output naming) that do not require a live judge model.
+- `evals/EVALUATION-INDEPENDENCE.md`: layered, blinded evaluation methodology with explicit bias disclosure.
+- `evals/MULTILINGUAL-POLICY.md` and `evals/datasets/multilingual.triggers.json`: separate, explicitly documented multilingual activation dataset. The canonical English-only `evals/triggers.json` contract is unchanged.
+- `evals/runs/BASELINE-LEDGER.md`: immutable SHA-256 control dataset record written before routing changes.
+- Scorer: per-specialist confusion counts, trigger FP/FN rates, specialist negative false-activation and positive-empty-activation rates, cross-domain subset scoring, negative-prompt rejection metrics, `objective_checks` consumption, invalid-case exclusion, and F1 from raw counts.
+
+### Changed
+- SKILL.md routing tables use explicit "default / when-to-use-instead" disambiguation instead of ambiguous "X and Y" pairings, and require a non-empty specialist set whenever a trigger fires.
+- `score-eval.py` treats prediction records with `"valid": false` as excluded by default (opt in with `--include-invalid`); the v1.11 control exposed an invalid case entering scoring.
+- Scenario judgement no longer overwrites retained prediction files; judged copies are written separately and judge responses are retained in full.
+- `validate-all` derives the expected version from SKILL.md (single source of truth) and adds semantic specialist checks beyond heading presence.
+- CI adds objective-verifier and judge-helper regression steps.
+
+### Verification status
+- Deterministic checks (structure, scorer, self-tests, packaging, installers) are VERIFIED locally and in Linux/Windows CI.
+- Model-dependent routing/behavioral metric improvements are INFERRED only: `opencode` is unavailable in the development shell and no live run was authorized, so no new paid benchmark was executed. The pinned control dataset is preserved unchanged.
+
 ## [1.11.0] - 2026-11-19
 
 ### Added

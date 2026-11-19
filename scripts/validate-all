@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Offline structural, routing, packaging, and selected security checks for RCoder."""
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -52,7 +53,7 @@ def main():
         return 1
 
     meta, body = parse_frontmatter(skill_file)
-    version = "1.11.0"
+    version = "1.12.0"
     check(meta.get("name") == "rcoder", "G1: skill name must be rcoder")
     check(bool(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(meta.get("name", "")))), "G1: invalid skill name")
     check(isinstance(meta.get("description"), str) and 1 <= len(meta["description"]) <= 1024,
@@ -84,6 +85,15 @@ def main():
             check(len(body.split()) >= 8, f"G1: {module.name} {heading} lacks substantive content")
         check(not re.search(r"(?m)^\s*(TODO|TBD|FIXME)\s*$", content),
               f"G1: {module.name} contains an unfilled placeholder")
+        check(not re.search(r"(?i)\b(?:TODO|TBD|FIXME)\b", content),
+              f"G1: {module.name} contains a todo marker")
+        check(not re.search(r"<[A-Z][A-Za-z /-]{2,40}>", content),
+              f"G1: {module.name} contains an unfilled template placeholder")
+        for name, part in bodies.items():
+            text = "\n".join(part.splitlines()[1:]).strip()
+            check(len(text) >= 25, f"G1: {module.name} {name} body is empty or boilerplate")
+        check("## Output format" in content and "## Verification" in content,
+              f"G1: {module.name} missing output or verification contract")
     for required in (
         "programming-languages.md", "systems-programming.md", "polyglot-ecosystems.md",
         "python-engineering.md", "javascript-typescript.md", "dotnet-java-engineering.md",
@@ -155,6 +165,45 @@ def main():
     check((ROOT / "evals" / "ABLATION-PROTOCOL.md").is_file(),
           "G3: ablation protocol missing")
 
+    expanded_dir = ROOT / "evals" / "datasets" / "expanded"
+    expanded_triggers = load_json(expanded_dir / "triggers.json")
+    expanded_expectations = load_json(expanded_dir / "routing-expectations.json").get("expectations", {})
+    expanded_scenarios = load_json(expanded_dir / "scenarios.json")
+    check(len(expanded_triggers) >= 18, "G3: fewer than 18 expanded trigger prompts")
+    check(len({item.get("id") for item in expanded_triggers}) == len(expanded_triggers),
+          "G3: duplicate expanded trigger IDs")
+    check(set(expanded_expectations) == {item.get("id") for item in expanded_triggers},
+          "G3: expanded expectations must cover exactly the expanded trigger IDs")
+    check(all(item.get("language") == "EN" for item in expanded_triggers),
+          "G3: expanded canonical dataset must remain English-only")
+    check(sum(item.get("should_trigger") is False for item in expanded_triggers) >= 6,
+          "G3: expanded dataset lost negative control cases")
+    module_names = {path.stem for path in references}
+    for item_id, names in expanded_expectations.items():
+        check(isinstance(names, list) and all(name in module_names for name in names),
+              f"G3: expanded expectation {item_id} references an unknown specialist")
+    for scenario in expanded_scenarios:
+        sid = scenario.get("id", "")
+        check(len(scenario.get("rubric", [])) >= 4, f"G3: expanded scenario {sid} has too few rubric items")
+        check((expanded_dir / "scenarios" / f"{sid}.md").is_file(),
+              f"G3: missing expanded scenario fixture {sid}")
+
+    multilingual = load_json(ROOT / "evals" / "datasets" / "multilingual.triggers.json")
+    check(len(multilingual) >= 6, "G3: multilingual research dataset too small")
+    check(all(item.get("language") in {"ID", "EN", "MIXED_ID_EN"} for item in multilingual),
+          "G3: invalid language tag in multilingual dataset")
+    for item in multilingual:
+        check(all(name in module_names for name in item.get("expected_specialists", [])),
+              f"G3: multilingual case {item.get('id')} references an unknown specialist")
+        check(bool(item.get("prompt", "").strip()), f"G3: multilingual case {item.get('id')} has empty prompt")
+
+    ledger = read(ROOT / "evals" / "runs" / "BASELINE-LEDGER.md")
+    for digest, filename in re.findall(r"`([0-9a-f]{64})`\s*\|\s*([A-Za-z0-9_.-]+)", ledger):
+        control = ROOT / "evals" / "runs" / "hy4-flash-openrouter-2026-11-19" / filename
+        normalized = control.read_bytes().replace(b"\r\n", b"\n") if control.is_file() else b""
+        check(control.is_file() and hashlib.sha256(normalized).hexdigest() == digest,
+              f"G3: immutable control dataset changed: {filename}")
+
     manifest_paths = (
         "plugin.json", ".claude-plugin/plugin.json",
         ".claude-plugin/marketplace.json", ".codex-plugin/plugin.json"
@@ -176,6 +225,9 @@ def main():
         "scripts/test-installers.ps1",         "scripts/test-context-snapshot.py", "scripts/rsaver.py",
         "skills/rcoder/scripts/rsaver.py", "scripts/test-rsaver.py",
         "scripts/rscan.py", "skills/rcoder/scripts/rscan.py", "scripts/test-rscan.py",
+        "scripts/score-eval.py", "scripts/test-score-eval.py", "scripts/score-scenarios.py",
+        "scripts/test-score-scenarios.py", "scripts/verify-objective.py", "scripts/test-objective.py",
+        "scripts/test-tool-probe.py", "skills/rcoder/scripts/tool_probe.py",
         "install.ps1", "launcher/RCoder.ps1", "targets.json"
     ):
         check((ROOT / required).is_file(), f"G1: required installer/test file missing: {required}")
@@ -269,7 +321,9 @@ def main():
         "docs/PROGRESS.md",         "docs/RESEARCH-TODO.md",
         "docs/COMPATIBILITY.md", "docs/ENVIRONMENT.md", "docs/TOKEN-ECONOMICS.md",
         "docs/CONTEXT-DRIFT.md", "docs/RSCAN-HOOKS.md",
-        "docs/BILLING-AND-CROSSCHECK.md", "docs/LIVE-BENCHMARK.md"
+        "docs/BILLING-AND-CROSSCHECK.md", "docs/LIVE-BENCHMARK.md",
+        "evals/EVALUATION-INDEPENDENCE.md", "evals/MULTILINGUAL-POLICY.md",
+        "evals/runs/BASELINE-LEDGER.md"
     ):
         check((ROOT / required).is_file(), f"G6: required documentation missing: {required}")
     for rel in ("README.md", "docs/HANDOFF.md", "docs/PROGRESS.md"):

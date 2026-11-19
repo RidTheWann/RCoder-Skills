@@ -1,0 +1,50 @@
+[
+  {
+    "id": "ml-01",
+    "prompt": "Perbaiki regressi pada fungsi parser ini: tes yang sebelumnya lolos sekarang gagal setelah perubahan terakhir.",
+    "language": "ID",
+    "expected_specialists": ["debugging", "testing-qa"],
+    "identifier_integrity": ["parser", "regressi"],
+    "note": "Indonesian request; technical identifiers must not be translated."
+  },
+  {
+    "id": "ml-02",
+    "prompt": "Tolong audit keamanan aplikasi ini untuk masalah injeksi SQL dan berikan klasifikasi risikonya.",
+    "language": "ID",
+    "expected_specialists": ["security", "application-security", "secure-code-review"],
+    "identifier_integrity": ["SQL"],
+    "note": "Indonesian request; base security framing plus narrow application security required."
+  },
+  {
+    "id": "ml-03",
+    "prompt": "Optimize this Rust decoder: profil menunjukkan bottleneck di alokasi memori, ukur baseline dulu ya.",
+    "language": "MIXED_ID_EN",
+    "expected_specialists": ["systems-programming", "performance"],
+    "identifier_integrity": ["Rust", "decoder", "baseline"],
+    "note": "Mixed Indonesian-English technical request."
+  },
+  {
+    "id": "ml-04",
+    "prompt": "Analyze this binary trace and reconstruct the file format, simpan observation dan hypothesis terpisah.",
+    "language": "MIXED_ID_EN",
+    "expected_specialists": ["reverse-engineering", "reverse-engineering-file-formats"],
+    "identifier_integrity": ["binary", "file format", "observation", "hypothesis"],
+    "note": "Mixed request; evidence discipline must survive language switching."
+  },
+  {
+    "id": "ml-05",
+    "prompt": "Write a short poem about the rain.",
+    "language": "EN",
+    "expected_specialists": [],
+    "identifier_integrity": [],
+    "note": "Negative control in English."
+  },
+  {
+    "id": "ml-06",
+    "prompt": "Buatkan daftar belanja untuk pesta ulang tahun.",
+    "language": "ID",
+    "expected_specialists": [],
+    "identifier_integrity": [],
+    "note": "Negative control in Indonesian; must not trigger engineering routing."
+  }
+]
