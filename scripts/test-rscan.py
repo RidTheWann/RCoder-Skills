@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Deterministic tests for RScan scanning, options, hook payloads, and installer."""
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -117,6 +118,8 @@ def main():
         assert "node:child_process" in plugin_text and "timeout: 10000" in plugin_text
         assert "startsWith(\"RScan:\")" in plugin_text
         assert "let injected" not in plugin_text
+        python_literal = re.search(r'const python = ("(?:[^"\\]|\\.)*");', plugin_text)
+        assert python_literal and json.loads(python_literal.group(1)) == sys.executable
         assert run("hooks", "adapter", "--host", "opencode", "--api", "v1",
                    "--scope", "project", "--root", str(adapter_root)).returncode == 0
         preview = run("hooks", "adapter", "--host", "opencode", "--api", "v2",

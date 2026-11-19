@@ -400,7 +400,9 @@ export default Plugin.define({
   }
 });
 '''
-    return body.replace("__PY__", python).replace("__RS__", str(script))
+    return body.replace('"__PY__"', json.dumps(python, ensure_ascii=True)).replace(
+        '"__RS__"', json.dumps(str(script), ensure_ascii=True)
+    )
 
 
 def command_hooks(args: argparse.Namespace) -> int:
