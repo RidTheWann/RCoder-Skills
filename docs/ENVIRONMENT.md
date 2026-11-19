@@ -20,6 +20,8 @@ This record separates observed runtime facts from capabilities that could not be
 | `python3 scripts/test-context-snapshot.py` | PASS | VERIFIED |
 | `node --check scripts/rcoder.mjs` | Exit 0 | VERIFIED |
 | `python3 scripts/test-score-eval.py` | PASS, perfect/mixed/ablation scoring and four rejection paths | VERIFIED |
+| `python3 scripts/test-rsaver.py` | PASS, reduction, verbatim evidence, recovery, verification, dedupe economics | VERIFIED |
+| `python3 scripts/rsaver.py compact <node-installer log> --max-lines 60 --json` | Relative estimate 293 to 144, saved 51.19%, critical lines preserved, omitted ranges recoverable | VERIFIED (relative estimate only) |
 | `python3 scripts/score-eval.py --predictions <synthetic> --strict` | 24 TP / 18 TN / 0 FP / 0 FN; 19/19 scenarios PASS | VERIFIED (synthetic fixture only) |
 | `command -v opencode` | `command not found` | VERIFIED |
 | `~/.config/opencode/package.json` | Declares `@opencode-ai/plugin` 1.19.6 | VERIFIED (file read) |

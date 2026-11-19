@@ -4,7 +4,7 @@ description: "RCoder is a model-agnostic software engineering, programming, cybe
 license: MIT
 metadata:
   author: RidTheWann
-  version: "1.3.0"
+  version: "1.4.0"
 ---
 
 # RCoder
@@ -121,7 +121,7 @@ Load [model adaptation](references/model-adaptation.md) when the host or model i
 
 ### Token and context efficiency
 
-For multi-step or large-repository work, load [token-efficient engineering](references/token-efficiency.md). Use the bounded [context snapshot helper](scripts/context_snapshot.py) and the [context capsule template](assets/templates/context-capsule-template.md). Optimize total engineering cost without weakening safety, verification, or evidence.
+For multi-step or large-repository work, load [token-efficient engineering](references/token-efficiency.md). Use the bounded [context snapshot helper](scripts/context_snapshot.py) and the [context capsule template](assets/templates/context-capsule-template.md). For oversized tool output or measured context reduction, load [RSaver](references/rsaver.md) and use `scripts/rsaver.py` (or the bundled `skills/rcoder/scripts/rsaver.py`) to measure, prune, and recover evidence. Optimize total engineering cost without weakening safety, verification, or evidence.
 
 ## Stack reconnaissance helper
 

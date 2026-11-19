@@ -2,6 +2,17 @@
 
 RCoder follows Semantic Versioning.
 
+## [1.4.0] - 2026-11-19
+
+### Added
+- RSaver, a dependency-free context-reduction CLI: relative token measurement, bounded symbol selection, structure-preserving pruning, economics-checked duplicate collapsing, exact range recovery, and hash-verified manifests.
+- RSaver specialist module with evidence-preserving methodology, explicit estimator limitations, and recovery/verification requirements.
+- RSaver self-test integrated into local checks and CI.
+
+### Changed
+- Synchronized version 1.4.0 across skill metadata, package/plugin manifests, changelog, package builder, and validator.
+- Router and README now document when to use RSaver and when not to (source code, billing, hard context limits).
+
 ## [1.3.0] - 2026-11-18
 
 ### Added
