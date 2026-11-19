@@ -4,7 +4,7 @@ description: "RCoder is a model-agnostic software engineering, programming, cybe
 license: MIT
 metadata:
   author: RidTheWann
-  version: "1.12.0"
+  version: "1.13.0"
 ---
 
 # RCoder
@@ -72,11 +72,12 @@ Load one or more directly relevant references; do not read all modules by defaul
 For multi-domain, ambiguous, or previously mis-routed requests, load [specialist routing](references/specialist-routing.md) first. It defines the staged selection pipeline, the selection record, cross-domain base-plus-narrow composition, disambiguation of overlapping modules, and orchestration roles. Apply these non-negotiable selection rules on every activation:
 
 1. Exactly one primary specialist owns the deliverable; every other module is supporting with a distinct responsibility or an independent verifier.
-2. When a trigger fires and the request is in scope, emit at least one specialist name. An empty set after activation is a routing failure.
+2. When a trigger fires and the request is in scope, emit at least one domain specialist name. An empty set after activation is a routing failure. Validate the set against the on-disk reference listing before execution and re-select if it is empty or helper-only.
 3. Emit only module names that exist in `skills/rcoder/references/`. Never invent a name from memory.
-4. Helpers (`verification`, `rsaver`, `rsaver-gate`, `token-efficiency`, `model-adaptation`) are supporting only and are selected when their responsibility is explicitly required, never merely because the skill mentions them.
-5. For cross-domain work, keep the framing base (for example `security`, `systems-programming`) alongside the narrow technical module; do not substitute one for the other.
-6. Where the tables below offer two modules, the first is the default; load the second only when its stated condition holds. Loading both is not the default.
+4. Helpers (`verification`, `rsaver`, `rsaver-gate`, `token-efficiency`, `model-adaptation`) are supporting only and are selected when their responsibility is explicitly required, never merely because the skill mentions them. A helper never replaces a domain module and never serves as the primary.
+5. For cross-domain work, keep the framing base (for example `security`, `systems-programming`) alongside the narrow technical module; do not substitute one for the other. The base is additive: a near-neighbour module such as `incident-response-forensics` or `identity-crypto-secrets` does not replace `security` on an assessment or classification request.
+6. Where the tables below offer two modules, the first is the default; load the second only when its stated condition holds. Loading both is not the default; record the rejected alternative.
+7. Select by deliverable and acceptance criteria rather than English keyword matching. For paraphrased or non-English prompts, restate the required artifact and its check, preserve technical identifiers, and route from that restatement.
 
 Record the selection as: classification · candidates · selected · primary · supporting with reasons · verifier · ordinal confidence · unselected alternatives · required verification · handoff dependencies.
 
@@ -96,6 +97,7 @@ For unfamiliar models or hosts, choose an execution profile before routing; see 
 | Persistence/serialization contract (default); schema/query behaviour; wire-format/endpoint contract | [data-api](references/data-api.md); [database engineering](references/database-engineering.md) for schema/query; [API/protocol engineering](references/api-protocol-engineering.md) for wire format |
 | Review, cleanup, behavior-preserving refactor | [review-refactor](references/review-refactor.md) |
 | README, API docs, ADR, runbook, changelog | [documentation](references/documentation.md) |
+| SSR/hydration, service workers, browser storage, edge or browser-runtime boundaries | [web platform engineering](references/web-platform-engineering.md) |
 | Version uncertainty, external claims, unsupported tools | [verification](references/verification.md) |
 
 ### Programming languages and systems

@@ -33,8 +33,8 @@ def parse_frontmatter(path):
     end = content.find("\n---\n", 4)
     values = {}
     for line in content[4:end].splitlines():
-        if line and not line[0].isspace() and ":" in line:
-            key, value = line.split(":", 1)
+        if line.strip() and ":" in line:
+            key, value = line.strip().split(":", 1)
             value = value.strip()
             if value.startswith('"') and value.endswith('"'):
                 try:
@@ -53,7 +53,8 @@ def main():
         return 1
 
     meta, body = parse_frontmatter(skill_file)
-    version = "1.12.0"
+    version = str(meta.get("version", ""))
+    check(bool(re.fullmatch(r"\d+\.\d+\.\d+", version)), "G7: SKILL.md version is not a semantic version")
     check(meta.get("name") == "rcoder", "G1: skill name must be rcoder")
     check(bool(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(meta.get("name", "")))), "G1: invalid skill name")
     check(isinstance(meta.get("description"), str) and 1 <= len(meta["description"]) <= 1024,
@@ -228,6 +229,7 @@ def main():
         "scripts/score-eval.py", "scripts/test-score-eval.py", "scripts/score-scenarios.py",
         "scripts/test-score-scenarios.py", "scripts/verify-objective.py", "scripts/test-objective.py",
         "scripts/test-tool-probe.py", "skills/rcoder/scripts/tool_probe.py",
+        "scripts/check-dist.py",
         "install.ps1", "launcher/RCoder.ps1", "targets.json"
     ):
         check((ROOT / required).is_file(), f"G1: required installer/test file missing: {required}")
@@ -323,7 +325,8 @@ def main():
         "docs/CONTEXT-DRIFT.md", "docs/RSCAN-HOOKS.md",
         "docs/BILLING-AND-CROSSCHECK.md", "docs/LIVE-BENCHMARK.md",
         "evals/EVALUATION-INDEPENDENCE.md", "evals/MULTILINGUAL-POLICY.md",
-        "evals/runs/BASELINE-LEDGER.md", "docs/V1.12-DELIVERY.md"
+        "evals/runs/BASELINE-LEDGER.md", "docs/V1.12-DELIVERY.md",
+        "docs/V1.13-DEV-LEDGER.md", "docs/V1.13-DELIVERY.md"
     ):
         check((ROOT / required).is_file(), f"G6: required documentation missing: {required}")
     for rel in ("README.md", "docs/HANDOFF.md", "docs/PROGRESS.md"):
@@ -332,6 +335,7 @@ def main():
               "bilingual" not in content.lower(),
               f"G6: non-English/bilingual marker in {rel}")
 
+    check(CHECKS >= 2900, "G0: validation check count fell below the expected floor")
     print(f"RCoder validation: {CHECKS} checks")
     if ERRORS:
         for error in ERRORS:
