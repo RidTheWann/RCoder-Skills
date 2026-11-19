@@ -27,6 +27,12 @@ jobs:
         run: python scripts/test-context-snapshot.py
       - name: Evaluation scorer self-test
         run: python scripts/test-score-eval.py
+      - name: Deterministic objective verifier self-test
+        run: python scripts/test-objective.py
+      - name: Judge helper self-test (offline, no live model)
+        run: python scripts/test-score-scenarios.py
+      - name: Tool discovery and bounded fallback self-test
+        run: python scripts/test-tool-probe.py
       - name: RSaver context-reduction tests
         run: python scripts/test-rsaver.py
       - name: RScan reconnaissance and hook tests

@@ -4,7 +4,7 @@ description: "RCoder is a model-agnostic software engineering, programming, cybe
 license: MIT
 metadata:
   author: RidTheWann
-  version: "1.11.0"
+  version: "1.12.0"
 ---
 
 # RCoder
@@ -69,6 +69,17 @@ When a long session repeats commands, loses the objective, drops constraints, or
 
 Load one or more directly relevant references; do not read all modules by default. Use the programming-language router to select a narrower implementation specialist. The security and reverse-engineering routers are separate disciplines and should be combined only when the task crosses both.
 
+For multi-domain, ambiguous, or previously mis-routed requests, load [specialist routing](references/specialist-routing.md) first. It defines the staged selection pipeline, the selection record, cross-domain base-plus-narrow composition, disambiguation of overlapping modules, and orchestration roles. Apply these non-negotiable selection rules on every activation:
+
+1. Exactly one primary specialist owns the deliverable; every other module is supporting with a distinct responsibility or an independent verifier.
+2. When a trigger fires and the request is in scope, emit at least one specialist name. An empty set after activation is a routing failure.
+3. Emit only module names that exist in `skills/rcoder/references/`. Never invent a name from memory.
+4. Helpers (`verification`, `rsaver`, `rsaver-gate`, `token-efficiency`, `model-adaptation`) are supporting only and are selected when their responsibility is explicitly required, never merely because the skill mentions them.
+5. For cross-domain work, keep the framing base (for example `security`, `systems-programming`) alongside the narrow technical module; do not substitute one for the other.
+6. Where the tables below offer two modules, the first is the default; load the second only when its stated condition holds. Loading both is not the default.
+
+Record the selection as: classification · candidates · selected · primary · supporting with reasons · verifier · ordinal confidence · unselected alternatives · required verification · handoff dependencies.
+
 For unfamiliar models or hosts, choose an execution profile before routing; see [model adaptation](references/model-adaptation.md). Host evidence tiers are recorded in `docs/COMPATIBILITY.md` and observed runtime facts in `docs/ENVIRONMENT.md`. These documents are host-side metadata, not skills to load for domain tasks.
 
 ### Core engineering
@@ -78,11 +89,11 @@ For unfamiliar models or hosts, choose an execution profile before routing; see 
 | Source implementation, compiler/type errors, language idioms | [coding](references/coding.md) |
 | Module/service boundaries, scaling, system design | [architecture](references/architecture.md) |
 | Screens, user flow, responsive behavior, keyboard/screen-reader | [ui-ux-accessibility](references/ui-ux-accessibility.md) |
-| Crash, regression, wrong output, hang, flaky failure | [debugging](references/debugging.md) and [advanced debugging](references/debugging-advanced.md) |
-| Test plan, coverage, property/fuzz/contract tests | [testing-qa](references/testing-qa.md) and [test engineering](references/test-engineering.md) |
+| Crash, regression, wrong output (default); non-deterministic, concurrent, or toolchain-level root cause | [debugging](references/debugging.md); add [advanced debugging](references/debugging-advanced.md) only for the second case |
+| Test plan, coverage, acceptance criteria (default); property/fuzz/contract harness implementation | [testing-qa](references/testing-qa.md); add [test engineering](references/test-engineering.md) only for the second case |
 | Latency, throughput, memory, CPU, startup, frame time | [performance](references/performance.md) |
-| Build, package, workflow, deployment, CI/CD | [devops-ci-cd](references/devops-ci-cd.md) and [build/toolchain](references/build-toolchain-engineering.md) |
-| SQL, persistence, schema, API contract, serialization | [data-api](references/data-api.md), [database engineering](references/database-engineering.md), and [API/protocol engineering](references/api-protocol-engineering.md) |
+| Build, package, workflow, deployment, CI/CD (default); compiler/linker/toolchain internals | [devops-ci-cd](references/devops-ci-cd.md); add [build/toolchain](references/build-toolchain-engineering.md) only for the second case |
+| Persistence/serialization contract (default); schema/query behaviour; wire-format/endpoint contract | [data-api](references/data-api.md); [database engineering](references/database-engineering.md) for schema/query; [API/protocol engineering](references/api-protocol-engineering.md) for wire format |
 | Review, cleanup, behavior-preserving refactor | [review-refactor](references/review-refactor.md) |
 | README, API docs, ADR, runbook, changelog | [documentation](references/documentation.md) |
 | Version uncertainty, external claims, unsupported tools | [verification](references/verification.md) |
@@ -107,7 +118,7 @@ Start with [programming language routing](references/programming-languages.md), 
 
 ### Cybersecurity and defensive operations
 
-Start with [security](references/security.md) and load the narrowest specialist:
+Start with [security](references/security.md) as the framing owner and keep it loaded alongside the narrowest technical specialist below (do not substitute the narrow specialist for the base):
 
 - [Threat modeling](references/threat-modeling.md) and [secure code review](references/secure-code-review.md)
 - [Application security](references/application-security.md) and [authorized penetration testing](references/penetration-testing.md)

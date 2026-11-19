@@ -55,7 +55,7 @@ Profiles are guides, not rituals. Downgrade when evidence shows the extra proces
 - Model cannot reliably use a tool after a fair probe? → Switch to an available alternative and record the limitation; do not keep retrying the same broken schema.
 
 ## Tool strategy
-- Prefer tools already exposed by the host; never assume a skill installation adds an executable.
+- Prefer tools already exposed by the host; never assume a skill installation adds an executable. When a shell is available, `python3 skills/rcoder/scripts/tool_probe.py resolve --candidate <name>` verifies discoverability, and `chain` runs an ordered fallback list with a hard timeout and at most one attempt per tool. It does not retry identical commands; a retry requires a changed condition chosen by the caller. Record which tool was actually invoked.
 - Match operation to tool: shell for process/version/build tasks, search for symbol location, bounded read for source, structured edit for changes, delegation for independent parallel work.
 - Validate a tool's argument schema with a harmless call before depending on it for a state-changing action.
 - When web access is unavailable or disallowed, rely on local sources and mark external verification `NOT VERIFIED`.

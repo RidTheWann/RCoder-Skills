@@ -1,8 +1,14 @@
-# RCoder project handoff — v1.11.0
+# RCoder project handoff — v1.12.0
 
 ## Delivered
 
 RCoder remains one portable Agent Skill with progressive disclosure. The core router selects focused references rather than injecting the entire specialist library into every agent context.
+
+Version 1.12.0 adds:
+- Evidence-driven routing architecture (`specialist-routing.md`): staged selection, a selection record, primary/supporting/verifier roles, cross-domain base-plus-narrow composition, disambiguation of overlapping specialists, and anti-over-selection rules. Derived from case-level analysis of the v1.11 control run (specialist F1 0.444, exact-match 0.167, 10/24 positive prompts with an empty specialist set).
+- Independent evaluation layers: `verify-objective.py` produces deterministic artifact checks with no model judge; `score-eval.py` adds per-specialist confusion, FP/FN rates, negative rejection, cross-domain and ambiguous subsets, objective-check scoring, invalid-case exclusion, and F1 from raw counts. `score-scenarios.py` now blinds arm labels, preserves originals, retains full judge responses, and accepts a separate authorized judge model.
+- Additive expanded English-only dataset (18 triggers, 4 scenarios) under `evals/datasets/expanded/`, plus a separately documented multilingual activation policy and dataset. The frozen canonical 42-trigger dataset and its control hashes are unchanged and enforced by `scripts/validate-all`.
+- Version reconciliation: `v1.11.1` was a commit/PR label only; the product version on main was 1.11.0. All metadata now consistently reports 1.12.0 (evidence: `evals/runs/BASELINE-LEDGER.md`).
 
 Version 1.11.0 adds:
 - A checkpointed, isolated with/without-RCoder benchmark harness and the retained first live partial run (WITH arm only; provider quota blocked the baseline).
@@ -41,7 +47,7 @@ Version 1.3.0 added:
 - An environment and capability record for the Termux/OpenCode development shell, with observed runtimes and explicitly unknown capabilities.
 - A compact router layer map (A-F) and an English-only 13-section specialist authoring template.
 - A normalized evaluation contract; `rubric.md` and `results.md` now match the enforced dataset and label non-English activation and model performance claims `NOT VERIFIED`.
-- Depth parity across the 54 specialist modules available in v1.3.0 (full 13-section structure) without removing any module. Five modules were added later (`rsaver`, `rsaver-gate`, `rsaver-anchor`, `rsaver-crosscheck`, `rscan`), so the current count is 59; `scripts/validate-all` enforces the 13-section structure on all 59.
+- Depth parity across the 54 specialist modules available in v1.3.0 (full 13-section structure) without removing any module. Five modules were added later (`rsaver`, `rsaver-gate`, `rsaver-anchor`, `rsaver-crosscheck`, `rscan`), bringing v1.11 to 59. v1.12 adds `specialist-routing` for the demonstrated routing-coverage gap, so the verified count is 60; `scripts/validate-all` enforces the 13-section structure on all 60.
 - An executable evaluation harness: routing expectations, a deterministic scorer with ablation deltas, its self-test, an ablation protocol, and five additional scenarios (s15-s19) for capability discovery, tool adaptation, context handoff, finding classification, and evidence-led reverse engineering.
 
 Version 1.2.0 added:

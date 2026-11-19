@@ -1,0 +1,47 @@
+# Multilingual activation policy (v1.12.0)
+
+## Scope and non-regression
+
+The canonical evaluation contract is unchanged: `evals/triggers.json`,
+`evals/routing-expectations.json`, and `evals/scenarios.json` remain English-only
+(`language: "EN"`) and are enforced by `scripts/validate-all`. This policy file
+introduces a **separate** research dataset and does not modify, translate, or
+relabel any canonical prompt. No canonical score may be recomputed by silently
+substituting a translated prompt.
+
+## Rationale
+
+The v1.11 pinned control measured English-only routing. Real users switch
+languages and mix technical English with Indonesian prose. A language
+comprehension failure and a specialist-routing failure are different defects and
+must be distinguishable in the evidence.
+
+## Dataset
+
+`evals/datasets/multilingual.triggers.json` contains prompts tagged `ID`, `EN`,
+or `MIXED_ID_EN`, with `expected_specialists`, `identifier_integrity` terms, and
+a note per case. Two cases are negative controls that must not activate any
+engineering specialist.
+
+## Evaluation rules
+
+1. Send each prompt verbatim; do not translate it before submission.
+2. Keep the `language` tag and raw prompt in the retained run artifact.
+3. Score routing against `expected_specialists` with the same set-based metrics
+   used by `scripts/score-eval.py`, but in a separate run directory. Never merge
+   this run with an English control run or report a combined number.
+4. Check `identifier_integrity` separately: API names, language names, and
+   technical terms must remain unchanged. A translated identifier is a failure
+   even if the specialist set is correct.
+5. Repository-maintained instructions stay in English (per `SKILL.md`); the user
+   receives a coherent response in the language they used. This is a runtime
+   behaviour requirement, not a change to repository artifacts.
+6. Record which specialist errors are language-independent by comparing the same
+   task in English and Indonesian where a paired case exists.
+
+## Status
+
+The dataset and protocol are VERIFIED as files and structure. Runtime routing
+accuracy for these prompts is NOT VERIFIED: no live model run was executed in the
+v1.12 development environment (`opencode` unavailable). Do not report a
+multilingual accuracy number until a pinned run exists.

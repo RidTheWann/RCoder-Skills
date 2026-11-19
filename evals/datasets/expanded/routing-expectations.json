@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "note": "Expanded English-only routing dataset. Additive to the frozen 42-trigger canonical set. Expectations apply cross-discipline composition rules from specialist-routing.md: keep the framing base alongside the narrow module.",
+  "expectations": {
+    "ex-01": ["systems-programming", "debugging-advanced", "testing-qa"],
+    "ex-02": ["performance", "javascript-typescript"],
+    "ex-03": ["database-engineering", "distributed-systems-engineering", "data-api"],
+    "ex-04": ["security", "cloud-container-security", "secure-code-review"],
+    "ex-05": ["reverse-engineering", "reverse-engineering-file-formats", "test-engineering"],
+    "ex-06": ["token-efficiency", "rsaver-gate", "verification"],
+    "ex-07": ["frontend-engineering", "debugging", "ui-ux-accessibility"],
+    "ex-08": ["ml-ai-engineering", "debugging-advanced", "testing-qa"],
+    "ex-09": ["go-engineering", "debugging-advanced", "api-protocol-engineering"],
+    "ex-10": ["embedded-engineering", "systems-programming", "debugging"],
+    "ex-11": ["security", "smart-contract-security", "test-engineering"],
+    "ex-12": ["game-engineering", "performance", "systems-programming"],
+    "ex-13": [],
+    "ex-14": [],
+    "ex-15": [],
+    "ex-16": [],
+    "ex-17": [],
+    "ex-18": []
+  }
+}
