@@ -2,6 +2,16 @@
 
 RCoder follows Semantic Versioning.
 
+## [1.5.0] - 2026-11-19
+
+### Added
+- RSaver estimator v2 with GPT-style pre-tokenization, content-class rates (prose, non-ASCII Latin, CJK, emoji, symbols, digits), model profiles, a `compare` subcommand, optional exact counting via `tiktoken` or an external tokenizer command, and no new required dependencies.
+- Deep tokenization research section in the RSaver specialist with calibrated error figures from a public-tiktoken oracle.
+
+### Changed
+- Token figures in RSaver manifests now report v2 as primary and retain v1 for reproducibility.
+- Synchronized version 1.5.0 across skill metadata, package/plugin manifests, changelog, package builder, and validator.
+
 ## [1.4.0] - 2026-11-19
 
 ### Added

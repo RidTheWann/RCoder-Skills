@@ -49,9 +49,28 @@ def main():
         assert canonical.is_file()
         direct = subprocess.run([sys.executable, str(canonical), "--version"],
                                 text=True, capture_output=True, check=True, timeout=20)
-        assert "RSaver 1.4.0" in direct.stdout
+        assert "RSaver 1.5.0" in direct.stdout
         version = run("--version")
-        assert version.returncode == 0 and "RSaver 1.4.0" in version.stdout
+        assert version.returncode == 0 and "RSaver 1.5.0" in version.stdout
+
+        calibration = {
+            "prose": "The quick brown fox jumps over the lazy dog. This sentence uses common words.",
+            "cjk": "\u8fd9\u662f\u4e00\u4e2a\u7528\u4e8e\u6d4b\u8bd5\u6807\u8bb0\u5316\u6548\u7387\u7684\u4e2d\u6587\u53e5\u5b50\u3002\u4e2d\u6587\u5b57\u7b26\u901a\u5e38\u9700\u8981\u66f4\u591a\u6807\u8bb0\u3002",
+            "numbers": "1234567890 9876543210 42 3.141592653589793 2026-11-19",
+        }
+        for text in calibration.values():
+            assert run_json("measure", "-", "--json", stdin_text=text)["total_estimate"] > 0
+        cjk_v2 = run_json("measure", "-", "--json", stdin_text=calibration["cjk"])["files"][0]["estimate"]
+        cjk_v1 = run_json("measure", "-", "--json", stdin_text=calibration["cjk"])["files"][0]["v1_legacy"]
+        assert cjk_v2 > cjk_v1, "CJK scripts must not be undercounted by v2"
+        o200k = run_json("measure", "-", "--profile", "openai-o200k", "--json", stdin_text=calibration["cjk"])
+        assert o200k["files"][0]["estimate"] < cjk_v2, "profile must change CJK density"
+        hooked = run_json("compare", "-", "--tokenizer-command",
+                          "python3 -c 'import sys; print(len(sys.stdin.read().split()))'",
+                          "--json", stdin_text=calibration["prose"])
+        assert hooked["rows"][0]["exact"] is not None
+        assert hooked["rows"][0]["exact_source"] == "external-tokenizer-command"
+        assert hooked["rows"][0]["v2_error_percent"] is not None
 
         measured = run_json("measure", str(fixture), "--json")
         assert measured["total_estimate"] > 0

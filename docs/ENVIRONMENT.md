@@ -22,6 +22,9 @@ This record separates observed runtime facts from capabilities that could not be
 | `python3 scripts/test-score-eval.py` | PASS, perfect/mixed/ablation scoring and four rejection paths | VERIFIED |
 | `python3 scripts/test-rsaver.py` | PASS, reduction, verbatim evidence, recovery, verification, dedupe economics | VERIFIED |
 | `python3 scripts/rsaver.py compact <node-installer log> --max-lines 60 --json` | Relative estimate 293 to 144, saved 51.19%, critical lines preserved, omitted ranges recoverable | VERIFIED (relative estimate only) |
+| `python3 -m pip install tiktoken` / `tokenizers` | Failed to build wheels on Termux aarch64 / Python 3.14 | VERIFIED (environment limitation) |
+| Public `r50k_base`, `cl100k_base`, `o200k_base` encoding files fetched over HTTPS | Used as a pure-Python BPE oracle for calibration | VERIFIED (research only) |
+| Seven-sample calibration: aggregate absolute error vs oracle | `chars/4` ~15%, v1 ~13%, v2 generic ~13%, v2 o200k profile ~7.5% | VERIFIED for that fixture; NOT a benchmark |
 | `python3 scripts/score-eval.py --predictions <synthetic> --strict` | 24 TP / 18 TN / 0 FP / 0 FN; 19/19 scenarios PASS | VERIFIED (synthetic fixture only) |
 | `command -v opencode` | `command not found` | VERIFIED |
 | `~/.config/opencode/package.json` | Declares `@opencode-ai/plugin` 1.19.6 | VERIFIED (file read) |

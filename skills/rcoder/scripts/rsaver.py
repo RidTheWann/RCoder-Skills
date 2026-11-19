@@ -15,7 +15,7 @@ import re
 import sys
 from pathlib import Path
 
-VERSION = "1.4.0"
+VERSION = "1.5.0"
 PIECES = re.compile(r"[^\W\d_]+|\d+|[^\s\w]", re.UNICODE)
 DEFAULT_CRITICAL = (
     r"(?i)(error|fail|exception|traceback|fatal|panic|exit[ _-]?code|"
@@ -23,6 +23,111 @@ DEFAULT_CRITICAL = (
     r"\bnot verified\b|\binferred\b|\bunknown\b)"
 )
 HEADING = re.compile(r"^\s{0,3}#{1,6}\s")
+
+PROFILES = {
+    "generic": {"digits": 3, "word_chars": 7.0, "nonascii_chars": 4.5,
+                "cjk_chars": 0.8, "emoji": 2, "symbol_chars": 2.7},
+    "openai-cl100k": {"digits": 3, "word_chars": 5.0, "nonascii_chars": 3.6,
+                      "cjk_chars": 1.0, "emoji": 2, "symbol_chars": 2.3},
+    "openai-o200k": {"digits": 3, "word_chars": 7.5, "nonascii_chars": 5.0,
+                     "cjk_chars": 0.7, "emoji": 2, "symbol_chars": 3.0},
+    "gpt2": {"digits": 99, "word_chars": 4.5, "nonascii_chars": 3.0,
+             "cjk_chars": 1.3, "emoji": 3, "symbol_chars": 2.0},
+    "cjk-native": {"digits": 3, "word_chars": 6.0, "nonascii_chars": 4.0,
+                   "cjk_chars": 0.6, "emoji": 2, "symbol_chars": 2.5},
+}
+CHUNK_RE = re.compile(
+    r"'(?:s|t|re|ve|m|ll|d)| ?[^\W\d_]+|\d+| ?[^\s\w]+|\s+|.",
+    re.IGNORECASE | re.UNICODE,
+)
+SPECIAL_RE = re.compile(r"<\|[A-Za-z0-9_]+\|>")
+CJK_RANGES = (
+    (0x3400, 0x4DBF), (0x4E00, 0x9FFF), (0xF900, 0xFAFF),
+    (0x3040, 0x30FF), (0xAC00, 0xD7AF), (0x1F300, 0x1FAFF),
+)
+
+
+def is_emoji(char: str) -> bool:
+    return 0x1F300 <= ord(char) <= 0x1FAFF
+
+
+def is_cjk(char: str) -> bool:
+    code = ord(char)
+    return any(start <= code <= end for start, end in CJK_RANGES[:5])
+
+
+def classify_chunk(chunk: str) -> str:
+    body = chunk.lstrip(" ")
+    if not body:
+        return "whitespace"
+    if SPECIAL_RE.fullmatch(body):
+        return "special"
+    if body.isdigit():
+        return "digits"
+    if is_emoji(body[0]):
+        return "emoji"
+    if is_cjk(body[0]):
+        return "cjk"
+    if body.isalpha():
+        return "word" if body.isascii() else "word_nonascii"
+    if any(is_cjk(char) or is_emoji(char) for char in body):
+        return "mixed_unicode"
+    if body[0].isspace():
+        return "whitespace"
+    return "symbol"
+
+
+def estimate_v2(text: str, profile: str = "generic") -> int:
+    settings = PROFILES.get(profile, PROFILES["generic"])
+    total = 0
+    special_count = len(SPECIAL_RE.findall(text))
+    stripped = SPECIAL_RE.sub("", text)
+    for match in CHUNK_RE.finditer(stripped):
+        chunk = match.group(0)
+        kind = classify_chunk(chunk)
+        if kind == "special":
+            continue
+        if kind == "digits":
+            total += max(1, -(-len(chunk) // settings["digits"]))
+        elif kind == "word":
+            total += max(1, -(-len(chunk) // int(settings["word_chars"])))
+        elif kind == "word_nonascii":
+            total += max(1, -(-len(chunk) // int(settings["nonascii_chars"])))
+        elif kind == "cjk":
+            total += max(1, int(len(chunk) * settings["cjk_chars"]))
+        elif kind == "emoji":
+            total += settings["emoji"] * len(chunk)
+        elif kind == "mixed_unicode":
+            total += sum(settings["emoji"] if is_emoji(char) else
+                         max(1, int(settings["cjk_chars"])) if is_cjk(char) else 1 for char in chunk)
+        elif kind == "symbol":
+            total += max(1, -(-len(chunk) // int(settings["symbol_chars"])))
+        else:
+            total += max(1, -(-len(chunk) // 4))
+    return total + special_count
+
+
+def exact_count(text: str, profile: str, tokenizer_command: str | None) -> tuple[int | None, str]:
+    if tokenizer_command:
+        import subprocess
+        completed = subprocess.run(
+            tokenizer_command, shell=True, input=text, text=True,
+            capture_output=True, check=False, timeout=20,
+        )
+        if completed.returncode != 0:
+            raise ValueError(f"tokenizer command failed: {completed.stderr.strip()}")
+        return int(completed.stdout.strip().splitlines()[0]), "external-tokenizer-command"
+    try:
+        import tiktoken
+    except ImportError:
+        return None, "unavailable"
+    encoding_name = {
+        "openai-cl100k": "cl100k_base",
+        "openai-o200k": "o200k_base",
+        "gpt2": "gpt2",
+    }.get(profile, "cl100k_base")
+    encoding = tiktoken.get_encoding(encoding_name)
+    return len(encoding.encode(text, disallowed_special=())), f"tiktoken:{encoding_name}"
 
 
 def estimate(text: str) -> int:
@@ -92,14 +197,14 @@ def structural_indices(lines: list[str]) -> set[int]:
 
 def make_manifest(path: str, lines: list[str], critical: set[int],
                   kept: set[int], pattern: str, method: str,
-                  budget_exceeded: bool = False) -> dict:
+                  budget_exceeded: bool = False, profile: str = "generic") -> dict:
     kept_ranges = to_ranges(kept)
     omitted = set(range(1, len(lines) + 1)) - kept
     omitted_ranges = to_ranges(omitted)
     kept_text = line_text(lines, kept)
     original_text = "\n".join(lines)
-    original_estimate = estimate(original_text)
-    compact_estimate = estimate(kept_text)
+    original_estimate = estimate_v2(original_text, profile)
+    compact_estimate = estimate_v2(kept_text, profile)
     saved = original_estimate - compact_estimate
     return {
         "tool": "RSaver",
@@ -119,13 +224,19 @@ def make_manifest(path: str, lines: list[str], critical: set[int],
         "recovery_command": "rsaver recover --file <file> --range START:END",
         "budget_exceeded_by_critical": budget_exceeded,
         "estimate": {
-            "method": "dependency_free_run_heuristic_v1",
+            "method": "content_class_pretoken_heuristic_v2",
+            "profile": profile,
             "original_estimate": original_estimate,
             "compact_estimate": compact_estimate,
             "chars_over_4_original": chars_over_four(original_text),
             "chars_over_4_compact": chars_over_four(kept_text),
             "saved_estimate": saved,
             "saved_percent": round(100 * saved / original_estimate, 2) if original_estimate else 0.0,
+            "v1_legacy": {
+                "method": "dependency_free_run_heuristic_v1",
+                "original_estimate": estimate(original_text),
+                "compact_estimate": estimate(kept_text),
+            },
         },
     }
 
@@ -156,20 +267,61 @@ def command_measure(args: argparse.Namespace) -> int:
     for path in args.paths:
         lines = read_lines(path)
         text = "\n".join(lines)
+        exact, source = (None, "not requested")
+        if getattr(args, "exact", False) or getattr(args, "tokenizer_command", None):
+            exact, source = exact_count(text, args.profile, getattr(args, "tokenizer_command", None))
         rows.append({
             "path": path,
             "lines": len(lines),
-            "estimate": estimate(text),
+            "estimate": estimate_v2(text, args.profile),
+            "v1_legacy": estimate(text),
             "chars_over_4": chars_over_four(text),
+            "exact": exact,
+            "exact_source": source,
         })
     total_estimate = sum(row["estimate"] for row in rows)
     if args.json:
-        print(json.dumps({"estimate_method": "dependency_free_run_heuristic_v1",
-                          "files": rows, "total_estimate": total_estimate}, indent=2, sort_keys=True))
+        print(json.dumps({"estimate_method": "content_class_pretoken_heuristic_v2",
+                          "profile": args.profile, "files": rows,
+                          "total_estimate": total_estimate}, indent=2, sort_keys=True))
     else:
         for row in rows:
-            print(f"{row['path']}: lines={row['lines']} estimate={row['estimate']} chars/4={row['chars_over_4']}")
-        print(f"TOTAL estimate={total_estimate} (relative estimate, not a model token count)")
+            exact_text = str(row["exact"]) if row["exact"] is not None else "unavailable"
+            print(f"{row['path']}: lines={row['lines']} estimate_v2={row['estimate']} "
+                  f"v1={row['v1_legacy']} chars/4={row['chars_over_4']} exact={exact_text} ({row['exact_source']})")
+        print(f"TOTAL estimate_v2={total_estimate} (heuristic; exact only when a tokenizer is available)")
+    return 0
+
+
+def command_compare(args: argparse.Namespace) -> int:
+    rows = []
+    for path in args.paths:
+        text = "\n".join(read_lines(path))
+        v1 = estimate(text)
+        v2 = estimate_v2(text, args.profile)
+        chars = chars_over_four(text)
+        exact, source = exact_count(text, args.profile, args.tokenizer_command)
+        rows.append({
+            "path": path,
+            "v1_legacy": v1,
+            "v2_heuristic": v2,
+            "chars_over_4": chars,
+            "exact": exact,
+            "exact_source": source,
+            "v2_error_percent": round(100 * (v2 - exact) / exact, 2) if exact else None,
+            "v1_error_percent": round(100 * (v1 - exact) / exact, 2) if exact else None,
+            "chars_error_percent": round(100 * (chars - exact) / exact, 2) if exact else None,
+        })
+    if args.json:
+        print(json.dumps({"profile": args.profile, "rows": rows}, indent=2, sort_keys=True))
+    else:
+        for row in rows:
+            exact_text = str(row["exact"]) if row["exact"] is not None else "unavailable"
+            v2_error = f"{row['v2_error_percent']}%" if row["v2_error_percent"] is not None else "n/a"
+            print(f"{row['path']}: exact={exact_text} ({row['exact_source']}) v2={row['v2_heuristic']} "
+                  f"error={v2_error} v1={row['v1_legacy']} chars/4={row['chars_over_4']}")
+        if all(row["exact"] is None for row in rows):
+            print("Exact counts unavailable; install tiktoken or pass --tokenizer-command to calibrate.")
     return 0
 
 
@@ -199,7 +351,8 @@ def command_select(args: argparse.Namespace) -> int:
         selected = chosen
     ranges = to_ranges(selected)
     text = range_text(lines, ranges)
-    manifest = make_manifest(args.path, lines, matched, selected, args.match, "bounded_symbol_select", budget_exceeded)
+    manifest = make_manifest(args.path, lines, matched, selected, args.match, "bounded_symbol_select",
+                             budget_exceeded, args.profile)
     return emit(manifest, args.json, text, "select", "selected_text")
 
 
@@ -217,7 +370,8 @@ def command_compact(args: argparse.Namespace) -> int:
     budget_exceeded = len(critical) > args.max_lines
     kept = set(ranked) if budget_exceeded else set(ranked[:args.max_lines])
     text = line_text(lines, kept)
-    manifest = make_manifest(args.path, lines, critical, kept, args.critical, "structure_preserving_prune", budget_exceeded)
+    manifest = make_manifest(args.path, lines, critical, kept, args.critical, "structure_preserving_prune",
+                             budget_exceeded, args.profile)
     if args.manifest:
         Path(args.manifest).write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     if args.verify:
@@ -261,11 +415,12 @@ def command_dedupe(args: argparse.Namespace) -> int:
         output.append(marker_for(line, counts[line]))
     original_text = "\n".join(all_lines)
     deduped_text = "\n".join(output)
-    original_estimate = estimate(original_text)
-    deduped_estimate = estimate(deduped_text)
+    original_estimate = estimate_v2(original_text, args.profile)
+    deduped_estimate = estimate_v2(deduped_text, args.profile)
     saved = original_estimate - deduped_estimate
     stats = {
-        "method": "dependency_free_run_heuristic_v1",
+        "method": "content_class_pretoken_heuristic_v2",
+        "profile": args.profile,
         "original_estimate": original_estimate,
         "deduped_estimate": deduped_estimate,
         "saved_estimate": saved,
@@ -328,14 +483,25 @@ def build_parser() -> argparse.ArgumentParser:
 
     measure = sub.add_parser("measure", help="estimate the size of files or stdin")
     measure.add_argument("paths", nargs="+")
+    measure.add_argument("--profile", choices=sorted(PROFILES), default="generic")
+    measure.add_argument("--exact", action="store_true", help="use tiktoken when available")
+    measure.add_argument("--tokenizer-command", help="shell command that reads text on stdin and prints a token count")
     measure.add_argument("--json", action="store_true", help="emit JSON instead of text")
     measure.set_defaults(func=command_measure)
+
+    compare = sub.add_parser("compare", help="compare heuristic estimates with an exact tokenizer")
+    compare.add_argument("paths", nargs="+")
+    compare.add_argument("--profile", choices=sorted(PROFILES), default="generic")
+    compare.add_argument("--tokenizer-command", help="shell command that reads text on stdin and prints a token count")
+    compare.add_argument("--json", action="store_true")
+    compare.set_defaults(func=command_compare)
 
     select = sub.add_parser("select", help="extract bounded line ranges around matches")
     select.add_argument("path")
     select.add_argument("--match", required=True, help="regular expression selecting anchor lines")
     select.add_argument("--context", type=int, default=2)
     select.add_argument("--max-lines", type=int, default=120)
+    select.add_argument("--profile", choices=sorted(PROFILES), default="generic")
     select.add_argument("--json", action="store_true")
     select.set_defaults(func=command_select)
 
@@ -345,6 +511,7 @@ def build_parser() -> argparse.ArgumentParser:
     compact.add_argument("--head", type=int, default=8)
     compact.add_argument("--tail", type=int, default=8)
     compact.add_argument("--critical", default=DEFAULT_CRITICAL)
+    compact.add_argument("--profile", choices=sorted(PROFILES), default="generic")
     compact.add_argument("--manifest", help="write the recoverability manifest to this path")
     compact.add_argument("--verify", action="store_true", help="verify the manifest against the original before output")
     compact.add_argument("--json", action="store_true")
@@ -353,6 +520,7 @@ def build_parser() -> argparse.ArgumentParser:
     dedupe = sub.add_parser("dedupe", help="collapse exact repeated non-critical lines")
     dedupe.add_argument("paths", nargs="+")
     dedupe.add_argument("--critical", default=DEFAULT_CRITICAL)
+    dedupe.add_argument("--profile", choices=sorted(PROFILES), default="generic")
     dedupe.add_argument("--json", action="store_true")
     dedupe.set_defaults(func=command_dedupe)
 

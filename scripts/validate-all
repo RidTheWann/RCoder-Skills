@@ -52,7 +52,7 @@ def main():
         return 1
 
     meta, body = parse_frontmatter(skill_file)
-    version = "1.4.0"
+    version = "1.5.0"
     check(meta.get("name") == "rcoder", "G1: skill name must be rcoder")
     check(bool(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(meta.get("name", "")))), "G1: invalid skill name")
     check(isinstance(meta.get("description"), str) and 1 <= len(meta["description"]) <= 1024,

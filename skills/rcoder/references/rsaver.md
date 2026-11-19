@@ -11,6 +11,16 @@ Context is a finite attention budget; as it grows, recall of mid-context evidenc
 
 Evidence from the research base: official token-counting guidance states that `characters / 4` and similar heuristics are approximations and that model-specific tokenizers or counting endpoints are required for exact counts; context-engineering guidance identifies tool-result clearing and just-in-time bounded retrieval as the safest low-touch reductions; compression surveys classify information loss and access failure as the dominant failure modes and recommend structure-aware pruning for coding agents.
 
+## Tokenization findings that drive v2
+
+- Byte-level BPE first splits text with a pre-tokenizer regex; merges never cross chunk boundaries. A leading space belongs to the following word, so `" hello"` and `"hello"` can be different tokens. Each chunk costs at least one token.
+- `cl100k_base` and `o200k_base` group digits in chunks of at most three, while GPT-2 groups longer digit runs. This is why a flat character divisor fails badly on numbers.
+- BPE vocabularies are trained mostly on natural language. Measurements on one open model put tokens per character at roughly 0.20 for English prose, 0.30 for non-English Latin text, 0.34 for code, 0.46 for JSON, and 0.97 for digit-heavy data. CJK and emoji also diverge sharply from English ratios.
+- Cross-model comparisons show that vocabulary *allocation* matters more than size; a single "chars per token" constant cannot track code, JSON, numbers, CJK, and prose at once.
+- Spacing and identifier changes in otherwise identical code can shift token boundaries and model behavior, so RSaver never rewrites retained code or traces.
+
+Calibration note: on a seven-sample in-repository research fixture, an oracle built from public tiktoken encoding files gave aggregate absolute errors of about 15% for `chars/4`, 13% for the legacy v1 heuristic, and 7.5% for the v2 `openai-o200k` profile; the generic v2 profile was about 13%. Pre-tokenization was approximated with standard-library regex, so these are calibration signals, not a benchmark or a guarantee for any model. Exact mode is always preferred when a real counter is available.
+
 ## Prerequisites and reconnaissance
 1. Confirm what the next decision actually needs: a symbol, an error, a status line, or a full file. Do not compress code you are about to edit.
 2. Record the source path and its hash; RSaver manifests include the original SHA-256 for this purpose.
@@ -37,7 +47,11 @@ Evidence from the research base: official token-counting guidance states that `c
 - Verification fails → discard the compacted artifact and use the original.
 
 ## Tool strategy
-In this module, `rsaver` is shorthand for `python3 skills/rcoder/scripts/rsaver.py` from the repository root. That canonical location is bundled with the installed skill; `scripts/rsaver.py` is only a repository-root wrapper. It is a dependency-free Python 3 standard-library CLI with subcommands `measure`, `select`, `compact`, `dedupe`, `recover`, and `verify`. It works on files and stdin (`-`), emits human-readable output by default and structured JSON with `--json`. Its estimator is `dependency_free_run_heuristic_v1`: word, number, and symbol runs are charged one token each up to four characters, with longer runs split into four-character pieces. This is deterministic and reproducible across hosts, but model-specific, non-English, and structured content will differ from a real tokenizer.
+In this module, `rsaver` is shorthand for `python3 skills/rcoder/scripts/rsaver.py` from the repository root. That canonical location is bundled with the installed skill; `scripts/rsaver.py` is only a repository-root wrapper. It is a dependency-free Python 3 standard-library CLI with subcommands `measure`, `compare`, `select`, `compact`, `dedupe`, `recover`, and `verify`. It works on files and stdin (`-`) and emits human-readable output by default or structured JSON with `--json`.
+
+Two estimators are available. `dependency_free_run_heuristic_v1` is retained for reproducibility of older manifests. `content_class_pretoken_heuristic_v2` is the default: it first splits text with a GPT-style pre-tokenizer approximation (contractions, letter runs with an optional leading delimiter, 1-3 digit groups, symbol runs, whitespace/newline runs, special tokens), then charges a rate per class for ASCII words, non-ASCII Latin words, CJK/Kana/Hangul characters, emoji, symbols, and digits. Profiles (`generic`, `openai-cl100k`, `openai-o200k`, `gpt2`, `cjk-native`) change those rates; choosing the profile that matches the model matters more than the raw divisor.
+
+For actual exactness, `measure --exact` uses an installed `tiktoken` when present, and `--tokenizer-command '<command>'` pipes text to any external counter and reads the integer result. The command runs through the local shell, so pass only a command you trust. Neither path is required for installation; when unavailable, RSaver reports that explicitly. `compare` prints v1, v2, `chars/4`, exact when available, and percentage error so a team can calibrate a profile before trusting estimates.
 
 ## Advanced techniques
 - **Evidence-first budgets:** choose the critical pattern from the decision's must-keep evidence, then set the line budget; never the reverse.
