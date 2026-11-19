@@ -52,7 +52,7 @@ def main():
         return 1
 
     meta, body = parse_frontmatter(skill_file)
-    version = "1.8.0"
+    version = "1.9.0"
     check(meta.get("name") == "rcoder", "G1: skill name must be rcoder")
     check(bool(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(meta.get("name", "")))), "G1: invalid skill name")
     check(isinstance(meta.get("description"), str) and 1 <= len(meta["description"]) <= 1024,
@@ -81,7 +81,8 @@ def main():
         "smart-contract-security.md", "reverse-engineering.md",
         "reverse-engineering-architecture.md", "reverse-engineering-file-formats.md",
         "token-efficiency.md", "web-platform-engineering.md", "model-adaptation.md",
-        "rsaver.md", "rsaver-gate.md", "rsaver-anchor.md", "rscan.md"
+        "rsaver.md", "rsaver-gate.md", "rsaver-anchor.md", "rsaver-crosscheck.md",
+        "rscan.md"
     ):
         check((SKILL / "references" / required).is_file(), f"G1: required specialist missing: {required}")
 
@@ -251,7 +252,8 @@ def main():
         "docs/DECISIONS.md", "docs/research-log.md", "docs/ARCHITECTURE.md",
         "docs/PROGRESS.md",         "docs/RESEARCH-TODO.md",
         "docs/COMPATIBILITY.md", "docs/ENVIRONMENT.md", "docs/TOKEN-ECONOMICS.md",
-        "docs/CONTEXT-DRIFT.md", "docs/RSCAN-HOOKS.md"
+        "docs/CONTEXT-DRIFT.md", "docs/RSCAN-HOOKS.md",
+        "docs/BILLING-AND-CROSSCHECK.md"
     ):
         check((ROOT / required).is_file(), f"G6: required documentation missing: {required}")
     for rel in ("README.md", "docs/HANDOFF.md", "docs/PROGRESS.md"):

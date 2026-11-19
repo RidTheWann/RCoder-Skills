@@ -9,13 +9,15 @@ comparison only, not model billing or hard context-limit measurements.
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import json
 import re
 import sys
+import zlib
 from pathlib import Path
 
-VERSION = "1.7.0"
+VERSION = "1.9.0"
 PIECES = re.compile(r"[^\W\d_]+|\d+|[^\s\w]", re.UNICODE)
 DEFAULT_CRITICAL = (
     r"(?i)(error|fail|exception|traceback|fatal|panic|exit[ _-]?code|"
@@ -360,6 +362,134 @@ def build_anchor(state: dict, max_tokens: int) -> dict:
         + [f"UNRESOLVED-{i}" for i in range(1, min(len(unresolved), 3) + 1)]
         + (["NEXT-ACTION"] if next_action else []),
     }
+
+
+BILLING_CAVEAT = (
+    "RSaver cannot zero, reverse, or refund provider billing. Token charges are determined "
+    "by the provider; use this evidence only under the provider's published support policy."
+)
+
+
+def command_pack(args: argparse.Namespace) -> int:
+    text = sys.stdin.read() if args.path == "-" else Path(args.path).read_text(encoding="utf-8", errors="replace")
+    original_estimate = estimate_v2(text, args.profile)
+    payload = base64.b64encode(zlib.compress(text.encode("utf-8"), 9)).decode("ascii")
+    packed_estimate = estimate_v2(payload, args.profile)
+    worthwhile = packed_estimate < original_estimate
+    saved = original_estimate - packed_estimate
+    result = {
+        "tool": "RSaver", "version": VERSION, "method": "zlib9_base64_roundtrip",
+        "source": args.path, "original_sha256": sha256_text(text),
+        "original_chars": len(text), "compressed_chars": len(payload),
+        "original_estimate": original_estimate, "packed_estimate": packed_estimate,
+        "saved_estimate": saved,
+        "saved_percent": round(100 * saved / original_estimate, 2) if original_estimate else 0.0,
+        "worthwhile": worthwhile, "payload": payload,
+        "billing_note": BILLING_CAVEAT,
+    }
+    if args.json:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    else:
+        if worthwhile or args.force:
+            print(payload)
+            print(f"RSaver pack: {original_estimate} -> {packed_estimate} estimate", file=sys.stderr)
+        else:
+            print(text)
+            print("RSaver pack: packed form costs more; original kept (use --force to emit anyway)",
+                  file=sys.stderr)
+    return 0
+
+
+def command_unpack(args: argparse.Namespace) -> int:
+    manifest = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
+    if manifest.get("method") != "zlib9_base64_roundtrip":
+        raise ValueError("unsupported pack method")
+    text = zlib.decompress(base64.b64decode(manifest["payload"])).decode("utf-8")
+    if sha256_text(text) != manifest.get("original_sha256"):
+        raise ValueError("original hash mismatch after unpack")
+    if args.out:
+        Path(args.out).write_text(text, encoding="utf-8")
+        print(f"RSaver unpack: restored {len(text)} characters to {args.out}")
+    elif args.json:
+        print(json.dumps({"text": text, "verified": True}, sort_keys=True))
+    else:
+        print(text)
+    return 0
+
+
+def matching_lines(lines: list[str], needles: list[str]) -> list[dict]:
+    return [{"line": index, "text": line}
+            for index, line in enumerate(lines, 1)
+            if any(needle in line for needle in needles)]
+
+
+def command_crosscheck(args: argparse.Namespace) -> int:
+    expected = json.loads(Path(args.expect).read_text(encoding="utf-8"))
+    diff_lines = read_lines(args.diff) if args.diff else []
+    test_lines = read_lines(args.test_log) if args.test_log else []
+    claim_lines = read_lines(args.claim) if args.claim else []
+    checks = []
+    required = [str(item) for item in expected.get("required_files", [])]
+    forbidden = [str(item) for item in expected.get("forbidden_paths", [])]
+    required_hits = matching_lines(diff_lines, required) if required else []
+    missing = [path for path in required if not any(path in hit["text"] for hit in required_hits)]
+    checks.append({
+        "id": "required_edits",
+        "status": "pass" if required and not missing else ("unverified" if not required else "fail"),
+        "evidence": required_hits, "missing": missing,
+    })
+    forbidden_hits = matching_lines(diff_lines, forbidden) if forbidden else []
+    checks.append({
+        "id": "scope_boundary",
+        "status": "pass" if not forbidden_hits else "fail",
+        "evidence": forbidden_hits,
+    })
+    failure_markers = [str(item) for item in expected.get("failure_markers", ["FAIL", "ERROR", "Traceback"])]
+    success_markers = [str(item) for item in expected.get("success_markers", ["PASS", "ok"])]
+    failures = matching_lines(test_lines, failure_markers)
+    successes = matching_lines(test_lines, success_markers)
+    checks.append({
+        "id": "test_result",
+        "status": "fail" if failures else ("pass" if successes else "unverified"),
+        "evidence": failures or successes,
+    })
+    completion = matching_lines(claim_lines, ["done", "complete", "finished", "success"])
+    inconsistent = bool(completion and any(item["status"] == "fail" for item in checks))
+    checks.append({
+        "id": "claim_consistency",
+        "status": "fail" if inconsistent else ("unverified" if not completion else "pass"),
+        "evidence": completion,
+    })
+    usage = None
+    if args.usage:
+        raw = json.loads(Path(args.usage).read_text(encoding="utf-8"))
+        usage = {
+            "input_tokens": raw.get("input_tokens", raw.get("prompt_tokens")),
+            "output_tokens": raw.get("output_tokens", raw.get("completion_tokens")),
+            "cached_tokens": raw.get("input_tokens_details", {}).get("cached_tokens"),
+            "reasoning_tokens": raw.get("output_tokens_details", {}).get("reasoning_tokens"),
+            "source": "provider usage file",
+            "billing_effect": "NOT CHANGED by RSaver",
+        }
+    statuses = {item["status"] for item in checks}
+    verdict = "FAIL" if "fail" in statuses else ("UNVERIFIED" if "unverified" in statuses else "PASS")
+    report = {
+        "tool": "RSaver", "version": VERSION, "method": "deterministic_artifact_crosscheck",
+        "verdict": verdict, "checks": checks, "usage": usage,
+        "billing_note": BILLING_CAVEAT,
+        "evidence_pack": "\n".join(
+            [f"objective: {expected.get('objective', 'not supplied')}", f"verdict: {verdict}"]
+            + [f"{item['id']}: {item['status']}" for item in checks]
+        ),
+    }
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+    else:
+        print(f"RSaver crosscheck: {verdict}")
+        for item in checks:
+            print(f"  {item['id']}: {item['status']} ({len(item['evidence'])} evidence line(s))")
+        print("RSaver billing: " + BILLING_CAVEAT, file=sys.stderr)
+    return 0
 
 
 def command_drift(args: argparse.Namespace) -> int:
@@ -790,6 +920,28 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", action="version", version=f"RSaver {VERSION}")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    pack = sub.add_parser("pack", help="compress text when the packed estimate is actually smaller")
+    pack.add_argument("path")
+    pack.add_argument("--profile", choices=sorted(PROFILES), default="generic")
+    pack.add_argument("--force", action="store_true", help="emit the packed form even when it costs more")
+    pack.add_argument("--json", action="store_true")
+    pack.set_defaults(func=command_pack)
+
+    unpack = sub.add_parser("unpack", help="restore exact text from a pack manifest")
+    unpack.add_argument("--manifest", required=True)
+    unpack.add_argument("--out", help="write restored text to this file")
+    unpack.add_argument("--json", action="store_true")
+    unpack.set_defaults(func=command_unpack)
+
+    crosscheck = sub.add_parser("crosscheck", help="verify a claimed edit against artifacts and provider usage")
+    crosscheck.add_argument("--expect", required=True, help="JSON expectations file")
+    crosscheck.add_argument("--diff", help="file containing the observed diff")
+    crosscheck.add_argument("--test-log", help="file containing test output")
+    crosscheck.add_argument("--claim", help="file containing the model's completion claim")
+    crosscheck.add_argument("--usage", help="file containing provider usage JSON")
+    crosscheck.add_argument("--json", action="store_true")
+    crosscheck.set_defaults(func=command_crosscheck)
 
     drift = sub.add_parser("drift", help="scan a transcript for deterministic drift signals")
     drift.add_argument("path")

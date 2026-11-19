@@ -98,6 +98,10 @@ Host discovery can vary by product version and UI surface. Path simulations do n
 
 RCoder adapts to the model and host actually present. The [model adaptation specialist](skills/rcoder/references/model-adaptation.md) provides an observable capability-discovery checklist, four execution profiles (Focused, Engineering, Deep Research, Long-Running Project), a smallest-sufficient-workflow rule, subagent strategy, and a reusable ablation methodology that holds model, settings, tools, permissions, fixture, prompt, and rubric constant. Capabilities that cannot be observed are recorded as UNKNOWN, not guessed. No model-specific performance claim is made without a retained evaluation; see `evals/results.md`.
 
+## RSaver crosscheck and safe maximum compression
+
+`rsaver crosscheck` verifies a completion claim against the observed diff, test output, and optional provider usage, returning `PASS`, `FAIL`, or `UNVERIFIED` with line-referenced evidence. `rsaver pack`/`unpack` provide exact-recovery compression that is used only when the estimated token count actually decreases. RSaver **cannot** change provider billing, zero charges, or guarantee compensation: it prevents avoidable token waste and produces evidence a user may attach to a provider support request under that provider's policy. See `docs/BILLING-AND-CROSSCHECK.md`.
+
 ## RScan: automatic project reconnaissance
 
 After installation, a fresh session can start with `python3 skills/rcoder/scripts/rscan.py scan --root .`. RScan is read-only and bounded: it reports detected stacks, quality entry points, risk signals, and a ranked menu of development options with first commands and specialist references. For automatic launch scanning, `rscan hooks install --host claude-code|gemini-cli --scope project|user` merges a documented `SessionStart` hook with a backup and idempotence check; other hosts require manual invocation until evidence exists. See `docs/RSCAN-HOOKS.md` and `skills/rcoder/references/rscan.md`.
