@@ -881,6 +881,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     parser = build_parser()
     args = parser.parse_args()
     if getattr(args, "context", 0) < 0 or getattr(args, "max_lines", 1) < 1:
