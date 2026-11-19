@@ -1,10 +1,26 @@
-# RCoder project handoff — v1.3.0
+# RCoder project handoff — v1.7.0
 
 ## Delivered
 
 RCoder remains one portable Agent Skill with progressive disclosure. The core router selects focused references rather than injecting the entire specialist library into every agent context.
 
-Version 1.3.0 adds:
+Version 1.7.0 adds:
+- RSaver re-anchoring for long contexts: drift signals, dual-end objective/constraint restatement with explicit IDs, source-separated facts, and budget-aware reanchoring.
+- Research basis on positional attention bias, structural anchors, and unsupported compaction entries.
+
+Version 1.6.0 added:
+- RSaver Gate: a per-step context filter with input/cache/output/reasoning budgeting, required-item protection, deferred recovery pointers, and cache-prefix checks.
+- Token economics documentation covering input, cached-input, output, and reasoning tokens with provider usage fields and caching break-even rules.
+
+Version 1.5.0 added:
+- RSaver estimator v2 with pre-tokenization-aware content classes, model profiles, a comparison command, and optional exact counts from `tiktoken` or an external tokenizer command.
+- A documented tokenization research basis and calibrated error figures from public encoding files.
+
+Version 1.4.0 added:
+- RSaver, a dependency-free CLI that measures relative context cost, extracts bounded symbol windows, prunes verbose output without rewriting retained evidence, collapses duplicates only when it saves tokens, and records hash-checked manifests for exact recovery and verification.
+- An RSaver specialist module and router entry defining when reduction is safe and when a real tokenizer is required.
+
+Version 1.3.0 added:
 - A model-adaptation specialist: observable capability discovery, four adaptive execution profiles, empirical ablation/evaluation methodology, subagent strategy, and long-task continuity.
 - A five-tier host compatibility evidence matrix separating file installation from documented discovery, native discovery, invocation, and behavioral evaluation.
 - An environment and capability record for the Termux/OpenCode development shell, with observed runtimes and explicitly unknown capabilities.
@@ -79,21 +95,22 @@ Reverse-engineering references cover executable/binary analysis, evidence-led se
 - Deduplicated tool calls and non-overlapping subagent scopes.
 - No reduction in authorization, security, test, or data-integrity checks to save tokens.
 
-## Local verification for v1.3.0
+## Local verification for v1.7.0
 
-Run in the Termux development shell on the `feat/adaptive-specialist-system` branch:
+Run in the Termux development shell on the `feat/rsaver` branch:
 
-- `python3 scripts/validate-all` — PASS, 708 checks.
+- `python3 scripts/validate-all` — PASS, 747 checks.
 - `python3 scripts/test-context-snapshot.py` — PASS, including the new bounded-path assertion.
 - `python3 scripts/test-score-eval.py` — PASS, scorer verified on synthetic perfect, mixed, inverted, and four rejection paths.
+- `python3 scripts/test-rsaver.py` — PASS, reduction, verbatim evidence, recovery, verification, dedupe economics, estimator profiles, and external tokenizer hook.
 - `python3 scripts/score-eval.py --predictions <synthetic-fixture> --strict` — PASS on a generated fixture: 24 TP / 18 TN, specialist F1 1.0, 19/19 scenarios (synthetic only, not a model result).
 - `node --check scripts/rcoder.mjs` — PASS (exit 0).
 - `node scripts/test-node-installer.mjs` — PASS, all 40 target/scope combinations plus backup restore and launcher checks.
 - `bash scripts/test-installers.sh` — PASS, all 40 POSIX target/scope combinations.
-- `npm pack --dry-run --json` — PASS, package `rcoder@1.3.0`, 71 entries.
+- `npm pack --dry-run --json` — PASS; see the actual command output for the pinned version and entry count.
 - `python3 scripts/package` — PASS; five ZIPs created and `sha256sum -c dist/SHA256SUMS` verified all OK.
 
-**CI status for v1.3.0: NOT VERIFIED** (feature branch has not run the hosted matrix). Windows PowerShell, the `irm` bootstrap, host-native discovery, and live model activation are also NOT VERIFIED in this environment. The v1.2.0 CI evidence below is historical and does not cover v1.3.0 changes.
+**CI status for v1.7.0: NOT VERIFIED** (feature branch has not run the hosted matrix). Host-native discovery and live model activation remain separate gates. The v1.2.0 CI evidence below is historical and does not cover v1.7.0 changes.
 
 ## Historical CI evidence (v1.2.0)
 

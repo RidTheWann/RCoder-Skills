@@ -1,8 +1,8 @@
-# RCoder build progress — 2026-11-18
+# RCoder build progress — 2026-11-19
 
 ## Release objective
 
-Build v1.3.0 as a safe extension of v1.2.0. Preserve both installers, the Agent Skill format, plugin manifests, the canonical skill directory, and all existing specialist capabilities while adding model adaptation and an evidence-based compatibility contract.
+Build v1.7.0 as a safe extension of v1.6.0. Preserve both installers, the Agent Skill format, plugin manifests, the canonical skill directory, and all existing specialist capabilities while adding RSaver re-anchoring for long-context drift.
 
 ## Implementation checklist
 
@@ -12,7 +12,11 @@ Build v1.3.0 as a safe extension of v1.2.0. Preserve both installers, the Agent 
 - [x] Add a host compatibility evidence matrix and an environment/capability record.
 - [x] Deepen all 54 specialists to the full 13-section structure without removing existing modules.
 - [x] Add an executable evaluation scorer, routing expectations, self-test, ablation protocol, and five behavioral scenarios (19 total).
-- [x] Re-run the full local gate set and installer/packaging regressions for v1.3.0: validator (654 checks), context snapshot test, Node syntax, 40 Node target/scope cases, 40 POSIX target/scope cases, npm pack dry-run, and five reproducible ZIP packages with verified checksums.
+- [x] Re-run the full local gate set and installer/packaging regressions for v1.7.0: validator (747 checks), context snapshot test, evaluation scorer test, RSaver drift/anchor/gate test, Node syntax, 40 Node target/scope cases, 40 POSIX target/scope cases, npm pack dry-run, and five reproducible ZIP packages with verified checksums.
+- [x] Add RSaver with hash-checked manifests, dedupe economics, and a deterministic self-test.
+- [x] Research tokenization and calibrate a content-class estimator v2 with model profiles and optional exact counting.
+- [x] Add RSaver Gate with input/cache/output/reasoning budgeting, priority filtering, and cache-prefix checks.
+- [x] Add RSaver drift detection, dual-end anchor blocks with explicit IDs, and budget-aware reanchoring.
 - [x] Add a global terminal manager invoked by typing `RCoder`.
 - [x] Add multi-target and Project/User selection, shared-root deduplication, install/update, uninstall, backup, and restore.
 - [x] Add a Windows-native PowerShell launcher independent of Node.js.

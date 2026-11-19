@@ -121,7 +121,7 @@ Use the reverse-engineering specialists for authorized binary analysis, disassem
 
 Preserve originals and hashes; record tool versions and offsets; distinguish observations from hypotheses; isolate dynamic analysis; and validate conclusions through differential tests, reference implementations, or hardware evidence. Unresolved machine-state or ABI behavior must remain unknown rather than guessed.
 
-## Token-efficient engineering
+## Token-efficient engineering and RSaver
 
 RCoder uses progressive disclosure to reduce unnecessary context. The token-efficiency module applies these practices:
 
@@ -132,6 +132,8 @@ RCoder uses progressive disclosure to reduce unnecessary context. The token-effi
 5. Deduplicate tool calls and parallelize only independent read-only work. Give subagents explicit file scopes and acceptance criteria.
 6. Preserve exact verification evidence, security constraints, and unresolved risks. Never reduce test quality or omit safety checks merely to save tokens.
 
+**RSaver** (`skills/rcoder/scripts/rsaver.py`, with a repository-root wrapper at `scripts/rsaver.py`) is a dependency-free tool that measures relative context size, extracts bounded symbol windows, prunes non-critical lines from verbose output, collapses exact duplicates only when the marker costs less than the repetition, and records a hash-checked manifest so every omitted range can be recovered exactly. Token figures are deterministic relative estimates, not model-specific counts. Usage and limits are documented in `skills/rcoder/references/rsaver.md`. The **RSaver Gate** (`rsaver gate` / `rsaver budget`) runs before routing and again at each model boundary: it reserves output and reasoning budget, keeps required context, defers optional history with recovery pointers, and checks that the stable cache prefix is contiguous and large enough. Provider mechanics are documented in `docs/TOKEN-ECONOMICS.md`; the gate is a planning layer, not a runtime interceptor. For long sessions that drift, `rsaver drift` reports text signals and `rsaver anchor`/`rsaver reanchor` restate the objective and hard constraints at both ends of the next request using explicit IDs, with observed facts separated from decisions and unknowns (`docs/CONTEXT-DRIFT.md`).
+
 ## Repository structure
 
 - `skills/rcoder/SKILL.md` — portable router and operating protocol with a layered execution map.
@@ -140,6 +142,9 @@ RCoder uses progressive disclosure to reduce unnecessary context. The token-effi
 - `evals/ABLATION-PROTOCOL.md`, `scripts/score-eval.py` — runnable scoring and with/without-RCoder ablation.
 - `skills/rcoder/scripts/detect_stack.py` — read-only stack reconnaissance.
 - `skills/rcoder/scripts/context_snapshot.py` — bounded metadata-only repository snapshot.
+- `skills/rcoder/scripts/rsaver.py` — RSaver measurement, budgeting, gating, pruning, deduplication, and recovery CLI (bundled); `scripts/rsaver.py` is a repository-root wrapper.
+- `docs/TOKEN-ECONOMICS.md` — input, cached-input, output, and reasoning token mechanics.
+- `docs/CONTEXT-DRIFT.md` — long-context drift research and re-anchoring evidence.
 - `skills/rcoder/assets/templates/` — ADR, issue, specialist-module, context-capsule, test, and UX templates.
 - `targets.json` — supported host labels and Project/User discovery roots.
 - `launcher/RCoder.ps1` — PowerShell terminal manager.
@@ -152,6 +157,7 @@ RCoder uses progressive disclosure to reduce unnecessary context. The token-effi
 python3 scripts/validate-all
 python3 scripts/test-context-snapshot.py
 python3 scripts/test-score-eval.py
+python3 scripts/test-rsaver.py
 node --check scripts/rcoder.mjs
 node scripts/test-node-installer.mjs
 npm pack --dry-run --json

@@ -2,6 +2,50 @@
 
 RCoder follows Semantic Versioning.
 
+## [1.7.0] - 2026-11-19
+
+### Added
+- RSaver re-anchoring: `drift` scans a transcript for objective/constraint loss, repeated commands, and completion claims with open unknowns; `anchor` builds a dual-end block with explicit IDs and source-separated facts; `reanchor` inserts both blocks and re-runs the gate budget.
+- `rsaver-anchor.md` specialist and `docs/CONTEXT-DRIFT.md` research basis covering positional attention bias, structural anchors, and compaction source discipline.
+- RSaver self-test coverage for drift signals, dual-end structure, ID references, budget warnings, and rejection paths.
+
+### Changed
+- Router applies re-anchoring when drift signals appear in a long session.
+- Synchronized version 1.7.0 across skill metadata, package/plugin manifests, changelog, package builder, and validator.
+
+## [1.6.0] - 2026-11-19
+
+### Added
+- RSaver Gate: a pre-routing process filter with a `gate` subcommand for context envelopes and a `budget` subcommand for window allocation across input, cached prefix, output, and reasoning reserves.
+- `rsaver-gate.md` documenting the prompt -> gate -> model -> skills/reasoning/search -> gate -> response pipeline and its runtime limits.
+- `docs/TOKEN-ECONOMICS.md` documenting input, cached-input, output, and reasoning tokens, caching prefixes/TTL/minimums, usage fields, and break-even arithmetic with source links.
+
+### Changed
+- Router applies the gate before specialist selection and again at each model boundary for multi-step or context-constrained work.
+- RSaver self-test now covers budget arithmetic, required/deferred decisions, cache eligibility and fragmentation, and invalid envelopes.
+- Synchronized version 1.6.0 across skill metadata, package/plugin manifests, changelog, package builder, and validator.
+
+## [1.5.0] - 2026-11-19
+
+### Added
+- RSaver estimator v2 with GPT-style pre-tokenization, content-class rates (prose, non-ASCII Latin, CJK, emoji, symbols, digits), model profiles, a `compare` subcommand, optional exact counting via `tiktoken` or an external tokenizer command, and no new required dependencies.
+- Deep tokenization research section in the RSaver specialist with calibrated error figures from a public-tiktoken oracle.
+
+### Changed
+- Token figures in RSaver manifests now report v2 as primary and retain v1 for reproducibility.
+- Synchronized version 1.5.0 across skill metadata, package/plugin manifests, changelog, package builder, and validator.
+
+## [1.4.0] - 2026-11-19
+
+### Added
+- RSaver, a dependency-free context-reduction CLI: relative token measurement, bounded symbol selection, structure-preserving pruning, economics-checked duplicate collapsing, exact range recovery, and hash-verified manifests.
+- RSaver specialist module with evidence-preserving methodology, explicit estimator limitations, and recovery/verification requirements.
+- RSaver self-test integrated into local checks and CI.
+
+### Changed
+- Synchronized version 1.4.0 across skill metadata, package/plugin manifests, changelog, package builder, and validator.
+- Router and README now document when to use RSaver and when not to (source code, billing, hard context limits).
+
 ## [1.3.0] - 2026-11-18
 
 ### Added
