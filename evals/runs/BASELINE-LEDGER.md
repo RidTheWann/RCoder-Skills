@@ -58,6 +58,12 @@ one pinned configuration only and are not generalized.
 
 ## Integrity check
 
+The hashes are computed over LF-normalized bytes. On Linux the files contain LF
+only, so `sha256sum` reports these values directly. On Windows a Git checkout may
+translate LF to CRLF; `scripts/validate-all` normalizes CRLF back to LF before
+hashing, so content integrity is checked identically on both platforms without
+weakening the comparison.
+
 After all edits, verify with:
 `sha256sum -c` against the table above (paths relative to the run directory),
 or re-run the exact `find ... | sort | xargs sha256sum` command recorded in the

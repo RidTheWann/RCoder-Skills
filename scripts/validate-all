@@ -200,7 +200,8 @@ def main():
     ledger = read(ROOT / "evals" / "runs" / "BASELINE-LEDGER.md")
     for digest, filename in re.findall(r"`([0-9a-f]{64})`\s*\|\s*([A-Za-z0-9_.-]+)", ledger):
         control = ROOT / "evals" / "runs" / "hy4-flash-openrouter-2026-11-19" / filename
-        check(control.is_file() and hashlib.sha256(control.read_bytes()).hexdigest() == digest,
+        normalized = control.read_bytes().replace(b"\r\n", b"\n") if control.is_file() else b""
+        check(control.is_file() and hashlib.sha256(normalized).hexdigest() == digest,
               f"G3: immutable control dataset changed: {filename}")
 
     manifest_paths = (
