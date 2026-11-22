@@ -15,7 +15,9 @@ import json
 import os
 import re
 import sys
+import tempfile
 import zlib
+from datetime import datetime, timezone
 from pathlib import Path
 
 VERSION = "1.11.0"
@@ -1043,6 +1045,9 @@ def command_compact(args: argparse.Namespace) -> int:
             for problem in problems:
                 print(f"RSAVER VERIFY FAIL: {problem}", file=sys.stderr)
             return 1
+    if getattr(args, "ledger", None):
+        stats_ = manifest.get("estimate", {})
+        ledger_append(args.ledger, "compact", stats_.get("original_estimate", 0), stats_.get("compact_estimate", 0))
     return emit(manifest, args.json, text, "compact", "compacted")
 
 
@@ -1127,6 +1132,8 @@ def command_dedupe(args: argparse.Namespace) -> int:
         manifest["blocks"] = blocks
     if inline_repeats:
         manifest["inline_repeats"] = inline_repeats
+    if getattr(args, "ledger", None):
+        ledger_append(args.ledger, "dedupe", original_estimate, deduped_estimate)
     return emit(manifest, args.json, deduped_text, "dedupe", "deduped_text")
 
 
@@ -1318,6 +1325,151 @@ def command_audit(args: argparse.Namespace) -> int:
 
 
 
+# ----------------------------------------------------------------------- redact
+REDACT_RULES = (
+    ("private-key", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----", re.S)),
+    ("aws-access-key", re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b")),
+    ("github-token", re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,})\b")),
+    ("slack-token", re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}\b")),
+    ("api-key", re.compile(r"\bsk-(?:ant-|proj-)?[A-Za-z0-9_-]{20,}\b")),
+    ("jwt", re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b")),
+    ("bearer-token", re.compile(r"(?i)(?<=\bBearer )[A-Za-z0-9._~+/=-]{16,}")),
+    ("url-credentials", re.compile(r"(?<=://)[^\s/:@]+:[^\s/@]+(?=@)")),
+    ("secret-assignment", re.compile(
+        r"(?i)\b(?:password|passwd|secret|token|api[_-]?key|access[_-]?key|client[_-]?secret)[\"']?\s*[:=]\s*"
+        r"[\"']?(?P<v>[^\s\"',;]{6,})")),
+)
+
+
+def redact_text(text: str) -> tuple[str, dict]:
+    """Replace credential-shaped values with numbered placeholders. Lossy on purpose: the original
+    secret is never stored, hashed, or recoverable from the output or the report."""
+    counts: dict[str, int] = {}
+    lines_hit: set[int] = set()
+    out = text
+    for kind, pattern in REDACT_RULES:
+        seen: dict[str, int] = {}
+
+        def replace(match, kind=kind, seen=seen):
+            whole = match.group(0)
+            group = match.groupdict().get("v")
+            value = group if group else whole
+            if value.startswith("[REDACTED:"):
+                return whole
+            index = seen.setdefault(value, len(seen) + 1)
+            counts[kind] = counts.get(kind, 0) + 1
+            start_line = out_before.count("\n", 0, match.start()) + 1
+            lines_hit.add(start_line)
+            placeholder = f"[REDACTED:{kind}#{index}]"
+            if group:
+                offset = match.start("v") - match.start()
+                return whole[:offset] + placeholder + whole[offset + len(group):]
+            return placeholder + "\n" * whole.count("\n")  # keep line numbers aligned with the original
+
+        out_before = out
+        out = pattern.sub(replace, out)
+    return out, {"counts": dict(sorted(counts.items())), "total": sum(counts.values()),
+                 "lines": sorted(lines_hit)}
+
+
+def command_redact(args: argparse.Namespace) -> int:
+    text = "\n".join(read_lines(args.path))
+    redacted, report = redact_text(text)
+    original_estimate = estimate_v2(text, args.profile)
+    reduced_estimate = estimate_v2(redacted, args.profile)
+    payload = {"tool": "RSaver", "version": VERSION, "command": "redact", "profile": args.profile,
+               "redactions": report["counts"], "redaction_count": report["total"],
+               "lines_with_redactions": report["lines"],
+               "sizes": {"original_estimate": original_estimate, "redacted_estimate": reduced_estimate},
+               "recoverable": False,
+               "note": ("Pattern-based and best-effort: it can miss unusual secrets. Treat unredacted output "
+                        "as sensitive. Redaction is intentionally not recoverable.")}
+    if args.fail_on_found and report["total"]:
+        emit(payload, args.json, redacted, "redact", "redacted_text")
+        print(f"RSaver redact: {report['total']} potential secret(s) found", file=sys.stderr)
+        return 1
+    return emit(payload, args.json, redacted, "redact", "redacted_text")
+
+
+# ----------------------------------------------------------------------- ledger
+LEDGER_MAX_ENTRIES = 500
+
+
+def ledger_load(path: Path) -> dict:
+    if not path.exists():
+        return {"tool": "RSaver", "schema": 1, "rolled": {"entries": 0, "original": 0, "reduced": 0},
+                "entries": []}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if data.get("tool") != "RSaver" or not isinstance(data.get("entries"), list):
+        raise ValueError(f"not an RSaver ledger: {path}")
+    data.setdefault("rolled", {"entries": 0, "original": 0, "reduced": 0})
+    return data
+
+
+def ledger_append(path_text: str, command: str, original: int, reduced: int, note: str = "") -> None:
+    path = Path(path_text)
+    data = ledger_load(path)
+    data["entries"].append({
+        "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "command": command, "original": int(original), "reduced": int(reduced), "note": note[:200]})
+    if len(data["entries"]) > LEDGER_MAX_ENTRIES:
+        excess = data["entries"][:len(data["entries"]) - LEDGER_MAX_ENTRIES // 2]
+        data["entries"] = data["entries"][len(excess):]
+        data["rolled"]["entries"] += len(excess)
+        data["rolled"]["original"] += sum(item["original"] for item in excess)
+        data["rolled"]["reduced"] += sum(item["reduced"] for item in excess)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle, temp_name = tempfile.mkstemp(dir=str(path.parent), prefix=".rsaver-ledger-")
+    try:
+        with os.fdopen(handle, "w", encoding="utf-8") as stream:
+            json.dump(data, stream, indent=2, sort_keys=True)
+        os.replace(temp_name, path)
+    except BaseException:
+        try:
+            os.unlink(temp_name)
+        except OSError:
+            pass
+        raise
+
+
+def ledger_summary(data: dict) -> dict:
+    by_command: dict[str, dict] = {}
+    for item in data["entries"]:
+        bucket = by_command.setdefault(item["command"], {"runs": 0, "original": 0, "reduced": 0})
+        bucket["runs"] += 1
+        bucket["original"] += item["original"]
+        bucket["reduced"] += item["reduced"]
+    rolled = data["rolled"]
+    original = sum(b["original"] for b in by_command.values()) + rolled["original"]
+    reduced = sum(b["reduced"] for b in by_command.values()) + rolled["reduced"]
+    for bucket in by_command.values():
+        bucket["saved"] = bucket["original"] - bucket["reduced"]
+    return {"tool": "RSaver", "command": "ledger", "runs": len(data["entries"]) + rolled["entries"],
+            "rolled_runs": rolled["entries"], "original_estimate": original, "reduced_estimate": reduced,
+            "saved_estimate": original - reduced,
+            "saved_percent": round(100 * (original - reduced) / original, 2) if original else 0.0,
+            "by_command": dict(sorted(by_command.items())),
+            "note": "Cumulative relative estimates from recorded runs; not provider billing."}
+
+
+def command_ledger(args: argparse.Namespace) -> int:
+    path = Path(args.ledger)
+    if args.action == "record":
+        if args.original is None or args.reduced is None or args.original < 0 or args.reduced < 0:
+            raise ValueError("record requires non-negative --original and --reduced")
+        ledger_append(args.ledger, args.label, args.original, args.reduced, args.note or "")
+    summary = ledger_summary(ledger_load(path))
+    if args.json:
+        print(json.dumps(summary, indent=2, sort_keys=True))
+        return 0
+    print(f"RSaver ledger: {summary['runs']} runs, saved ~{summary['saved_estimate']} of "
+          f"~{summary['original_estimate']} tokens ({summary['saved_percent']}%)")
+    for name, bucket in summary["by_command"].items():
+        print(f"  {name}: runs={bucket['runs']} saved={bucket['saved']}")
+    print(summary["note"])
+    return 0
+
+
 def verify_manifest(manifest: dict, lines: list[str]) -> list[str]:
     problems: list[str] = []
     original = "\n".join(lines)
@@ -1459,6 +1611,7 @@ def build_parser() -> argparse.ArgumentParser:
     compact.add_argument("--profile", choices=sorted(PROFILES), default="generic")
     compact.add_argument("--manifest", help="write the recoverability manifest to this path")
     compact.add_argument("--verify", action="store_true", help="verify the manifest against the original before output")
+    compact.add_argument("--ledger", help="append this run's estimated savings to a ledger JSON file")
     compact.add_argument("--json", action="store_true")
     compact.set_defaults(func=command_compact)
 
@@ -1472,6 +1625,7 @@ def build_parser() -> argparse.ArgumentParser:
                         help="eliminate duplicate words and phrases with zero-token references")
     dedupe.add_argument("--critical", default=DEFAULT_CRITICAL)
     dedupe.add_argument("--profile", choices=sorted(PROFILES), default="generic")
+    dedupe.add_argument("--ledger", help="append this run's estimated savings to a ledger JSON file")
     dedupe.add_argument("--json", action="store_true")
     dedupe.set_defaults(func=command_dedupe)
 
@@ -1485,6 +1639,23 @@ def build_parser() -> argparse.ArgumentParser:
     audit.add_argument("--profile", choices=sorted(PROFILES), default="generic")
     audit.add_argument("--json", action="store_true")
     audit.set_defaults(func=command_audit)
+
+    redact = sub.add_parser("redact", help="replace credential-shaped values with placeholders (lossy, not recoverable)")
+    redact.add_argument("path", help="file, or - for stdin")
+    redact.add_argument("--profile", choices=sorted(PROFILES), default="generic")
+    redact.add_argument("--fail-on-found", action="store_true", help="exit 1 when anything was redacted")
+    redact.add_argument("--json", action="store_true")
+    redact.set_defaults(func=command_redact)
+
+    ledger = sub.add_parser("ledger", help="record and report cumulative estimated savings in a JSON ledger")
+    ledger.add_argument("action", choices=["record", "report"])
+    ledger.add_argument("--ledger", required=True, help="ledger JSON path (created on first record)")
+    ledger.add_argument("--label", default="manual")
+    ledger.add_argument("--original", type=int)
+    ledger.add_argument("--reduced", type=int)
+    ledger.add_argument("--note")
+    ledger.add_argument("--json", action="store_true")
+    ledger.set_defaults(func=command_ledger)
 
     verify = sub.add_parser("verify", help="check a manifest against the original file")
     verify.add_argument("--manifest", required=True)

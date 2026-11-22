@@ -1,12 +1,14 @@
 ---
 description: Budget context, prune verbose output, detect drift, or recover evidence using RSaver
-argument-hint: [subcommand: audit|compact|budget|gate|drift|anchor|dedupe|measure|recover] [target]
+argument-hint: [subcommand: audit|redact|ledger|compact|budget|gate|drift|anchor|dedupe|measure|recover] [target]
 ---
 Manage and optimize context using RSaver.
 
 Operation and target requested by the user: $ARGUMENTS
 
 0. To find where context cost concentrates in an unfamiliar project, call `rsaver_audit` (MCP) or run `python3 scripts/rsaver.py audit --root . --json`; it ranks files by estimated tokens, flags lockfiles, minified or generated files, logs, and data files, and recommends a bounded-read or reduction command for each. Treat its figures as relative estimates.
+0a. Before pasting logs or configs that may contain credentials into context, run `python3 scripts/rsaver.py redact <file> --fail-on-found` (CLI only; it is not an MCP tool because the tool list is size-budgeted). Redaction is best-effort and not recoverable.
+0b. To track cumulative savings across a session, add `--ledger <path>.json` to `compact` or `dedupe`, then run `python3 scripts/rsaver.py ledger report --ledger <path>.json`. The ledger is written only to the path you give.
 1. For context budgeting or gating before multi-step work:
    - Call `rsaver_budget` (MCP) or run `python3 scripts/rsaver.py budget --window <N> --json` to divide the window across input, output reserve, and reasoning reserve.
    - For a structured context envelope, call `rsaver_gate` (MCP) or run `python3 scripts/rsaver.py gate <envelope.json> --json` to keep required items, defer optional history, and verify contiguous cache prefix.
