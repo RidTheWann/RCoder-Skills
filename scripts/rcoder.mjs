@@ -45,6 +45,7 @@ Options:
   --no-launcher       Do not install/update the global RCoder command
   --features <csv>    Optional tools to enable: rsaver,rscan (default: both)
   --list-features     Show optional tools with short descriptions
+  --mcp <mode>        MCP server setup after install: none (default) | show (print config) | install (set up automatically)
   --help              Show this help
   --version           Show version
 
@@ -56,7 +57,7 @@ function parseArgs(args) {
     target: 'agents', scope: 'project', projectDir: process.cwd(),
     homeDir: HOME, dryRun: false, uninstall: false, interactive: false,
     listTargets: false, noLauncher: false, listFeatures: false,
-    features: 'rsaver,rscan'
+    features: 'rsaver,rscan', mcp: 'none'
   };
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
@@ -68,6 +69,11 @@ function parseArgs(args) {
     if (arg === '--list-targets') { options.listTargets = true; continue; }
     if (arg === '--no-launcher') { options.noLauncher = true; continue; }
     if (arg === '--list-features') { options.listFeatures = true; continue; }
+    if (arg === '--mcp') {
+      if (!args[i + 1] || args[i + 1].startsWith('--')) throw new Error('Missing value for --mcp');
+      options.mcp = args[++i];
+      continue;
+    }
     if (arg === '--features') {
       if (!args[i + 1] || args[i + 1].startsWith('--')) throw new Error('Missing value for --features');
       options.features = args[++i];
@@ -87,6 +93,7 @@ function parseArgs(args) {
   if (!TARGET_BY_ID.has(options.target)) throw new Error(`Unsupported target: ${options.target}. Use --list-targets.`);
   if (!SCOPES.has(options.scope)) throw new Error(`Unsupported scope: ${options.scope}`);
   parseFeatureSelection(options.features);
+  if (!['none', 'show', 'install'].includes(options.mcp)) throw new Error('--mcp must be none, show, or install');
   return options;
 }
 
@@ -107,10 +114,55 @@ function featureState(value) {
 }
 
 function showFeatures() {
-  console.log('\nOptional tools:');
-  FEATURES.forEach((feature, index) => {
-    console.log(`  ${index + 1}. ${feature.label.padEnd(8)} ${feature.description}`);
+  console.log('\nOptional tools (what they do):');
+  FEATURES.forEach((feature) => {
+    console.log(`  - ${feature.label.padEnd(8)} ${feature.description}`);
   });
+}
+
+function findPython() {
+  // A candidate must actually run: the Microsoft Store "python.exe" stub is on PATH but cannot execute scripts.
+  for (const [exe, pre] of [['python3', []], ['python', []], ['py', ['-3']]]) {
+    const probe = spawnSync(exe, [...pre, '-c', 'import sys; print(sys.version_info[0])'],
+      { encoding: 'utf8', timeout: 15000 });
+    if (!probe.error && probe.status === 0 && probe.stdout.trim() === '3') return { exe, pre };
+  }
+  return null;
+}
+
+function runMcpSetup(mode, target, scope, base) {
+  if (mode === 'none') return;
+  const scriptsDir = path.join(targetPaths(target, scope, base).destination, 'scripts');
+  const helper = path.join(scriptsDir, 'rcoder_mcp_setup.py');
+  if (!existsSync(helper)) {
+    console.log(`MCP setup skipped for ${target.label}: install or update RCoder there first.`);
+    return;
+  }
+  const python = findPython();
+  if (!python) {
+    console.log('\nMCP setup skipped: Python 3 was not found (the MCP server is a Python script).');
+    console.log('Install Python 3 from https://www.python.org/downloads/ and run RCoder again, then choose "Set up MCP server".');
+    return;
+  }
+  console.log('');
+  const done = spawnSync(python.exe, [...python.pre, helper, mode === 'install' ? 'apply' : 'show',
+    '--host', target.id, '--scope', scope, '--base', base,
+    '--server', path.join(scriptsDir, 'rcoder_mcp_modern.py')], { stdio: 'inherit' });
+  if (done.status !== 0) console.log(`Warning: MCP setup reported a problem (exit code ${done.status}).`);
+}
+
+function showMcpMenu() {
+  console.log('\nMCP server (optional): lets your agent call RCoder tools such as RScan and RSaver.');
+  console.log('  1. Show me the exact config to paste (default, changes nothing)');
+  console.log('  2. Set it up automatically (safe merge, backup, then self-test)');
+  console.log('  3. Skip for now');
+}
+
+async function askMcpMode(rl, allowSkip = true) {
+  showMcpMenu();
+  const choice = await ask(rl, '\nMCP server: ', '1');
+  if (!['1', '2', '3'].includes(choice)) throw new Error('Invalid MCP selection.');
+  return choice === '2' ? 'install' : choice === '1' ? 'show' : 'none';
 }
 
 function writeFeatureManifest(options, target) {
@@ -172,7 +224,8 @@ function sameLauncherApp(appRoot) {
     ['scripts/rcoder.mjs', 'scripts/rcoder.mjs'],
     ['targets.json', 'targets.json'],
     ['package.json', 'package.json'],
-    ['launcher/RCoder.ps1', 'launcher/RCoder.ps1']
+    ['launcher/RCoder.ps1', 'launcher/RCoder.ps1'],
+    ['launcher/McpSetup.ps1', 'launcher/McpSetup.ps1']
   ];
   for (const [source, installed] of files) {
     const from = path.join(PACKAGE_ROOT, source);
@@ -328,6 +381,7 @@ function installLauncher(homeDir) {
     path.join(PACKAGE_ROOT, 'targets.json'),
     path.join(PACKAGE_ROOT, 'package.json'),
     path.join(PACKAGE_ROOT, 'launcher', 'RCoder.ps1'),
+    path.join(PACKAGE_ROOT, 'launcher', 'McpSetup.ps1'),
     path.join(SOURCE, 'SKILL.md')
   ];
   for (const file of required) if (!existsSync(file)) throw new Error(`Launcher source missing: ${file}`);
@@ -344,6 +398,7 @@ function installLauncher(homeDir) {
       cpSync(path.join(PACKAGE_ROOT, 'targets.json'), path.join(stage, 'targets.json'));
       cpSync(path.join(PACKAGE_ROOT, 'package.json'), path.join(stage, 'package.json'));
       cpSync(path.join(PACKAGE_ROOT, 'launcher', 'RCoder.ps1'), path.join(stage, 'launcher', 'RCoder.ps1'));
+      cpSync(path.join(PACKAGE_ROOT, 'launcher', 'McpSetup.ps1'), path.join(stage, 'launcher', 'McpSetup.ps1'));
       cpSync(SOURCE, path.join(stage, 'skills', 'rcoder'), { recursive: true });
       mkdirSync(backupRoot, { recursive: true });
       if (existsSync(appRoot)) {
@@ -365,7 +420,10 @@ function installLauncher(homeDir) {
   if (process.platform === 'win32') {
     const cmdPath = path.join(binRoot, 'RCoder.cmd');
     const manager = path.join(appRoot, 'launcher', 'RCoder.ps1').replaceAll('%', '%%');
-    const cmd = ['@echo off', 'powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "' + manager + '" %*', ''].join('\r\n');
+    const cmd = ['@echo off', 'where powershell.exe >nul 2>nul', 'if not errorlevel 1 goto winps',
+      'where pwsh.exe >nul 2>nul', 'if not errorlevel 1 goto pwsh7', 'echo PowerShell was not found on PATH.', 'exit /b 1',
+      ':winps', 'powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "' + manager + '" %*', 'goto :eof',
+      ':pwsh7', 'pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "' + manager + '" %*', ''].join('\r\n');
     writeFileSync(cmdPath, cmd, 'utf8');
     registerWindowsPath(binRoot);
     console.log(`Installed the global RCoder command: ${cmdPath}`);
@@ -400,11 +458,12 @@ async function runInteractive(options) {
       console.log('  1. Install / Update RCoder');
       console.log('  2. Uninstall RCoder');
       console.log('  3. Show supported agents');
+      console.log('  4. Set up MCP server (no reinstall needed)');
       console.log('  0. Exit');
       const action = await ask(rl, '\nChoose an action: ', '0');
       if (action === '0') return;
       if (action === '3') { showTargets(); continue; }
-      if (!['1', '2'].includes(action)) throw new Error('Invalid action selection.');
+      if (!['1', '2', '4'].includes(action)) throw new Error('Invalid action selection.');
 
       showTargets();
       const selection = await ask(rl, '\nSelect one or more targets (for example 1,7,10; A = all): ');
@@ -424,13 +483,20 @@ async function runInteractive(options) {
       const scope = scopeChoice === '1' ? 'project' : 'user';
       if (action === '1') {
         showFeatures();
-        console.log('\n  1. Both tools (default)');
+        console.log('\nChoose which to enable:');
+        console.log('  1. Both tools (default)');
         console.log('  2. RSaver only');
         console.log('  3. RScan only');
         console.log('  4. Neither');
         const featureChoice = await ask(rl, '\nEnable optional tools: ', '1');
         if (!['1', '2', '3', '4'].includes(featureChoice)) throw new Error('Invalid optional tool selection.');
         options.features = { 1: 'rsaver,rscan', 2: 'rsaver', 3: 'rscan', 4: 'none' }[featureChoice];
+        options.mcp = await askMcpMode(rl);
+      }
+      if (action === '4') {
+        console.log('\nThis configures the MCP server for hosts where RCoder is already installed.');
+        options.mcp = await askMcpMode(rl);
+        if (options.mcp === 'none') { console.log('MCP setup skipped.'); continue; }
       }
       if (action === '2') {
         const confirmation = await ask(rl, '\nConfirm uninstall and backup the current RCoder folder? (y/N): ', 'n');
@@ -454,9 +520,11 @@ async function runInteractive(options) {
           continue;
         }
         seen.add(key);
+        if (action === '4') { runMcpSetup(options.mcp, target, scope, base); continue; }
         const targetOptions = { ...options, scope, projectDir: base, uninstall: action === '2', dryRun: false };
         installTarget(targetOptions, target);
         writeFeatureManifest(targetOptions, target);
+        if (action === '1') runMcpSetup(options.mcp, target, scope, base);
       }
       console.log('\nOperation completed. Start a new agent session to refresh its skills.');
     }
@@ -478,6 +546,12 @@ try {
     installTarget(options, target);
     writeFeatureManifest(options, target);
     if (!options.noLauncher && !options.dryRun && !options.uninstall) installLauncher(options.homeDir);
+    const mcpBase = options.scope === 'project' ? path.resolve(options.projectDir) : path.resolve(options.homeDir);
+    if (options.dryRun && options.mcp !== 'none') console.log(`DRY RUN: MCP mode '${options.mcp}' would run after the skill is installed.`);
+    else if (!options.uninstall) runMcpSetup(options.mcp, target, options.scope, mcpBase);
+    if (!options.uninstall && !options.dryRun && options.mcp === 'none') {
+      console.log('Optional MCP server: type RCoder and choose "Set up MCP server", or re-run with --mcp show (print config) or --mcp install (set it up).');
+    }
   }
 } catch (error) {
   console.error(`RCoder installer error: ${error.message}`);

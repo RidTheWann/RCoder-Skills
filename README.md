@@ -24,6 +24,8 @@ To select a target or user scope directly:
 & ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/RidTheWann/RCoder-Skills/main/install.ps1'))) -Target qoder -Scope user
 ```
 
+Add `-Mcp show` to print the MCP server config for that host, or `-Mcp install` to set it up automatically (see [MCP server setup](#mcp-server-setup)). If PowerShell blocks a downloaded script, run the one-liner above instead of saving the file, or start it with `powershell -ExecutionPolicy Bypass -File .\install.ps1`.
+
 ### Node.js and npm
 
 Run from the project directory:
@@ -54,6 +56,7 @@ The interactive menu provides:
 1. **Install / Update RCoder** — select one or more hosts, then Project or User scope.
 2. **Uninstall RCoder** — remove the selected skill and restore the latest pre-existing backup when available.
 3. **Show supported agents** — display the available integrations.
+4. **Set up MCP server** — configure the MCP server for hosts where RCoder is already installed.
 0. **Exit**.
 
 Select several target numbers separated by commas, or enter `A` for all. Shared discovery roots are installed only once. The manager then offers two optional tools:
@@ -61,9 +64,22 @@ Select several target numbers separated by commas, or enter `A` for all. Shared 
 - **RSaver** — context pruning, budgeting, and re-anchoring for long sessions.
 - **RScan** — read-only project scan with ranked development options at session start.
 
-Choose both (default), one, or neither. The choice is saved in `<target-root>/.rcoder-features.json` so an agent can see which tools are enabled; changing the choice requires reinstalling with a different selection.
+Choose both (default), one, or neither. During an install the manager then asks about the MCP server: show the config to paste (default, changes nothing), set it up automatically, or skip. The choice is saved in `<target-root>/.rcoder-features.json` so an agent can see which tools are enabled; changing the choice requires reinstalling with a different selection.
 
 For non-interactive use, run `npx -y github:RidTheWann/RCoder-Skills --help`. Use `--features rsaver,rscan` (or `--features none`) to select tools, `--list-features` for descriptions, `--dry-run` to preview, `--uninstall` to remove an installation, and `--no-launcher` to install only the selected skill. The PowerShell `irm` route accepts the same selection with `-Features`, and the offline POSIX helper uses `--features`.
+
+### MCP server setup
+
+The MCP server is optional and is not started by installing the skill; the host must be told how to launch it. The installers can do that for you:
+
+| Route | Print the config | Set it up automatically |
+|---|---|---|
+| Terminal manager (`RCoder`) | MCP step during install, or action 4 | choose "Set it up automatically" |
+| PowerShell | `-Mcp show` | `-Mcp install` |
+| Node / npx | `--mcp show` | `--mcp install` |
+| POSIX helper | `--mcp show` | `--mcp install` |
+
+Automatic setup needs Python 3 (the server is a Python script) and supports Claude Code, Cursor, Gemini CLI, GitHub Copilot (VS Code, project scope), OpenCode, and Codex (user scope). It only adds the `rcoder` entry, backs up the file first, never overwrites a different entry, leaves files with comments untouched (printing the snippet instead), and finishes with a live self-test. Other hosts print the generic `mcpServers` snippet. Project scope uses a relative script path, so the config is safe to commit; user scope uses an absolute path.
 
 ## Supported Agentic AI and CLI hosts
 

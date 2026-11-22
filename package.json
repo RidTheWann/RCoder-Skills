@@ -16,6 +16,7 @@
     "scripts/rcoder.mjs",
     "targets.json",
     "launcher/RCoder.ps1",
+    "launcher/McpSetup.ps1",
     "README.md",
     "LICENSE"
   ],
