@@ -70,7 +70,8 @@ jobs:
               if match and index:
                   expected_blobs[match.group(1).decode("utf-8")] = index.group(1).decode("ascii")
           push_allowlist = allowlist - {".github/workflows/quality.yml"}
-          assert set(expected_blobs) == push_allowlist, f"missing blob IDs: {sorted(push_allowlist - set(expected_blobs))}"
+          expected_blobs.pop(".github/workflows/quality.yml", None)
+          assert set(expected_blobs) == push_allowlist, f"missing or extra blob IDs: {sorted(push_allowlist ^ set(expected_blobs))}"
           for path, expected in expected_blobs.items():
               actual = subprocess.check_output(["git", "hash-object", path], text=True).strip()
               assert actual.startswith(expected), f"blob mismatch for {path}: {actual} does not start with {expected}"
