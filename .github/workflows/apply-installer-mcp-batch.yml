@@ -1,16 +1,22 @@
 name: Apply installer MCP batch
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/apply-installer-mcp-batch.yml"
+      - "tmp/rcoder-patch.*"
   push:
     branches:
       - fix/installer-mcp-setup-batch
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   apply-batch:
-    if: github.repository == 'RidTheWann/RCoder-Skills' && github.ref == 'refs/heads/fix/installer-mcp-setup-batch'
+    if: github.repository == 'RidTheWann/RCoder-Skills' && (github.ref == 'refs/heads/fix/installer-mcp-setup-batch' || github.event_name == 'pull_request')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout batch branch
@@ -18,21 +24,22 @@ jobs:
         with:
           ref: fix/installer-mcp-setup-batch
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Reconstruct and verify exact patch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           python - <<'PY'
-          import base64, gzip, hashlib, re, subprocess
+          import base64, gzip, hashlib, re, subprocess, urllib.request
           from pathlib import Path
 
           expected_patch_sha256 = "e753695ee56e422ba894bfdcdd396c58f54a32232e712feccf9ff653dedc6bf9"
-          chunk_dir = Path("tmp")
-          chunks = sorted(chunk_dir.glob("rcoder-patch.*"))
+          chunks = sorted(Path("tmp").glob("rcoder-patch.*"))
           expected_names = [f"rcoder-patch.{index:02d}" for index in range(13)]
           assert [item.name for item in chunks] == expected_names, "missing or reordered patch chunks"
-          encoded = "".join(item.read_text(encoding="ascii").strip() for item in chunks)
-          packed = base64.b64decode(encoded, validate=True)
+          packed = base64.b64decode("".join(item.read_text(encoding="ascii").strip() for item in chunks), validate=True)
           patch = gzip.decompress(packed)
           actual_sha = hashlib.sha256(patch).hexdigest()
           assert actual_sha == expected_patch_sha256, f"patch SHA mismatch: {actual_sha}"
@@ -54,7 +61,6 @@ jobs:
           subprocess.run(["git", "apply", "--check", "--index", str(patch_path)], check=True)
           subprocess.run(["git", "apply", "--index", str(patch_path)], check=True)
 
-          # Verify every resulting Git blob against the exact new object ID recorded in the patch.
           expected_blobs = {}
           for block in re.split(rb"(?m)(?=^diff --git )", patch):
               match = re.search(rb"(?m)^diff --git a/(.*?) b/.*$", block)
@@ -68,8 +74,6 @@ jobs:
 
           staged = set(subprocess.check_output(["git", "diff", "--cached", "--name-only"], text=True).splitlines())
           assert staged == allowlist, f"staged paths mismatch: {sorted(staged ^ allowlist)}"
-
-          # Remove this one-shot updater and its transport payload from the branch.
           subprocess.run(["git", "rm", "-f", ".github/workflows/apply-installer-mcp-batch.yml"], check=True)
           subprocess.run(["git", "rm", "-r", "-f", "tmp"], check=True)
           subprocess.run(["git", "add", "-u"], check=True)
@@ -77,4 +81,19 @@ jobs:
           subprocess.run(["git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"], check=True)
           subprocess.run(["git", "commit", "-m", "fix(installer): integrate MCP setup and repair bootstrap paths"], check=True)
           subprocess.run(["git", "push", "origin", "HEAD:refs/heads/fix/installer-mcp-setup-batch"], check=True)
+
+          # GITHUB_TOKEN pushes do not create follow-on push workflow runs, so explicitly dispatch the
+          # repository's default-branch quality workflow against the patched branch.
+          import json, os
+          request = urllib.request.Request(
+              "https://api.github.com/repos/RidTheWann/RCoder-Skills/actions/workflows/quality.yml/dispatches",
+              data=json.dumps({"ref": "fix/installer-mcp-setup-batch"}).encode(),
+              headers={"Authorization": "Bearer " + os.environ["GH_TOKEN"],
+                       "Accept": "application/vnd.github+json",
+                       "X-GitHub-Api-Version": "2022-11-28",
+                       "Content-Type": "application/json"},
+              method="POST")
+          with urllib.request.urlopen(request, timeout=30) as response:
+              assert response.status == 204, response.status
+          print("Exact batch applied; repository quality workflow dispatched.")
           PY
