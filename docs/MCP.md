@@ -36,7 +36,7 @@ All tools are read-only (`readOnlyHint: true`, `destructiveHint: false`) and use
 | `rcoder_scan` | RScan: detected stacks, risk signals, ranked development options with first commands and specialists |
 | `rcoder_detect_stack` | Manifest and quality-entry-point detection |
 | `rcoder_context_snapshot` | Bounded paths-and-Git-state map; never returns source contents |
-| `rcoder_list_specialists` | Valid specialist names with category, helper flag, source, and activation summary |
+| `rcoder_list_specialists` | Valid specialist names with category, helper flag, source, and activation summary. An optional `query` ranks candidate names by their name, title, and "Activate when" text (top 15, with a score); it locates names and never chooses a primary |
 | `rcoder_get_specialist` | One specialist module, optionally only named sections such as `Procedure` and `Verification` |
 | `rcoder_validate_selection` | Checks a routing selection: names exist, one non-helper primary, no helper-only set, security framing base present |
 | `rcoder_doctor` | Server version, skill files, helpers, enabled tools, project-local extension count |
@@ -52,7 +52,11 @@ All tools are read-only (`readOnlyHint: true`, `destructiveHint: false`) and use
 
 ## Resources and prompts
 
-Resources: `rcoder://skill`, `rcoder://specialist/{name}` for every module, and `rcoder://template/{name}` for every template. Prompts: `rcoder_intake`, `rcoder_review`, `rcoder_handoff` (embeds the context-capsule template), and `rcoder_security_scope` (authorization checklist; stays passive until scope is confirmed).
+Resources: `rcoder://skill`, `rcoder://specialist/{name}` for every module, and `rcoder://template/{name}` for every template. Resources follow the same project-local rules as `rcoder_get_specialist`: a `.rcoder/references/<name>.md` file replaces the built-in module and an extra file is listed as its own resource, and both are served behind the fixed untrusted-content notice.
+
+Prompts: `rcoder_intake`, `rcoder_route` (select and validate specialists before work), `rcoder_review`, `rcoder_verify` (check a completion claim with `rsaver_crosscheck`), `rcoder_handoff` (embeds the context-capsule template), and `rcoder_security_scope` (authorization checklist; stays passive until scope is confirmed). `rcoder_route` and `rcoder_verify` give hosts that surface MCP prompts the same workflows as the plugin's `/route` and `/verify` commands.
+
+Completion: `completion/complete` is advertised from protocol `2025-03-26` and completes the `{name}` argument of the specialist and template resource templates by case-insensitive prefix (at most 100 values). Prompt arguments are free text and complete to nothing.
 
 ## Context cost
 
@@ -60,8 +64,8 @@ Tool schemas are sent on every request, so they are a continuous token cost. Mea
 
 | Profile | Tools | Serialized size | Estimated tokens |
 |---|---|---|---|
-| `full` (default) | 14 | about 7,700 characters | about 2,260 |
-| `minimal` | 4 | about 2,200 characters | about 630 |
+| `full` (default) | 14 | about 7,900 characters | about 2,300 |
+| `minimal` | 4 | about 2,300 characters | about 675 |
 
 `scripts/test-mcp.py` fails if the serialized tool list grows past a fixed character budget. Use `--profile minimal` or `--tools` when you only need routing support; the RSaver and RScan command-line tools remain available without the server.
 
@@ -89,6 +93,8 @@ No hook ships by default. Automatic session-start scanning stays opt-in through 
 |---|---|
 | Server speaks MCP lifecycle, tools, resources, prompts, version negotiation, and error codes over stdio | VERIFIED locally by `scripts/test-mcp.py` (scripted client; Linux; the CI matrix also runs Windows) |
 | Path confinement, symlink refusal, credential refusal, argument validation, output bounds | VERIFIED locally by `scripts/test-mcp.py` |
+| Resources serve and list project-local overrides and extensions with the untrusted-content notice; `rcoder_list_specialists` `query` ranking; `completion/complete` for resource-template names; `rcoder_route` and `rcoder_verify` prompts | VERIFIED locally by `scripts/test-mcp.py` (the new assertions fail against the previous server) |
+| A host calls `completion/complete`, surfaces the new prompts, or uses `query` in practice | NOT VERIFIED |
 | Host-specific configuration snippets match each host's current format | NOT VERIFIED (formats follow public documentation; confirm against your host version) |
 | Any host connects to the server, lists its tools, and a model calls them | NOT VERIFIED |
 | Claude Code loads the plugin's commands, agents, and `mcpServers` entry, including the `${CLAUDE_PLUGIN_ROOT}` expansion and the server working directory | NOT VERIFIED |
