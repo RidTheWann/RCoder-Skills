@@ -47,10 +47,14 @@ jobs:
         run: python scripts/test-mcp.py
       - name: Modern MCP entry point (stateless protocol, Skills over MCP)
         run: python scripts/test-mcp-modern.py
+      - name: MCP installer helper (safe config merge, snippets, self-test)
+        run: python scripts/test-mcp-setup.py
+      - name: Interactive installer menus (no duplicate option numbers)
+        run: python scripts/test-installer-menus.py
       - name: MCP server syntax and host configuration snippets
         shell: bash
         run: |
-          python -m py_compile skills/rcoder/scripts/rcoder_mcp.py skills/rcoder/scripts/rcoder_mcp_modern.py
+          python -m py_compile skills/rcoder/scripts/rcoder_mcp.py skills/rcoder/scripts/rcoder_mcp_modern.py skills/rcoder/scripts/rcoder_mcp_setup.py
           python scripts/rcoder-mcp.py --print-config generic > "$RUNNER_TEMP/mcp-generic.json"
           python skills/rcoder/scripts/rcoder_mcp_modern.py --print-config generic > "$RUNNER_TEMP/mcp-modern.json"
           python -c "import json,sys; json.load(open(sys.argv[1]))" "$RUNNER_TEMP/mcp-modern.json"
