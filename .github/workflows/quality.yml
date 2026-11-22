@@ -45,10 +45,12 @@ jobs:
         run: python scripts/test-rscan.py
       - name: MCP server protocol and confinement tests
         run: python scripts/test-mcp.py
+      - name: Modern MCP entry point (stateless protocol, Skills over MCP)
+        run: python scripts/test-mcp-modern.py
       - name: MCP server syntax and host configuration snippets
         shell: bash
         run: |
-          python -m py_compile skills/rcoder/scripts/rcoder_mcp.py
+          python -m py_compile skills/rcoder/scripts/rcoder_mcp.py skills/rcoder/scripts/rcoder_mcp_modern.py
           python scripts/rcoder-mcp.py --print-config generic > "$RUNNER_TEMP/mcp-generic.json"
           python -c "import json,sys; json.load(open(sys.argv[1]))" "$RUNNER_TEMP/mcp-generic.json"
       - name: Benchmark harness syntax check
