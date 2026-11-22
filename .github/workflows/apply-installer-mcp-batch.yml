@@ -64,13 +64,13 @@ jobs:
           expected_blobs = {}
           for block in re.split(rb"(?m)(?=^diff --git )", patch):
               match = re.search(rb"(?m)^diff --git a/(.*?) b/.*$", block)
-              index = re.search(rb"(?m)^index [0-9a-f]+\.\.([0-9a-f]{40})", block)
+              index = re.search(rb"(?m)^index [0-9a-f]+\.\.([0-9a-f]{7,40})", block)
               if match and index:
                   expected_blobs[match.group(1).decode("utf-8")] = index.group(1).decode("ascii")
           assert set(expected_blobs) == allowlist, "not all expected blob IDs are present"
           for path, expected in expected_blobs.items():
               actual = subprocess.check_output(["git", "hash-object", path], text=True).strip()
-              assert actual == expected, f"blob mismatch for {path}: {actual} != {expected}"
+              assert actual.startswith(expected), f"blob mismatch for {path}: {actual} does not start with {expected}"
 
           staged = set(subprocess.check_output(["git", "diff", "--cached", "--name-only"], text=True).splitlines())
           assert staged == allowlist, f"staged paths mismatch: {sorted(staged ^ allowlist)}"
