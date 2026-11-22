@@ -23,6 +23,7 @@ function destinationFor(target, scope, projectDir, homeDir) {
 
 try {
   assert.match(run(['--help']), /RCoder/);
+  assert.match(run(['--help']), /--mcp/);
   const featureList = run(['--list-features']);
   assert.match(featureList, /RSaver.*Context pruning/);
   assert.match(featureList, /RScan.*Read-only project scan/);
@@ -74,6 +75,7 @@ try {
     : path.join(launcherHome, '.local', 'bin', 'RCoder');
   assert.ok(existsSync(command), 'Global RCoder command was not installed');
   assert.ok(existsSync(path.join(appRoot, 'launcher', 'RCoder.ps1')), 'PowerShell manager was not bundled');
+  assert.ok(existsSync(path.join(appRoot, 'launcher', 'McpSetup.ps1')), 'MCP setup helper was not bundled');
   assert.ok(existsSync(path.join(appRoot, 'targets.json')), 'Target catalog was not bundled');
   assert.ok(existsSync(path.join(appRoot, 'skills', 'rcoder', 'SKILL.md')), 'Canonical skill was not bundled');
 
@@ -130,6 +132,25 @@ try {
   assert.equal(featureState.rsaver, false);
   assert.throws(() => run([...featureArgs, '--features', 'unknown-tool']));
   console.log('PASS optional tool selection: RSaver and RScan manifests');
+
+  // MCP option: show prints a snippet and writes nothing; install merges safely; bad values are rejected.
+  const pythonProbe = spawnSync(process.platform === 'win32' ? 'python' : 'python3', ['--version'], { encoding: 'utf8' });
+  if (!pythonProbe.error && pythonProbe.status === 0) {
+    const mcpProject = path.join(temp, 'mcp-project');
+    const mcpHome = path.join(temp, 'mcp-home');
+    mkdirSync(mcpProject, { recursive: true });
+    mkdirSync(mcpHome, { recursive: true });
+    const mcpArgs = ['--target', 'cursor', '--scope', 'project', '--project-dir', mcpProject, '--home-dir', mcpHome, '--no-launcher'];
+    assert.match(run([...mcpArgs, '--mcp', 'show']), /mcpServers/);
+    assert.equal(existsSync(path.join(mcpProject, '.cursor', 'mcp.json')), false, '--mcp show must not write files');
+    assert.match(run([...mcpArgs, '--mcp', 'install']), /\[applied\]|\[already\]/);
+    const mcpConfig = JSON.parse(readFileSync(path.join(mcpProject, '.cursor', 'mcp.json'), 'utf8'));
+    assert.ok(mcpConfig.mcpServers.rcoder, 'rcoder MCP entry missing');
+    assert.throws(() => run([...mcpArgs, '--mcp', 'bogus']));
+    console.log('PASS MCP option: show, install, and validation');
+  } else {
+    console.log('SKIP MCP option (Python not installed)');
+  }
 
   console.log(`PASS all ${targets.length * 2} Node installer target/scope combinations`);
 } finally {

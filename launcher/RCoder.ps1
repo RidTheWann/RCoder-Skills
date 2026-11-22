@@ -3,10 +3,12 @@ param()
 
 $ErrorActionPreference = 'Stop'
 $AppRoot = Split-Path -Parent $PSScriptRoot
-$SkillSource = Join-Path $AppRoot 'skills\rcoder'
+$SkillSource = Join-Path (Join-Path $AppRoot 'skills') 'rcoder'
 $CatalogPath = Join-Path $AppRoot 'targets.json'
 $PackagePath = Join-Path $AppRoot 'package.json'
 $HomeRoot = [IO.Path]::GetFullPath($HOME)
+$McpHelper = Join-Path $PSScriptRoot 'McpSetup.ps1'
+if (Test-Path -LiteralPath $McpHelper -PathType Leaf) { . $McpHelper }
 
 if (-not (Test-Path -LiteralPath (Join-Path $SkillSource 'SKILL.md') -PathType Leaf)) {
     throw "The bundled RCoder skill is missing: $SkillSource"
@@ -156,8 +158,9 @@ function Invoke-RCoderTarget {
         Move-Item -LiteralPath $stage -Destination $destination
         Write-Host "Installed RCoder $Version for $($Target.label): $destination"
         $featureManifest = Join-Path $targetRoot '.rcoder-features.json'
-        $state = @{schema_version=1;version=$Version;rsaver=($selectedFeatures -contains 'rsaver');rscan=($selectedFeatures -contains 'rscan')}|ConvertTo-Json
-        Set-Content -LiteralPath $featureManifest -Value $state -Encoding UTF8
+        $state = ([ordered]@{schema_version=1;version=$Version;rsaver=($selectedFeatures -contains 'rsaver');rscan=($selectedFeatures -contains 'rscan')})|ConvertTo-Json
+        # Windows PowerShell 5.1 'Set-Content -Encoding UTF8' adds a BOM that breaks strict JSON readers.
+        [IO.File]::WriteAllText($featureManifest, $state + "`n", (New-Object System.Text.UTF8Encoding($false)))
         Write-Host "Enabled optional tools: $Features"
     }
     catch {
@@ -182,13 +185,15 @@ function Show-SupportedTargets {
 
 function Show-OptionalTools {
     Write-Host ''
-    Write-Host 'Optional tools:'
-    Write-Host '  1. RSaver   Context pruning, budgeting, and re-anchoring for long sessions'
-    Write-Host '  2. RScan    Read-only project scan with ranked development options at session start'
+    Write-Host 'Optional tools (what they do):'
+    Write-Host '  - RSaver   Context pruning, budgeting, and re-anchoring for long sessions'
+    Write-Host '  - RScan    Read-only project scan with ranked development options at session start'
 }
 
 function Read-FeatureSelection {
     Show-OptionalTools
+    Write-Host ''
+    Write-Host 'Choose which to enable:'
     Write-Host '  1. Both tools (default)'
     Write-Host '  2. RSaver only'
     Write-Host '  3. RScan only'
@@ -223,12 +228,13 @@ try {
         Write-Host '  1. Install / Update RCoder'
         Write-Host '  2. Uninstall RCoder'
         Write-Host '  3. Show supported agents'
+        Write-Host '  4. Set up MCP server (no reinstall needed)'
         Write-Host '  0. Exit'
 
         $actionChoice = (Read-Host 'Choose an action').Trim()
         if ($actionChoice -eq '0' -or [string]::IsNullOrWhiteSpace($actionChoice)) { break }
         if ($actionChoice -eq '3') { Show-SupportedTargets; continue }
-        if ($actionChoice -ne '1' -and $actionChoice -ne '2') {
+        if ($actionChoice -notin @('1', '2', '4')) {
             Write-Warning 'Invalid action selection.'
             continue
         }
@@ -250,7 +256,20 @@ try {
         $scope = if ($scopeChoice -eq '1') { 'project' } else { 'user' }
 
         $features = 'rsaver,rscan'
-        if ($actionChoice -eq '1') { $features = Read-FeatureSelection }
+        $mcpMode = 'none'
+        if ($actionChoice -eq '1') {
+            $features = Read-FeatureSelection
+            $mcpMode = Read-McpSelection
+        }
+        if ($actionChoice -eq '4') {
+            Write-Host ''
+            Write-Host 'This configures the MCP server for hosts where RCoder is already installed.'
+            Show-McpMenu
+            $mcpChoice = (Read-Host 'MCP server').Trim()
+            if ([string]::IsNullOrWhiteSpace($mcpChoice)) { $mcpChoice = '1' }
+            if ($mcpChoice -notin @('1', '2')) { Write-Host 'MCP setup skipped.'; continue }
+            $mcpMode = if ($mcpChoice -eq '2') { 'install' } else { 'show' }
+        }
         if ($actionChoice -eq '2') {
             $confirmation = (Read-Host 'Confirm uninstall and restore the previous installation? (y/N)').Trim()
             if ($confirmation.ToLowerInvariant() -notin @('y', 'yes')) {
@@ -275,7 +294,7 @@ try {
         foreach ($target in $selectedTargets) {
             $rootPath = if ($scope -eq 'project') { [string]$target.project_root } else { [string]$target.user_root }
             $destinationKey = [IO.Path]::GetFullPath(
-                (Join-Path $base (Join-Path $rootPath 'skills\rcoder'))
+                (Join-Path $base (Join-Path (Join-Path $rootPath 'skills') 'rcoder'))
             ).ToLowerInvariant()
 
             if ($seen.ContainsKey($destinationKey)) {
@@ -284,8 +303,21 @@ try {
             }
             $seen[$destinationKey] = $true
 
+            if ($actionChoice -eq '4') {
+                $installed = Join-Path (Join-Path $base (Join-Path $rootPath 'skills')) 'rcoder'
+                if (-not (Test-Path -LiteralPath (Join-Path $installed 'SKILL.md') -PathType Leaf)) {
+                    Write-Host "Skipped $($target.label): RCoder is not installed there yet (choose 'Install / Update' first)."
+                    continue
+                }
+                Invoke-RCoderMcpSetup -Mode $mcpMode -TargetId ([string]$target.id) -Scope $scope -Base $base -SkillDestination $installed
+                continue
+            }
             $action = if ($actionChoice -eq '1') { 'install' } else { 'uninstall' }
             Invoke-RCoderTarget -Target $target -Scope $scope -Base $base -Action $action -Features $features
+            if ($action -eq 'install' -and $mcpMode -ne 'none') {
+                $installed = Join-Path (Join-Path $base (Join-Path $rootPath 'skills')) 'rcoder'
+                Invoke-RCoderMcpSetup -Mode $mcpMode -TargetId ([string]$target.id) -Scope $scope -Base $base -SkillDestination $installed
+            }
         }
 
         Write-Host ''

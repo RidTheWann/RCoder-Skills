@@ -1,13 +1,14 @@
 #!/bin/sh
 set -eu
-usage(){ echo 'Usage: install.sh [--target ID] [--scope project|user] [--project-dir PATH] [--home-dir PATH] [--features CSV] [--dry-run] [--uninstall] [--list-features]'; }
-TARGET=agents; SCOPE=project; PROJECT_DIR=$(pwd); HOME_DIR=${HOME:-}; DRY=0; REMOVE=0; FEATURES=rsaver,rscan
+usage(){ echo 'Usage: install.sh [--target ID] [--scope project|user] [--project-dir PATH] [--home-dir PATH] [--features CSV] [--mcp none|show|install] [--dry-run] [--uninstall] [--list-features]'; }
+TARGET=agents; SCOPE=project; PROJECT_DIR=$(pwd); HOME_DIR=${HOME:-}; DRY=0; REMOVE=0; FEATURES=rsaver,rscan; MCP=none
 while [ "$#" -gt 0 ]; do case "$1" in
   --target) [ "$#" -ge 2 ] || { usage >&2; exit 2; }; TARGET=$2; shift 2;;
   --scope) [ "$#" -ge 2 ] || { usage >&2; exit 2; }; SCOPE=$2; shift 2;;
   --project-dir) [ "$#" -ge 2 ] || { usage >&2; exit 2; }; PROJECT_DIR=$2; shift 2;;
   --home-dir) [ "$#" -ge 2 ] || { usage >&2; exit 2; }; HOME_DIR=$2; shift 2;;
   --features) [ "$#" -ge 2 ] || { usage >&2; exit 2; }; FEATURES=$2; shift 2;;
+  --mcp) [ "$#" -ge 2 ] || { usage >&2; exit 2; }; MCP=$2; shift 2;;
   --list-features) echo 'RSaver: Context pruning, budgeting, and re-anchoring for long sessions'; echo 'RScan: Read-only project scan with ranked development options at session start'; exit 0;;
   --dry-run) DRY=1; shift;; --uninstall) REMOVE=1; shift;; -h|--help) usage; exit 0;;
   *) echo "Unknown argument: $1" >&2; usage >&2; exit 2;; esac; done
@@ -23,6 +24,7 @@ case "$TARGET" in
   trae) PROJECT_ROOT=.trae; USER_ROOT=.trae;; factory) PROJECT_ROOT=.factory; USER_ROOT=.factory;;
   *) echo "Unsupported target: $TARGET" >&2; exit 2;;
 esac
+case "$MCP" in none|show|install) ;; *) echo '--mcp must be none, show, or install' >&2; exit 2;; esac
 case "$SCOPE" in project) BASE=$PROJECT_DIR; ROOT=$PROJECT_ROOT;; user) [ -n "$HOME_DIR" ] || { echo 'HOME is not set; pass --home-dir' >&2; exit 1; }; BASE=$HOME_DIR; ROOT=$USER_ROOT;; *) echo 'Scope must be project or user' >&2; exit 2;; esac
 if [ "$FEATURES" != none ]; then
   OLDIFS=$IFS; IFS=,
@@ -47,7 +49,16 @@ if [ "$REMOVE" -eq 1 ]; then
   rm -f "$TARGET_ROOT/.rcoder-features.json"
   exit 0
 fi
-if [ -d "$DEST" ] && diff -qr "$SOURCE" "$DEST" >/dev/null 2>&1; then echo "RCoder is already current at $DEST"; exit 0; fi
+mcp_step(){
+  [ "$MCP" != none ] || return 0
+  PY=''; for candidate in python3 python; do
+    if command -v "$candidate" >/dev/null 2>&1 && [ "$("$candidate" -c 'import sys; print(sys.version_info[0])' 2>/dev/null)" = 3 ]; then PY=$candidate; break; fi
+  done
+  if [ -z "$PY" ]; then echo 'MCP setup skipped: Python 3 was not found (the MCP server is a Python script).'; return 0; fi
+  ACTION=show; [ "$MCP" = install ] && ACTION=apply
+  "$PY" "$DEST/scripts/rcoder_mcp_setup.py" "$ACTION" --host "$TARGET" --scope "$SCOPE" --base "$BASE" --server "$DEST/scripts/rcoder_mcp_modern.py" || echo 'Warning: MCP setup reported a problem.'
+}
+if [ -d "$DEST" ] && diff -qr "$SOURCE" "$DEST" >/dev/null 2>&1; then echo "RCoder is already current at $DEST"; [ "$DRY" -eq 1 ] || mcp_step; exit 0; fi
 echo "Install target: $TARGET ($SCOPE) -> $DEST"
 if [ "$DRY" -eq 1 ]; then [ ! -d "$DEST" ] || echo "DRY RUN: backup existing folder to $BACKUP/install-$STAMP"; echo "DRY RUN: copy skill bundle to $DEST"; exit 0; fi
 mkdir -p "$(dirname "$DEST")" "$BACKUP"; STAGE="$(dirname "$DEST")/.rcoder-stage-$STAMP"; SAVED=''
@@ -64,3 +75,4 @@ case ",$FEATURES," in *,rscan,*) RSCAN=true;; esac
 VERSION=$(grep -m1 '"version"' "$SCRIPT_DIR/../package.json" | tr -dc '0-9.')
 printf '{\n  "schema_version": 1,\n  "version": "%s",\n  "rsaver": %s,\n  "rscan": %s\n}\n' "$VERSION" "$RSAVER" "$RSCAN" > "$FEATURE_MANIFEST"
 echo "Enabled optional tools: $FEATURES"
+mcp_step

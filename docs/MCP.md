@@ -4,6 +4,19 @@
 
 The server is not started by installing the skill. A host must be configured to launch it.
 
+## Installer setup (easiest)
+
+The installers can print or apply the host configuration for you; see the table under "MCP server setup" in the README. Both modes use `skills/rcoder/scripts/rcoder_mcp_setup.py`, which you can also run directly:
+
+```sh
+python3 skills/rcoder/scripts/rcoder_mcp_setup.py show   --host cursor --base . --server .cursor/skills/rcoder/scripts/rcoder_mcp_modern.py
+python3 skills/rcoder/scripts/rcoder_mcp_setup.py apply  --host cursor --base . --server .cursor/skills/rcoder/scripts/rcoder_mcp_modern.py
+python3 skills/rcoder/scripts/rcoder_mcp_setup.py verify --base . --server .cursor/skills/rcoder/scripts/rcoder_mcp_modern.py
+python3 skills/rcoder/scripts/rcoder_mcp_setup.py hosts
+```
+
+`apply` adds only the `rcoder` entry, backs up the config first, is idempotent, never overwrites a different `rcoder` entry, leaves non-strict JSON (for example comments) untouched and prints the snippet instead, and refuses paths that leave `--base` or cross a symbolic link. Config locations follow each host's documented project/user file; they are not natively verified (see the evidence status below).
+
 ## Quick start
 
 Print a configuration snippet for your host (nothing is written to disk):

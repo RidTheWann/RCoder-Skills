@@ -10,13 +10,16 @@ param(
     [switch]$Uninstall,
     [switch]$NoLauncher,
     [string]$Features = 'rsaver,rscan',
+    [ValidateSet('none','show','install')]
+    [string]$Mcp = 'none',
+    [string]$SourceDir = '',
     [switch]$ListFeatures
 )
 $ErrorActionPreference = 'Stop'
 if ($ListFeatures) {
     Write-Host 'RSaver: Context pruning, budgeting, and re-anchoring for long sessions'
     Write-Host 'RScan: Read-only project scan with ranked development options at session start'
-    exit 0
+    return
 }
 $selectedFeatures = @()
 if ($Features -and $Features -ne 'none') {
@@ -46,6 +49,11 @@ function Assert-NoReparsePoint([string]$Base,[string]$Path) {
     }
 }
 
+function Write-Utf8NoBom([string]$Path,[string]$Text) {
+    # Windows PowerShell 5.1 'Set-Content -Encoding UTF8' writes a BOM that breaks strict JSON readers.
+    [IO.File]::WriteAllText($Path,$Text,(New-Object System.Text.UTF8Encoding($false)))
+}
+
 function Test-SameDirectory([string]$Left,[string]$Right) {
     if(-not(Test-Path -LiteralPath $Left -PathType Container) -or -not(Test-Path -LiteralPath $Right -PathType Container)){return $false}
     $a=@(Get-ChildItem -LiteralPath $Left -File -Recurse | ForEach-Object {$_.FullName.Substring($Left.Length).TrimStart([char[]]@([char]92,[char]47))} | Sort-Object)
@@ -66,11 +74,12 @@ function Install-GlobalLauncher([string]$Repo,[string]$UserHome) {
     Assert-NoReparsePoint -Base $UserHome -Path $backupRoot
     $stage=Join-Path $launcherRoot ('.app-stage-'+[guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path (Join-Path $stage 'scripts'),(Join-Path $stage 'launcher'),(Join-Path $stage 'skills') -Force | Out-Null
-    Copy-Item -LiteralPath (Join-Path $Repo 'scripts/rcoder.mjs') -Destination (Join-Path $stage 'scripts/rcoder.mjs')
+    Copy-Item -LiteralPath (Join-Path (Join-Path $Repo 'scripts') 'rcoder.mjs') -Destination (Join-Path (Join-Path $stage 'scripts') 'rcoder.mjs')
     Copy-Item -LiteralPath (Join-Path $Repo 'targets.json') -Destination (Join-Path $stage 'targets.json')
     Copy-Item -LiteralPath (Join-Path $Repo 'package.json') -Destination (Join-Path $stage 'package.json')
-    Copy-Item -LiteralPath (Join-Path $Repo 'launcher/RCoder.ps1') -Destination (Join-Path $stage 'launcher/RCoder.ps1')
-    Copy-Item -LiteralPath (Join-Path $Repo 'skills/rcoder') -Destination (Join-Path $stage 'skills/rcoder') -Recurse
+    Copy-Item -LiteralPath (Join-Path $Repo 'launcher/RCoder.ps1') -Destination (Join-Path (Join-Path $stage 'launcher') 'RCoder.ps1')
+    Copy-Item -LiteralPath (Join-Path $Repo 'launcher/McpSetup.ps1') -Destination (Join-Path (Join-Path $stage 'launcher') 'McpSetup.ps1')
+    Copy-Item -LiteralPath (Join-Path (Join-Path $Repo 'skills') 'rcoder') -Destination (Join-Path (Join-Path $stage 'skills') 'rcoder') -Recurse
     if(Test-SameDirectory -Left $stage -Right $appRoot){Remove-Item -LiteralPath $stage -Recurse -Force}
     else {
         $saved=$null
@@ -89,14 +98,27 @@ function Install-GlobalLauncher([string]$Repo,[string]$UserHome) {
     }
     $binRoot=Join-Path $launcherRoot 'bin'
     New-Item -ItemType Directory -Path $binRoot -Force | Out-Null
-    $manager=Join-Path $appRoot 'launcher/RCoder.ps1'
+    $manager=Join-Path (Join-Path $appRoot 'launcher') 'RCoder.ps1'
     $cmd=Join-Path $binRoot 'RCoder.cmd'
-    $cmdText="@echo off`r
-powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$manager`" %*`r
-echo.`r
-echo Close and reopen the terminal if RCoder was just added to PATH.`r
-echo.`r
-"
+    $cmdLines=@(
+        '@echo off',
+        'where powershell.exe >nul 2>nul',
+        'if not errorlevel 1 goto winps',
+        'where pwsh.exe >nul 2>nul',
+        'if not errorlevel 1 goto pwsh7',
+        'echo PowerShell was not found on PATH.',
+        'exit /b 1',
+        ':winps',
+        ('powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "'+$manager+'" %*'),
+        'goto done',
+        ':pwsh7',
+        ('pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "'+$manager+'" %*'),
+        ':done',
+        'echo.',
+        'echo Close and reopen the terminal if RCoder was just added to PATH.',
+        'echo.'
+    )
+    $cmdText=($cmdLines -join "`r`n")+"`r`n"
     Set-Content -LiteralPath $cmd -Value $cmdText -Encoding ASCII
     $oldPath=[Environment]::GetEnvironmentVariable('Path','User')
     $items=@()
@@ -111,7 +133,7 @@ $baseInput=if($Scope -eq 'project'){$ProjectDir}else{$HomeDir}
 if(-not(Test-Path -LiteralPath $baseInput -PathType Container)){throw "Selected $Scope directory does not exist: $baseInput"}
 if(-not(Test-Path -LiteralPath $HomeDir -PathType Container)){throw "User home directory does not exist: $HomeDir"}
 $base=(Resolve-Path -LiteralPath $baseInput).Path
-$home=(Resolve-Path -LiteralPath $HomeDir).Path
+$userHome=(Resolve-Path -LiteralPath $HomeDir).Path
 $tempRoot=Join-Path ([IO.Path]::GetTempPath()) ('rcoder-bootstrap-'+[guid]::NewGuid().ToString('N'))
 $archive=Join-Path $tempRoot 'rcoder.zip'
 $extract=Join-Path $tempRoot 'source'
@@ -121,17 +143,28 @@ $savedBackup=$null
 $destination=$null
 try {
     New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
-    Write-Host 'Downloading the RCoder bundle over HTTPS...'
-    if($PSVersionTable.PSVersion.Major -le 5){
-        [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
-        Invoke-WebRequest -Uri $repoUrl -OutFile $archive -UseBasicParsing
+    if($SourceDir){
+        if(-not(Test-Path -LiteralPath $SourceDir -PathType Container)){throw "Source directory does not exist: $SourceDir"}
+        $repo=(Resolve-Path -LiteralPath $SourceDir).Path
+        Write-Host "Using local RCoder source: $repo"
     } else {
-        Invoke-WebRequest -Uri $repoUrl -OutFile $archive
+        Write-Host 'Downloading the RCoder bundle over HTTPS...'
+        $previousProgress=$ProgressPreference
+        $ProgressPreference='SilentlyContinue'
+        try {
+            if($PSVersionTable.PSVersion.Major -le 5){
+                # Windows PowerShell 5.1 may default to TLS 1.0/1.1, which GitHub rejects. Add TLS 1.2, keep the rest.
+                [Net.ServicePointManager]::SecurityProtocol=[Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+                Invoke-WebRequest -Uri $repoUrl -OutFile $archive -UseBasicParsing
+            } else {
+                Invoke-WebRequest -Uri $repoUrl -OutFile $archive
+            }
+        } finally { $ProgressPreference=$previousProgress }
+        Expand-Archive -LiteralPath $archive -DestinationPath $extract -Force
+        $repoDir=Get-ChildItem -LiteralPath $extract -Directory | Select-Object -First 1
+        if($null -eq $repoDir){throw 'The repository archive did not contain a source directory.'}
+        $repo=$repoDir.FullName
     }
-    Expand-Archive -LiteralPath $archive -DestinationPath $extract -Force
-    $repoDir=Get-ChildItem -LiteralPath $extract -Directory | Select-Object -First 1
-    if($null -eq $repoDir){throw 'The repository archive did not contain a source directory.'}
-    $repo=$repoDir.FullName
     $catalog=Get-Content -LiteralPath (Join-Path $repo 'targets.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     $config=@($catalog.targets | Where-Object {$_.id -eq $Target}) | Select-Object -First 1
     if($null -eq $config){throw "Target is not present in the target catalog: $Target"}
@@ -164,10 +197,10 @@ try {
         if (Test-Path -LiteralPath $featureManifest) { Remove-Item -LiteralPath $featureManifest -Force }
         return
     }
-    $source=Join-Path $repo 'skills/rcoder'
+    $source=Join-Path (Join-Path $repo 'skills') 'rcoder'
     if(-not(Test-Path -LiteralPath (Join-Path $source 'SKILL.md') -PathType Leaf)){throw 'Downloaded skill bundle is incomplete.'}
     if(-not(Test-SameDirectory -Left $source -Right $destination)){
-        if($DryRun){Write-Host 'DRY RUN: no files will be changed.';return}
+        if($DryRun){Write-Host 'DRY RUN: no files will be changed.';if($Mcp -ne 'none'){Write-Host "DRY RUN: MCP mode '$Mcp' would run after the skill is installed."};return}
         New-Item -ItemType Directory -Path $skillsRoot,$backupRoot -Force | Out-Null
         $stamp=[DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ')+'-'+[guid]::NewGuid().ToString('N').Substring(0,8)
         $stage=Join-Path $skillsRoot ".rcoder-stage-$stamp"
@@ -182,13 +215,18 @@ try {
         Write-Host "Installed RCoder skill: $destination"
         $featureManifest = Join-Path $targetRoot '.rcoder-features.json'
         $version = (Get-Content -LiteralPath (Join-Path $repo 'package.json') -Raw -Encoding UTF8 | ConvertFrom-Json).version
-        $state = @{schema_version=1;version=$version;rsaver=($selectedFeatures -contains 'rsaver');rscan=($selectedFeatures -contains 'rscan')}|ConvertTo-Json
-        Set-Content -LiteralPath $featureManifest -Value $state -Encoding UTF8
+        $state = ([ordered]@{schema_version=1;version=$version;rsaver=($selectedFeatures -contains 'rsaver');rscan=($selectedFeatures -contains 'rscan')})|ConvertTo-Json
+        Write-Utf8NoBom -Path $featureManifest -Text ($state+"`n")
         Write-Host "Enabled optional tools: $Features"
     } else {Write-Host 'The selected RCoder skill installation is already current.'}
-    if(-not $NoLauncher -and -not $DryRun){Install-GlobalLauncher -Repo $repo -UserHome $home}
+    if(-not $NoLauncher -and -not $DryRun){Install-GlobalLauncher -Repo $repo -UserHome $userHome}
+    if($Mcp -ne 'none' -and -not $DryRun){
+        . (Join-Path (Join-Path $repo 'launcher') 'McpSetup.ps1')
+        Invoke-RCoderMcpSetup -Mode $Mcp -TargetId $Target -Scope $Scope -Base $base -SkillDestination $destination
+    }
     Write-Host ''
     Write-Host 'RCoder installation complete. Open a new terminal and type RCoder to manage agents.'
+    if($Mcp -eq 'none'){Write-Host 'Optional MCP server: type RCoder and choose "Set up MCP server", or re-run this installer with -Mcp show (print config) or -Mcp install (set it up).'}
 } catch {
     if($stage -and (Test-Path -LiteralPath $stage)){Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue}
     if($savedBackup -and (Test-Path -LiteralPath $savedBackup) -and -not(Test-Path -LiteralPath $destination)){Move-Item -LiteralPath $savedBackup -Destination $destination}

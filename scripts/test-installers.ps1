@@ -2,12 +2,23 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $filesToParse = @(
     (Join-Path $repoRoot 'install.ps1'),
-    (Join-Path $repoRoot 'launcher/RCoder.ps1')
+    (Join-Path $repoRoot 'launcher/RCoder.ps1'),
+    (Join-Path $repoRoot 'launcher/McpSetup.ps1'),
+    (Join-Path $repoRoot 'scripts/install.ps1')
 )
 foreach ($file in $filesToParse) {
     $tokens = $null; $parseErrors = $null
     [System.Management.Automation.Language.Parser]::ParseFile($file, [ref]$tokens, [ref]$parseErrors) | Out-Null
     if ($parseErrors.Count -gt 0) { throw "PowerShell syntax error in $file : $($parseErrors[0].Message)" }
+    # Regression: $HOME is a read-only automatic variable; assigning $home made the bootstrap fail on every PowerShell.
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile($file, [ref]$null, [ref]$null)
+    $bad = @($ast.FindAll({
+        param($node)
+        $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+        $node.Left -is [System.Management.Automation.Language.VariableExpressionAst] -and
+        $node.Left.VariablePath.UserPath -ieq 'home'
+    }, $true))
+    if ($bad.Count -gt 0) { throw "Assignment to read-only `$HOME in $file" }
 }
 $catalog = Get-Content -LiteralPath (Join-Path $repoRoot 'targets.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 $installer = Join-Path $repoRoot 'scripts/install.ps1'
@@ -58,6 +69,20 @@ try {
     $featureState = Get-Content -LiteralPath $featureManifest -Raw -Encoding UTF8 | ConvertFrom-Json
     if (-not $featureState.rscan -or $featureState.rsaver) { throw 'Optional tool manifest is incorrect' }
     Write-Output 'PASS PowerShell optional tool selection'
+    $manifestBytes = [IO.File]::ReadAllBytes($featureManifest)
+    if ($manifestBytes.Length -ge 3 -and $manifestBytes[0] -eq 0xEF -and $manifestBytes[1] -eq 0xBB -and $manifestBytes[2] -eq 0xBF) { throw 'Feature manifest has a UTF-8 BOM' }
+    $mcpProject = Join-Path $temp 'mcp-project'
+    $mcpHome = Join-Path $temp 'mcp-home'
+    New-Item -ItemType Directory -Force -Path $mcpProject,$mcpHome | Out-Null
+    $pythonAvailable = $null -ne (Get-Command python -ErrorAction SilentlyContinue) -or $null -ne (Get-Command python3 -ErrorAction SilentlyContinue)
+    if ($pythonAvailable) {
+        & $installer -Target cursor -Scope project -ProjectDir $mcpProject -HomeDir $mcpHome -Mcp install | Out-Null
+        $mcpConfig = Join-Path (Join-Path $mcpProject '.cursor') 'mcp.json'
+        if (-not (Test-Path -LiteralPath $mcpConfig)) { throw 'MCP auto-setup did not write .cursor/mcp.json' }
+        $mcpJson = Get-Content -LiteralPath $mcpConfig -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($null -eq $mcpJson.mcpServers.rcoder) { throw 'MCP config is missing the rcoder server' }
+        Write-Output 'PASS PowerShell MCP auto-setup'
+    } else { Write-Output 'SKIP PowerShell MCP auto-setup (Python not installed)' }
 } finally {
     Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
 }

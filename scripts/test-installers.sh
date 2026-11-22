@@ -59,3 +59,10 @@ test -f "$FEATURE_MANIFEST"
 grep -q '"rsaver": true' "$FEATURE_MANIFEST"
 grep -q '"rscan": false' "$FEATURE_MANIFEST"
 echo 'PASS POSIX optional tool selection'
+if command -v python3 >/dev/null 2>&1 || command -v python >/dev/null 2>&1; then
+  MCP_PROJECT="$TMP/mcp-project"; MCP_HOME="$TMP/mcp-home"; mkdir -p "$MCP_PROJECT" "$MCP_HOME"
+  sh "$INSTALLER" --target cursor --scope project --project-dir "$MCP_PROJECT" --home-dir "$MCP_HOME" --mcp install >/dev/null
+  grep -q '"rcoder"' "$MCP_PROJECT/.cursor/mcp.json"
+  sh "$INSTALLER" --mcp bogus 2>/dev/null && { echo 'invalid --mcp value was accepted' >&2; exit 1; } || true
+  echo 'PASS POSIX MCP auto-setup'
+fi
