@@ -109,7 +109,8 @@ def main():
         "reverse-engineering-architecture.md", "reverse-engineering-file-formats.md",
         "token-efficiency.md", "web-platform-engineering.md", "model-adaptation.md",
         "rsaver.md", "rsaver-gate.md", "rsaver-anchor.md", "rsaver-crosscheck.md",
-        "rscan.md", "agent-extensions-engineering.md"
+        "rscan.md", "agent-extensions-engineering.md", "llm-agent-security.md",
+        "observability-sre.md"
     ):
         check((SKILL / "references" / required).is_file(), f"G1: required specialist missing: {required}")
 
@@ -230,7 +231,8 @@ def main():
         "scripts/test-score-scenarios.py", "scripts/verify-objective.py", "scripts/test-objective.py",
         "scripts/test-tool-probe.py", "skills/rcoder/scripts/tool_probe.py",
         "scripts/check-dist.py", "scripts/test-mcp.py", "scripts/rcoder-mcp.py",
-        "skills/rcoder/scripts/rcoder_mcp.py",
+        "skills/rcoder/scripts/rcoder_mcp.py", "skills/rcoder/scripts/rcoder_mcp_modern.py",
+        "scripts/test-mcp-modern.py",
         "install.ps1", "launcher/RCoder.ps1", "targets.json"
     ):
         check((ROOT / required).is_file(), f"G1: required installer/test file missing: {required}")
@@ -295,7 +297,7 @@ def main():
     executables = list((ROOT / "scripts").glob("*")) + [
         ROOT / "install.ps1", ROOT / "launcher" / "RCoder.ps1",
         SKILL / "scripts" / "detect_stack.py", SKILL / "scripts" / "context_snapshot.py",
-        SKILL / "scripts" / "rcoder_mcp.py"
+        SKILL / "scripts" / "rcoder_mcp.py", SKILL / "scripts" / "rcoder_mcp_modern.py"
     ]
     secret_patterns = [
         re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
@@ -396,10 +398,25 @@ def main():
     mcp_servers = manifests[".claude-plugin/plugin.json"].get("mcpServers", {})
     check("rcoder" in mcp_servers, "G8: Claude plugin manifest does not declare the rcoder MCP server")
     launch = mcp_servers.get("rcoder", {}).get("args", [])
-    check(any(str(arg).endswith("skills/rcoder/scripts/rcoder_mcp.py") for arg in launch),
+    check(any(str(arg).endswith(("skills/rcoder/scripts/rcoder_mcp.py",
+                                 "skills/rcoder/scripts/rcoder_mcp_modern.py")) for arg in launch),
           "G8: Claude plugin MCP launch does not point at the bundled server")
-    check(not (ROOT / "hooks").exists(),
-          "G8: no auto-firing hooks may ship by default (opt-in via rscan hooks install)")
+    hooks_file = ROOT / "hooks" / "hooks.json"
+    check(hooks_file.is_file(), "G8: plugin hooks/hooks.json missing (D-019)")
+    hook_events = load_json(hooks_file).get("hooks", {}) if hooks_file.is_file() else {}
+    check(set(hook_events) == {"SessionStart"},
+          "G8: the plugin may ship only a SessionStart hook; blocking or tool-event hooks are forbidden (D-019)")
+    for entry in hook_events.get("SessionStart", []):
+        check(entry.get("matcher") == "startup", "G8: the plugin hook must match startup only")
+        for hook in entry.get("hooks", []):
+            command = hook.get("command", "")
+            check(hook.get("type") == "command" and 0 < hook.get("timeout", 0) <= 30,
+                  "G8: the plugin hook must be a command with a timeout of at most 30 seconds")
+            check("skills/rcoder/scripts/rscan.py" in command and " scan " in command
+                  and "--hook claude" in command and not re.search(r"[;&|]\s*(?!\|)", command.replace("||", "")),
+                  "G8: the plugin hook may only run the bundled read-only rscan scan")
+            check(not re.search(r"(?i)\b(curl|wget|rm|sudo|eval|install)\b", command),
+                  "G8: the plugin hook command contains a forbidden program")
     check("mcp" in package.get("keywords", []), "G8: npm keywords should include mcp")
 
     check(CHECKS >= 3060, "G0: validation check count fell below the expected floor")

@@ -1,0 +1,14 @@
+---
+description: Review or design telemetry, SLOs, alerting, and rollback readiness for a service
+argument-hint: [service, repo path, or symptom]
+---
+Review production observability and reliability using the RCoder `observability-sre` specialist.
+
+Target requested by the user: $ARGUMENTS
+
+1. Load the specialist with `rcoder_get_specialist` (MCP; name `observability-sre`, sections `Procedure`, `Decision tree`, `Verification`) or read `references/observability-sre.md` from the installed skill. Add `backend-api-engineering` when the service code needs changes.
+2. Identify the user journeys and their dependencies. Inspect existing instrumentation, alert rules, dashboards, and runbooks in the repository with bounded reads; do not query production systems unless the user supplied access and authorization.
+3. Propose service level indicators, SLO targets backed by evidence, and an error-budget policy. If no data exists, say so and recommend a measurement period instead of inventing targets.
+4. Review alerts for symptom-based paging, actionability, runbook links, and cardinality or cost risk. Flag secrets or personal data in logs and traces.
+5. Check that rollouts are staged and that a rollback has been tested.
+6. Report: journeys and SLIs, proposed changes in priority order, cost and cardinality notes, tests run with observed results, and anything NOT VERIFIED.

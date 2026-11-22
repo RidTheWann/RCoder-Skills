@@ -21,6 +21,8 @@
     "ex-17": [],
     "ex-18": [],
     "ex-19": ["agent-extensions-engineering", "security"],
-    "ex-20": ["agent-extensions-engineering", "verification"]
+    "ex-20": ["agent-extensions-engineering", "verification"],
+    "ex-21": ["security", "llm-agent-security", "threat-modeling"],
+    "ex-22": ["observability-sre", "backend-api-engineering"]
   }
 }
