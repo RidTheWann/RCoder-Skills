@@ -90,7 +90,7 @@ The 22-tool figure scales the earlier measured characters-to-token ratio rather 
 
 The Claude Code plugin manifest (`.claude-plugin/plugin.json`) declares the server and the repository ships:
 
-- **Slash commands** (`commands/`): `scan`, `route`, `review`, `verify`, `handoff`, `doctor`, `saver`. They prefer the MCP tools and fall back to the bundled scripts. None pre-approves tools.
+- **Slash commands** (`commands/`): `scan`, `route`, `review`, `verify`, `handoff`, `doctor`, `saver`, `agent-security`, `observe`. They prefer the MCP tools and fall back to the bundled scripts. None pre-approves tools.
 - **Subagents** (`agents/`): `rcoder-explorer`, `rcoder-reviewer`, `rcoder-verifier`, `rcoder-security-reviewer` (passive review), and `rcoder-saver` (read-only context optimization, budgeting, and evidence recovery).
 
 No hook ships by default. Automatic session-start scanning stays opt-in through `rscan hooks install` (see `RSCAN-HOOKS.md`), because an always-firing hook changes behavior and token use for every session. `scripts/validate-all` rejects a `hooks/` directory to keep that decision explicit.

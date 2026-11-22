@@ -52,6 +52,8 @@ jobs:
         run: |
           python -m py_compile skills/rcoder/scripts/rcoder_mcp.py skills/rcoder/scripts/rcoder_mcp_modern.py
           python scripts/rcoder-mcp.py --print-config generic > "$RUNNER_TEMP/mcp-generic.json"
+          python skills/rcoder/scripts/rcoder_mcp_modern.py --print-config generic > "$RUNNER_TEMP/mcp-modern.json"
+          python -c "import json,sys; json.load(open(sys.argv[1]))" "$RUNNER_TEMP/mcp-modern.json"
           python -c "import json,sys; json.load(open(sys.argv[1]))" "$RUNNER_TEMP/mcp-generic.json"
       - name: Benchmark harness syntax check
         run: python -m py_compile scripts/run-benchmark.py
