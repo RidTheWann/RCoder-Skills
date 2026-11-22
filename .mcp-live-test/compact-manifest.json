@@ -1,0 +1,31 @@
+{
+  "tool": "RSaver",
+  "version": "1.11.0",
+  "method": "structure_preserving_prune",
+  "file": "/root/RCoder-Skills/.mcp-live-test/sample.log",
+  "original_sha256": "8780470cedc895aecf5590115180bfe17f3b127fd35595c536c8a3aa1339b315",
+  "original_lines": 35,
+  "critical_pattern": "(?i)(error|fail|exception|traceback|fatal|panic|exit[ _-]?code|status[=:]\\s*\\d+|sha256|\\b[0-9a-f]{40,}\\b|https?://|\\bnot verified\\b|\\binferred\\b|\\bunknown\\b)",
+  "critical_lines": [7, 8, 9, 10, 11, 16, 17, 34, 35],
+  "kept_ranges": [[1, 1], [7, 11], [16, 17], [34, 35]],
+  "kept_range_sha256": {
+    "1-1": "ac4b1ba068794acaf784671e7de23037c283512c5d245af7f12467c04aef0432",
+    "16-17": "18a2e15be4c259850f0ebc35a24f56778f2a0f890ef9317cd1cd164a95286bac",
+    "34-35": "551c726ee345ef8b903404c65ac651ef294143bf38fcd1964ba6c705a79dd91c",
+    "7-11": "39723e350964f4f0b63cfcea68a0b045dd0b809d47dbed4c594aebcebc27efe9"
+  },
+  "omitted_ranges": [[2, 6], [12, 15], [18, 33]],
+  "recovery_command": "rsaver recover --file <file> --range START:END",
+  "budget_exceeded_by_critical": false,
+  "estimate": {
+    "method": "content_class_pretoken_heuristic_v2",
+    "profile": "generic",
+    "original_estimate": 344,
+    "compact_estimate": 100,
+    "chars_over_4_original": 244,
+    "chars_over_4_compact": 81,
+    "saved_estimate": 244,
+    "saved_percent": 70.93,
+    "v1_legacy": {"method": "dependency_free_run_heuristic_v1", "original_estimate": 353, "compact_estimate": 116}
+  }
+}

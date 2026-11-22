@@ -1,0 +1,7 @@
+{
+  "objective": "Add the RCoder MCP live test evidence report",
+  "required_files": ["docs/RCODER-MCP-LIVE-TEST-REPORT.md"],
+  "forbidden_paths": ["opencode.json", "skills/rcoder/scripts/rcoder_mcp.py"],
+  "failure_markers": ["FAIL", "ERROR", "Traceback"],
+  "success_markers": ["PASS", "ok"]
+}

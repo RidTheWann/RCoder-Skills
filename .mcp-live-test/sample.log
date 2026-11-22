@@ -1,0 +1,35 @@
+===== build output =====
+$ npm run build
+INFO starting build step
+INFO compiling module alpha
+INFO compiling module beta
+INFO compiling module gamma
+ERROR: module delta failed to compile
+TRACEBACK: connect() at compiler.py:42
+STATUS=1
+sha256=abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+see https://example.test/build/1234 for full log
+INFO retrying build
+INFO compiling module alpha
+INFO compiling module beta
+INFO compiling module gamma
+ERROR: module delta failed to compile
+STATUS=1
+INFO compiling module epsilon
+INFO compiling module zeta
+INFO compiling module eta
+INFO linking objects
+INFO writing artifact
+INFO artifact written
+===== noisy repeats =====
+tick 2026-11-22T10:00:00Z ok
+tick 2026-11-22T10:00:01Z ok
+tick 2026-11-22T10:00:02Z ok
+tick 2026-11-22T10:00:03Z ok
+tick 2026-11-22T10:00:04Z ok
+tick 2026-11-22T10:00:05Z ok
+tick 2026-11-22T10:00:06Z ok
+tick 2026-11-22T10:00:07Z ok
+===== summary =====
+build exit code 1
+ERROR final: build failed

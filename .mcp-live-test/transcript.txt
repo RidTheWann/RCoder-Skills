@@ -1,0 +1,11 @@
+OBJECTIVE: test the RCoder MCP integration end to end
+CONSTRAINT: do not modify RCoder source code
+$ python3 skills/rcoder/scripts/rsaver.py drift .mcp-live-test/transcript.txt
+INFO step one done
+$ python3 skills/rcoder/scripts/rsaver.py drift .mcp-live-test/transcript.txt
+INFO step two done
+$ python3 skills/rcoder/scripts/rsaver.py drift .mcp-live-test/transcript.txt
+INFO step three done
+INFO result confirmed
+All tests pass, work is complete.
+unknown: external host discovery is not verified
