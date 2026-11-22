@@ -23,7 +23,7 @@ INIT = {"jsonrpc": "2.0", "id": 0, "method": "initialize",
                    "clientInfo": {"name": "test", "version": "0"}}}
 NOTIFIED = {"jsonrpc": "2.0", "method": "notifications/initialized"}
 # Regression guards on context cost (characters of the serialized tools/list result).
-FULL_TOOLS_CHAR_BUDGET = 9500
+FULL_TOOLS_CHAR_BUDGET = 12500
 MINIMAL_TOOLS_CHAR_BUDGET = 2800
 
 
@@ -116,7 +116,7 @@ def main():
         by_id, _, _ = session([INIT, {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}], root)
         tools = by_id[1]["result"]["tools"]
         names = [item["name"] for item in tools]
-        assert len(names) == len(set(names)) == 14
+        assert len(names) == len(set(names)) == 21
         for tool in tools:
             assert re.fullmatch(r"[a-z][a-z0-9_]*", tool["name"]), tool["name"]
             spec = tool["inputSchema"]
@@ -256,6 +256,8 @@ def main():
         assert "exit_code" in flag_like, "a flag-like pattern must not be parsed as a CLI option"
         compacted = payload_of(call(root, "rsaver_compact", {"path": "build.log", "max_lines": 30}))
         assert compacted["ok"] is True and "ERROR: build failed" in json.dumps(compacted)
+        compacted_80 = payload_of(call(root, "rsaver_compact", {"path": "build.log", "target_savings": 80}))
+        assert compacted_80["ok"] is True and compacted_80["result"]["estimate"]["saved_percent"] >= 80.0
         assert (root / "build.log").read_text(encoding="utf-8").count("\n") == 151, "original must be unchanged"
         budget = payload_of(call(root, "rsaver_budget", {"window": 100000, "output_reserve": 8000}))
         figures = budget["result"]
@@ -289,6 +291,64 @@ def main():
         assert decisions["old-log"] == "defer" and decisions["system"] == "keep"
         bad_gate = payload_of(call(root, "rsaver_gate", {"envelope": {"window_tokens": 0, "items": []}}))
         assert bad_gate["ok"] is False and bad_gate["exit_code"] != 0
+
+        # --- new RSaver tools: anchor, reanchor, dedupe, recover, verify, pack, unpack ---
+        state_data = {
+            "objective": "Fix build failure",
+            "constraints": ["Do not touch build.log"],
+            "verified_facts": ["Build failed at step 3"],
+            "decisions": ["Check parser"],
+            "unresolved": ["Step 3 root cause"],
+            "next_action": "Run step 3 tests",
+        }
+        (root / "state.json").write_text(json.dumps(state_data), encoding="utf-8")
+        anchor = payload_of(call(root, "rsaver_anchor", {"state": state_data}))
+        assert anchor["ok"] is True and "RSAVER ANCHOR START" in anchor["result"]["block"]
+
+        (root / "envelope.json").write_text(json.dumps(envelope), encoding="utf-8")
+        reanchor = payload_of(call(root, "rsaver_reanchor", {"envelope": "envelope.json", "state": "state.json"}))
+        assert reanchor["ok"] is True and reanchor["result"]["anchor"]["estimate"] > 0
+
+        deduped = payload_of(call(root, "rsaver_dedupe", {"text": "INFO line\n" * 40 + "ERROR: boom\n"}))
+        assert deduped["ok"] is True and "ERROR: boom" in deduped["result"]["deduped_text"]
+        norm_dedupe = payload_of(call(root, "rsaver_dedupe", {
+            "text": "\n".join([f"2026-11-22 19:00:0{i} [t-1] step {i} ok" for i in range(40)] + ["ERROR: failure"]),
+            "normalize": True
+        }))
+        assert norm_dedupe["ok"] is True and norm_dedupe["result"]["stats"]["saved_percent"] >= 80.0
+
+        manifest_file = root / "compact_manifest.json"
+        subprocess.run([sys.executable, str(ROOT / "skills" / "rcoder" / "scripts" / "rsaver.py"),
+                        "compact", str(root / "build.log"), "--manifest", str(manifest_file), "--max-lines=30"],
+                       check=True, capture_output=True)
+        verified = payload_of(call(root, "rsaver_verify", {"manifest": "compact_manifest.json"}))
+        assert verified["ok"] is True
+
+        recovered = payload_of(call(root, "rsaver_recover", {"file": "build.log", "range": "1:5"}))
+        assert recovered["ok"] is True and len(recovered["result"]["text"].splitlines()) == 5
+
+        packed = payload_of(call(root, "rsaver_pack", {"text": "REPEAT LINE CONTENT " * 50}))
+        assert packed["ok"] is True and packed["result"]["worthwhile"] is True
+        (root / "pack.json").write_text(json.dumps(packed["result"]), encoding="utf-8")
+        unpacked = payload_of(call(root, "rsaver_unpack", {"manifest": "pack.json"}))
+        assert unpacked["ok"] is True and unpacked["result"]["verified"] is True
+
+        # Test rsaver_dedupe with blocks and words (zero-token duplicate elimination)
+        cmd_repeat = ('PS C:\\> powershell -Command "npm test"\n'
+                      'Test Suite: PASS\n'
+                      '<shellId: 1 completed with exit code 0>\n') * 20
+        deduped_blocks = payload_of(call(root, "rsaver_dedupe", {"text": cmd_repeat, "blocks": True}))
+        assert deduped_blocks["ok"] is True and deduped_blocks["result"]["stats"]["saved_percent"] >= 90.0
+
+        phrase_sample = "powershell -Command Get-ChildItem -Recurse. " * 30
+        deduped_words = payload_of(call(root, "rsaver_dedupe", {"text": phrase_sample, "words": True}))
+        assert deduped_words["ok"] is True and deduped_words["result"]["stats"]["saved_percent"] >= 90.0
+
+        dict_pack = payload_of(call(root, "rsaver_pack", {"text": phrase_sample, "method": "dict"}))
+        assert dict_pack["ok"] is True and dict_pack["result"]["saved_percent"] >= 90.0
+        (root / "dict_pack.json").write_text(json.dumps(dict_pack["result"]), encoding="utf-8")
+        unpacked_dict = payload_of(call(root, "rsaver_unpack", {"manifest": "dict_pack.json"}))
+        assert unpacked_dict["ok"] is True and unpacked_dict["result"]["text"] == phrase_sample
 
         # --- confinement and secret refusal ---------------------------------------------------------
         for hostile in ("../outside/secret.txt", str(outside / "secret.txt"), "src/../../outside/secret.txt"):
@@ -343,6 +403,10 @@ def main():
             {"jsonrpc": "2.0", "id": 19, "method": "prompts/get",
              "params": {"name": "rcoder_verify", "arguments": {"claim": "the parser bug is fixed"}}},
             {"jsonrpc": "2.0", "id": 20, "method": "prompts/get", "params": {"name": "rcoder_verify"}},
+            {"jsonrpc": "2.0", "id": 21, "method": "prompts/get",
+             "params": {"name": "rcoder_context_gate", "arguments": {"task": "multi-file refactor", "window": "80000"}}},
+            {"jsonrpc": "2.0", "id": 22, "method": "prompts/get",
+             "params": {"name": "rcoder_reanchor", "arguments": {"objective": "fix parser regression"}}},
         ], root)
         uris = {item["uri"] for item in by_id[1]["result"]["resources"]}
         assert "rcoder://skill" in uris and "rcoder://specialist/security" in uris
@@ -354,7 +418,7 @@ def main():
         assert by_id[7]["result"]["contents"][0]["text"].strip()
         assert {item["name"] for item in by_id[8]["result"]["prompts"]} == {
             "rcoder_intake", "rcoder_review", "rcoder_handoff", "rcoder_security_scope",
-            "rcoder_route", "rcoder_verify"}
+            "rcoder_route", "rcoder_verify", "rcoder_context_gate", "rcoder_reanchor"}
         listed_resources = {item["uri"]: item for item in by_id[1]["result"]["resources"]}
         assert "rcoder://specialist/custom-module" in listed_resources, "project-local extensions must be listed"
         assert "untrusted" in listed_resources["rcoder://specialist/custom-module"]["description"]
@@ -373,6 +437,10 @@ def main():
         assert "the parser bug is fixed" in verify_text and "rsaver_crosscheck" in verify_text
         assert "never PASS" in verify_text
         assert by_id[20]["error"]["code"] == -32602
+        gate_text = by_id[21]["result"]["messages"][0]["content"]["text"]
+        assert "RSaver Gate" in gate_text and "multi-file refactor" in gate_text
+        reanchor_text = by_id[22]["result"]["messages"][0]["content"]["text"]
+        assert "Re-anchor" in reanchor_text and "fix parser regression" in reanchor_text
         assert "fix the parser" in by_id[9]["result"]["messages"][0]["content"]["text"]
         assert by_id[10]["error"]["code"] == -32602
         assert "ship v2" in by_id[11]["result"]["messages"][0]["content"]["text"]

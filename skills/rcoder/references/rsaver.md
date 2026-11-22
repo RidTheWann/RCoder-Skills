@@ -30,16 +30,22 @@ Calibration note: on a seven-sample in-repository research fixture, an oracle bu
 ## Procedure
 1. Measure first: `python3 scripts/rsaver.py measure <paths> --json`.
 2. For a known symbol, extract a bounded window: `rsaver select FILE --match 'SYMBOL|ERROR' --context 2 --max-lines 120`.
-3. For verbose output, prune non-critical lines: `rsaver compact FILE --max-lines 120 --critical '<pattern>' --manifest manifest.json --verify`.
-4. For exact repeated lines, collapse them: `rsaver dedupe FILE --json`; RSaver only emits a marker when the marker itself costs less than the removed lines.
+3. For verbose output, prune non-critical lines to 80%+ savings: `rsaver compact FILE --target-savings 80 --critical '<pattern>' --manifest manifest.json --verify`.
+4. For repetitive lines, words, or command blocks, collapse them:
+   - Command/terminal blocks: `rsaver dedupe FILE --blocks --json` (90%+ savings on repeating command runs).
+   - Frequent words/phrases: `rsaver dedupe FILE --words --json` (replaces duplicate words with a collision-free zero-cost reference).
+   - Readable dictionary compression: `rsaver pack FILE --method dict --json` (unpacked losslessly via `rsaver unpack`).
+   - Template/timestamped logs: `rsaver dedupe FILE --normalize --json`.
 5. Inspect the reported saved estimate and saved percent. If savings are zero, keep the original context; reduction must not add text.
-6. Recover anything needed later with `rsaver recover --file FILE --range START:END`, then re-read the original with the agent's bounded read tool.
+6. Recover anything needed later with `rsaver recover --file FILE --range START:END` or `rsaver unpack --manifest manifest.json`, then re-read the original with the agent's bounded read tool.
 7. Verify integrity before trusting a compacted artifact: `rsaver verify --manifest manifest.json`.
 8. Record original estimate, reduced estimate, critical lines preserved, omitted ranges, and the verification status in the working ledger.
 
 ## Decision tree
 - Need one symbol or error → `select`, not `compact`.
-- Output is a repeating log → `dedupe` first; if still large, `compact` with a critical pattern.
+- Repeating command executions (PS/CMD/Terminal) → `dedupe --blocks` (first run verbatim, repeats collapsed).
+- Repeating phrases, conversational terms, or frequent words → `dedupe --words` or `pack --method dict`.
+- Output is a repeating or timestamped log → `dedupe --normalize` first; if still large, `compact --target-savings 80` with a critical pattern.
 - File is source code to edit → read bounded ranges directly; do not prune code.
 - Critical lines exceed the line budget → RSaver keeps them all and reports `budget_exceeded_by_critical`; raise the budget or split the task.
 - Exact model count is required → use the model's own tokenizer or counting endpoint; RSaver estimates are not sufficient.
