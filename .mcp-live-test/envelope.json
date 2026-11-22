@@ -1,0 +1,14 @@
+{
+  "window_tokens": 4000,
+  "output_reserve": 800,
+  "reasoning_reserve": 600,
+  "tool_schema_tokens": 700,
+  "cache_min_tokens": 200,
+  "profile": "generic",
+  "items": [
+    {"id": "system", "section": "prefix", "tokens": 300, "stability": "static", "priority": "required"},
+    {"id": "task", "section": "working", "tokens": 250, "stability": "dynamic", "priority": "required"},
+    {"id": "history", "section": "history", "tokens": 900, "stability": "dynamic", "priority": "optional"},
+    {"id": "answer", "section": "tail", "tokens": 200, "stability": "dynamic", "priority": "useful"}
+  ]
+}

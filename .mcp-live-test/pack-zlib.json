@@ -1,0 +1,16 @@
+{
+  "tool": "RSaver",
+  "version": "1.11.0",
+  "method": "zlib9_base64_roundtrip",
+  "source": "-",
+  "original_sha256": "2c7f38ce9baf44fd4c5ec1dc2099b0497916dfea67ada865c71f26762235e7ac",
+  "original_chars": 2171,
+  "compressed_chars": 208,
+  "original_estimate": 481,
+  "packed_estimate": 80,
+  "saved_estimate": 401,
+  "saved_percent": 83.37,
+  "worthwhile": true,
+  "payload": "eNrtz0EOgjAUBNA9p5gruDVx4UITNpIAHqDQD/1J4TftR+Ltxag3cGFiDzBvZsrLuUIvU2DP84hJ7OIJxgdnsLI63Ch2kgiWzThLUu5hSQ37hEEi1BG6hb1F4ECbQUhqRoKuUpQZz3jG/xU/1XVV7z+oJa8GwxYlC5V3KxVNe2yvzWH32hJJ4/05JSmFL/3LZjaz+XPmAywdHok=",
+  "billing_note": "RSaver cannot zero, reverse, or refund provider billing. Token charges are determined by the provider; use this evidence only under the provider's published support policy."
+}

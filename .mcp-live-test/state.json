@@ -1,0 +1,16 @@
+{
+  "objective": "Test all 21 RCoder MCP tools through the live OpenCode connection and write an evidence report",
+  "constraints": [
+    "Do not modify RCoder source code",
+    "Do not change MCP configuration",
+    "No destructive operations"
+  ],
+  "verified_facts": [
+    "rcoder_doctor returned server_version 1.14.0",
+    "OpenCode CLI reports v2.3.2"
+  ],
+  "decisions": ["Use dedicated fixture files inside the server root"],
+  "unresolved": ["Host-side tool discovery is not independently verified"],
+  "security_boundary": "Read-only, local, root-confined paths only",
+  "next_action": "Invoke remaining MCP tools and capture responses"
+}

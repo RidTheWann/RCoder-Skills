@@ -1,0 +1,43 @@
+{
+  "tool": "RSaver",
+  "version": "1.11.0",
+  "method": "frequency_dict_zero_dup",
+  "source": "-",
+  "original_sha256": "2c7f38ce9baf44fd4c5ec1dc2099b0497916dfea67ada865c71f26762235e7ac",
+  "original_chars": 2171,
+  "compressed_chars": 283,
+  "original_estimate": 481,
+  "packed_estimate": 101,
+  "saved_estimate": 380,
+  "saved_percent": 79,
+  "worthwhile": true,
+  "dictionary": {
+    "@0": "diagnostic details for the build pipeline",
+    "@1": "lines repeated",
+    "@2": "with verbose",
+    "@3": "stage two",
+    "@4": "RSaver"
+  },
+  "blocks": [
+    {
+      "marker": "[RSaver#0: block 2 lines repeated x5 orig 3-12]",
+      "omitted": "INFO compiling module alpha with verbose diagnostic details for the build pipeline stage two\nINFO compiling module alpha with verbose diagnostic details for the build pipeline stage two\nINFO compiling module alpha with verbose diagnostic details for the build pipeline stage two\nINFO compiling module alpha with verbose diagnostic details for the build pipeline stage two\nINFO compiling module alpha with verbose diagnostic details for the build pipeline stage two\nINFO compiling module alpha with verbose diagnostic details for the build pipeline stage two\nINFO compiling module alpha with verbose diagnostic details for the build pipeline stage two\nINFO compiling module alpha with verbose diagnostic details for the build pipeline stage two\nINFO compiling module alpha with verbose diagnostic details for the build pipeline stage two\nINFO compiling module alpha with verbose diagnostic details for the build pipeline stage two"
+    },
+    {
+      "marker": "[RSaver#1: block 2 lines repeated x5 orig 17-26]",
+      "omitted": "INFO retrying step with verbose diagnostic details for the build pipeline stage two\nINFO retrying step with verbose diagnostic details for the build pipeline stage two\nINFO retrying step with verbose diagnostic details for the build pipeline stage two\nINFO retrying step with verbose diagnostic details for the build pipeline stage two\nINFO retrying step with verbose diagnostic details for the build pipeline stage two\nINFO retrying step with verbose diagnostic details for the build pipeline stage two\nINFO retrying step with verbose diagnostic details for the build pipeline stage two\nINFO retrying step with verbose diagnostic details for the build pipeline stage two\nINFO retrying step with verbose diagnostic details for the build pipeline stage two\nINFO retrying step with verbose diagnostic details for the build pipeline stage two"
+    }
+  ],
+  "inline_repeats": [
+    {
+      "marker": "[RSaver#0: repeat x1]",
+      "omitted": "INFO compiling module alpha with verbose diagnostic details for the build pipeline stage two\n"
+    },
+    {
+      "marker": "[RSaver#1: repeat x1]",
+      "omitted": "\nINFO retrying step with verbose diagnostic details for the build pipeline stage two"
+    }
+  ],
+  "payload": "INFO compiling module alpha with verbose diagnostic details for the build pipeline stage two\n[RSaver#0: repeat x1][@4#0: block 2 lines repeated x5 orig 3-12]\nERROR: module delta failed to compile\nSTATUS=1\nINFO retrying step @2 @0 @3[@4#1: repeat x1]\n[@4#1: block 2 @1 x5 orig 17-26]\n",
+  "billing_note": "RSaver cannot zero, reverse, or refund provider billing. Token charges are determined by the provider; use this evidence only under the provider's published support policy."
+}
