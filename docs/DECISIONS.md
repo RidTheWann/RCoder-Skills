@@ -61,3 +61,8 @@
 
 ## D-018 — Least-privilege subagents and unapproved commands
 - Decision: plugin subagents are never granted file-editing tools, the security reviewer has no shell, and slash commands do not pre-approve tools. `scripts/validate-all` enforces this.
+
+## D-019 — Extend an existing MCP tool instead of adding one
+- Decision: module search is an optional `query` on `rcoder_list_specialists`, not a new tool, and it matches only name, title, and "Activate when" text.
+- Rationale: every tool schema is sent on every request, so a new tool costs tokens in all sessions; matching only the activation text keeps incidental body words from producing misleading candidates. The result states that a query locates names and does not choose a primary, which preserves the rule to select by deliverable.
+- Consequence: resources, tools, and prompts must apply project-local overrides identically; `scripts/test-mcp.py` asserts that parity.

@@ -1,8 +1,12 @@
-# RCoder project handoff — v1.13.0
+# RCoder project handoff — v1.14.0
 
 ## Delivered
 
 RCoder remains one portable Agent Skill with progressive disclosure. The core router selects focused references rather than injecting the entire specialist library into every agent context.
+
+Version 1.14.0 adds:
+- A read-only, dependency-free stdio MCP server (`skills/rcoder/scripts/rcoder_mcp.py`) with 14 tools, resources, and workflow prompts; Claude Code plugin slash commands and least-privilege subagents; the `agent-extensions-engineering` specialist; and validator group G8. Details: `CHANGELOG.md` and `docs/MCP.md`.
+- Pending in `CHANGELOG.md` under `[Unreleased]` (not yet released): a fix so MCP resources honor project-local overrides, a `query` filter on `rcoder_list_specialists`, `completion/complete`, and `rcoder_route` / `rcoder_verify` prompts. Locally verified only; hosted CI for it is not recorded.
 
 Version 1.13.0 adds:
 - An operational selection gate and stronger base-plus-narrow composition in `specialist-routing.md` and SKILL.md, derived from case-level control errors and checked in a fresh, bounded live ablation against the unmodified v1.11.0 skill.
@@ -69,7 +73,7 @@ Version 1.2.0 added:
 Repository: https://github.com/RidTheWann/RCoder-Skills
 Historical baseline (as recorded on 2026-11-19): `main` at `6472c7090e580317b9b26142422455aba5092c7c` (v1.10.0, PR [#6](https://github.com/RidTheWann/RCoder-Skills/pull/6)). PR [#7](https://github.com/RidTheWann/RCoder-Skills/pull/7) merged as `3f1cfc1c46cff2be56c921a09566f0247c8a7a3c`. PR [#9](https://github.com/RidTheWann/RCoder-Skills/pull/9) delivered v1.12.0 and PR [#10](https://github.com/RidTheWann/RCoder-Skills/pull/10) its delivery record.
 Verified v1.13 baseline: `main` at `b34aaa0c050be9893d2e97301483af9352ad14df`.
-Current release: v1.13.0, delivered through PR [#11](https://github.com/RidTheWann/RCoder-Skills/pull/11) (MERGED 2026-11-19T12:44:04Z) as main commit `218f7b57f22cdce3394f32b9f58185bc6c12b034`. Linux and Windows matrix [44526085390](https://github.com/RidTheWann/RCoder-Skills/actions/runs/44526085390) PASS. Full provenance is in `docs/V1.13-DELIVERY.md`. The frozen historical control remains `evals/runs/hy4-flash-openrouter-2026-11-19/` (61 cases × 2 arms, strict scorer exit 0).
+v1.14.0 is described in `CHANGELOG.md`; this file does not record its hosted-CI run. The v1.13.0 release record: v1.13.0, delivered through PR [#11](https://github.com/RidTheWann/RCoder-Skills/pull/11) (MERGED 2026-11-19T12:44:04Z) as main commit `218f7b57f22cdce3394f32b9f58185bc6c12b034`. Linux and Windows matrix [44526085390](https://github.com/RidTheWann/RCoder-Skills/actions/runs/44526085390) PASS. Full provenance is in `docs/V1.13-DELIVERY.md`. The frozen historical control remains `evals/runs/hy4-flash-openrouter-2026-11-19/` (61 cases × 2 arms, strict scorer exit 0).
 
 ## Installation
 

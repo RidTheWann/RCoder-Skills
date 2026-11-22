@@ -2,6 +2,23 @@
 
 RCoder follows Semantic Versioning.
 
+## [Unreleased]
+
+### Fixed
+- MCP resources ignored project-local guidance: `resources/read` for `rcoder://specialist/{name}` always returned the built-in module even when `.rcoder/references/<name>.md` replaced it (as `SKILL.md` and `rcoder_get_specialist` already specified), and project-local extension modules were neither listed nor readable as resources. Resources now follow the same override rules and are served behind the same untrusted-content notice. `rcoder_list_specialists` now summarizes the active override instead of the shadowed built-in text.
+
+### Added
+- `rcoder_list_specialists` accepts an optional `query` that ranks candidate module names by name, title, and "Activate when" text (top 15 with a score). It keeps the tool count at 14, so the tool-list context cost grows by about 150 characters instead of a new tool schema, and it never chooses a primary.
+- `completion/complete` for the `{name}` argument of the specialist and template resource templates (case-insensitive prefix, at most 100 values), with the `completions` capability advertised from protocol `2025-03-26`.
+- MCP prompts `rcoder_route` and `rcoder_verify`, mirroring the plugin's `/route` and `/verify` commands for hosts that surface MCP prompts.
+- `scripts/test-mcp.py` covers the resource override and extension behavior, query ranking and rejection paths, completion success, hostile-value, and invalid-parameter paths, capability gating by protocol version, and the new prompts. The new assertions fail against the previous server.
+
+### Changed
+- `docs/MCP.md` documents the above and the re-measured tool-list cost (`full` about 7,900 characters and 2,300 estimated tokens; `minimal` about 2,300 characters and 675); `commands/route.md` mentions `query`; `docs/HANDOFF.md` now covers v1.14.0.
+
+### Verification status
+- Behavior above is VERIFIED locally by `scripts/test-mcp.py` and `scripts/validate-all`. Host-side use of completion, the new prompts, or `query`, and hosted CI for this change, are NOT VERIFIED.
+
 ## [1.14.0] - 2026-11-22
 
 ### Added
