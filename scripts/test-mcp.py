@@ -116,7 +116,7 @@ def main():
         by_id, _, _ = session([INIT, {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}], root)
         tools = by_id[1]["result"]["tools"]
         names = [item["name"] for item in tools]
-        assert len(names) == len(set(names)) == 21
+        assert len(names) == len(set(names)) == 22
         for tool in tools:
             assert re.fullmatch(r"[a-z][a-z0-9_]*", tool["name"]), tool["name"]
             spec = tool["inputSchema"]
@@ -259,6 +259,13 @@ def main():
         compacted_80 = payload_of(call(root, "rsaver_compact", {"path": "build.log", "target_savings": 80}))
         assert compacted_80["ok"] is True and compacted_80["result"]["estimate"]["saved_percent"] >= 80.0
         assert (root / "build.log").read_text(encoding="utf-8").count("\n") == 151, "original must be unchanged"
+        (root / ".env").write_text("TOKEN=SUPERSECRETVALUE\n", encoding="utf-8")
+        audit = payload_of(call(root, "rsaver_audit", {"top": 3}))
+        assert audit["ok"] is True and audit["result"]["command"] == "audit"
+        assert len(audit["result"]["top_files"]) <= 3
+        assert "SUPERSECRETVALUE" not in json.dumps(audit), "audit must not expose secret contents"
+        assert "outside the server root" in error_text(call(root, "rsaver_audit", {"root": "../"}))
+        assert "top must be >= 1" in error_text(call(root, "rsaver_audit", {"top": 0}))
         budget = payload_of(call(root, "rsaver_budget", {"window": 100000, "output_reserve": 8000}))
         figures = budget["result"]
         assert budget["ok"] is True and figures["output_reserve"] == 8000

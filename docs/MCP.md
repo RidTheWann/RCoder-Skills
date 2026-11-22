@@ -41,6 +41,7 @@ All tools are read-only (`readOnlyHint: true`, `destructiveHint: false`) and use
 | `rcoder_validate_selection` | Checks a routing selection: names exist, one non-helper primary, no helper-only set, security framing base present |
 | `rcoder_doctor` | Server version, skill files, helpers, enabled tools, project-local extension count |
 | `rsaver_measure` | Relative token estimate for inline text or files |
+| `rsaver_audit` | Rank project files by estimated token cost, group them by category (lockfile, minified, generated, log, data, source, docs), and suggest exclusions; skips dependency trees, symlinks, binaries, and credential files, and never returns file contents |
 | `rsaver_select` | Bounded line windows around regex matches |
 | `rsaver_compact` | Prune non-critical lines from a log; the original file is never modified |
 | `rsaver_budget` | Context-window allocation across input, output, and reasoning |
@@ -71,10 +72,10 @@ Tool schemas are sent on every request, so they are a continuous token cost. Mea
 
 | Profile | Tools | Serialized size | Estimated tokens |
 |---|---|---|---|
-| `full` (default) | 21 | about 11,800 characters | about 3,470 |
+| `full` (default) | 22 | about 12,300 characters | about 3,630 |
 | `minimal` | 4 | about 2,300 characters | about 675 |
 
-`scripts/test-mcp.py` fails if the serialized tool list grows past a fixed character budget. Use `--profile minimal` or `--tools` when you only need routing support; the RSaver and RScan command-line tools remain available without the server.
+The 22-tool figure scales the earlier measured characters-to-token ratio rather than re-running a tokenizer. `scripts/test-mcp.py` fails if the serialized tool list grows past a fixed character budget. Use `--profile minimal` or `--tools` when you only need routing support; the RSaver and RScan command-line tools remain available without the server.
 
 ## Security model
 
