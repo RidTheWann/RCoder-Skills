@@ -2,9 +2,10 @@
 name: rcoder
 description: "RCoder is a model-agnostic software engineering, programming, cybersecurity, and reverse-engineering workflow router. Use for building, changing, debugging, testing, securing, analyzing, optimizing, or shipping software and authorized binary research. Load only relevant specialists and preserve verifiable evidence."
 license: MIT
+compatibility: "Optional bundled helpers need a Python 3 interpreter. The optional MCP server (scripts/rcoder_mcp.py) needs a host that can launch stdio MCP servers."
 metadata:
   author: RidTheWann
-  version: "1.13.0"
+  version: "1.14.0"
 ---
 
 # RCoder
@@ -98,6 +99,7 @@ For unfamiliar models or hosts, choose an execution profile before routing; see 
 | Review, cleanup, behavior-preserving refactor | [review-refactor](references/review-refactor.md) |
 | README, API docs, ADR, runbook, changelog | [documentation](references/documentation.md) |
 | SSR/hydration, service workers, browser storage, edge or browser-runtime boundaries | [web platform engineering](references/web-platform-engineering.md) |
+| MCP servers, Agent Skills, plugins, slash commands, hooks, subagents (build, review, package, debug discovery) | [agent extensions engineering](references/agent-extensions-engineering.md) |
 | Version uncertainty, external claims, unsupported tools | [verification](references/verification.md) |
 
 ### Programming languages and systems
@@ -149,6 +151,10 @@ For multi-step or large-repository work, load [token-efficient engineering](refe
 ## Stack reconnaissance helper
 
 `detect_stack.py` is read-only and reports likely manifests and quality entry points. `context_snapshot.py` is read-only and emits a bounded repository/path/Git summary without printing source contents. Verify actual commands and versions in project files before executing them.
+
+## MCP server (optional)
+
+`scripts/rcoder_mcp.py` is a read-only, dependency-free stdio MCP server that exposes RScan, RSaver, stack detection, the bounded snapshot, specialist lookup (with section-level loading), and a routing-selection validator. It is not started by installing the skill: a host must be configured to launch it (`python3 scripts/rcoder_mcp.py --print-config HOST` prints a snippet; see `docs/MCP.md`). When its tools are available, prefer `rcoder_validate_selection` before executing a routing decision and `rcoder_get_specialist` with `sections` to load only what the task needs. Never claim the server is connected without a successful `rcoder_doctor` call, and never treat server reachability as proof of native skill discovery.
 
 ## Project-local extensions
 

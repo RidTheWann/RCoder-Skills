@@ -14,6 +14,8 @@ RCoder is a portable Agent Skill package and installer/terminal manager. It is n
 6. **Extension and templates:** reusable templates under `assets/templates/` (including the 13-section specialist template and context capsule); project-specific rules under `.rcoder/`.
 7. **Adapters and distribution:** Claude/Agent Plugin manifests, portable Agent Plugins manifest with Codex compatibility metadata, Node/npm CLI, PowerShell `irm` bootstrap, offline installers, terminal manager, and ZIP packages. Host evidence tiers live in `docs/COMPATIBILITY.md`; observed runtime capabilities in `docs/ENVIRONMENT.md`.
 
+8. **Agent interface:** optional read-only stdio MCP server (`skills/rcoder/scripts/rcoder_mcp.py`) exposing the deterministic helpers, specialist lookup, and a routing-selection validator; Claude Code plugin slash commands and least-privilege subagents. Documented in `docs/MCP.md`. The server is launched by a host, never by installation.
+
 ## Runtime flow
 
 ```text
@@ -67,6 +69,8 @@ Multiple selections are deduplicated by resolved destination so hosts sharing a 
 - Bootstrap downloads are HTTPS-only and temporary; no downloaded second-stage installer is executed.
 - Security testing and dynamic binary analysis require explicit authorization and isolated environments.
 - Static checks do not impersonate native host activation or live model evaluation.
+- The MCP server is read-only, dependency-free, root-confined, shell-free, network-free, and bounded in time and output; it never grants authorization.
+- No hook is installed or shipped by default; automatic session-start behavior is opt-in.
 
 ## Distribution
 

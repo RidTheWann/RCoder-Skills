@@ -1,0 +1,104 @@
+# RCoder MCP server and plugin components
+
+`skills/rcoder/scripts/rcoder_mcp.py` is a dependency-free, read-only stdio [Model Context Protocol](https://modelcontextprotocol.io) server. It turns RCoder's deterministic helpers and specialist references into tools, resources, and prompts that any MCP-capable host can call. It does not replace the skill: the skill still routes, and the server supplies checked facts and bounded context on demand.
+
+The server is not started by installing the skill. A host must be configured to launch it.
+
+## Quick start
+
+Print a configuration snippet for your host (nothing is written to disk):
+
+```sh
+python3 skills/rcoder/scripts/rcoder_mcp.py --print-config claude-code
+python3 skills/rcoder/scripts/rcoder_mcp.py --print-config codex
+python3 skills/rcoder/scripts/rcoder_mcp.py --print-config cursor
+python3 skills/rcoder/scripts/rcoder_mcp.py --print-config vscode
+```
+
+Supported snippet hosts: `claude-code`, `codex`, `cursor`, `gemini-cli`, `vscode`, `opencode`, and `generic` (the common `mcpServers` JSON shape). On Windows use `--command python` because `python3` may not exist. The repository-root wrapper `scripts/rcoder-mcp.py` runs the same server.
+
+Run it by hand to see the protocol: it reads one JSON-RPC message per line on stdin and writes one per line on stdout. Logs go to stderr only.
+
+```sh
+python3 skills/rcoder/scripts/rcoder_mcp.py --root . --profile minimal
+```
+
+Options: `--root` (default: current directory; every path argument is confined to it), `--profile full|minimal`, `--tools a,b,c` (explicit allowlist that overrides the profile), `--print-config HOST`, `--command CMD`, `--version`.
+
+For user-scope host configuration, pass an absolute project path as `--root` instead of `.`; many hosts do not start user-scope servers inside the project directory.
+
+## Tools
+
+All tools are read-only (`readOnlyHint: true`, `destructiveHint: false`) and use strict input schemas (`additionalProperties: false`, bounded integers and strings).
+
+| Tool | Purpose |
+|---|---|
+| `rcoder_scan` | RScan: detected stacks, risk signals, ranked development options with first commands and specialists |
+| `rcoder_detect_stack` | Manifest and quality-entry-point detection |
+| `rcoder_context_snapshot` | Bounded paths-and-Git-state map; never returns source contents |
+| `rcoder_list_specialists` | Valid specialist names with category, helper flag, source, and activation summary |
+| `rcoder_get_specialist` | One specialist module, optionally only named sections such as `Procedure` and `Verification` |
+| `rcoder_validate_selection` | Checks a routing selection: names exist, one non-helper primary, no helper-only set, security framing base present |
+| `rcoder_doctor` | Server version, skill files, helpers, enabled tools, project-local extension count |
+| `rsaver_measure` | Relative token estimate for inline text or files |
+| `rsaver_select` | Bounded line windows around regex matches |
+| `rsaver_compact` | Prune non-critical lines from a log; the original file is never modified |
+| `rsaver_budget` | Context-window allocation across input, output, and reasoning |
+| `rsaver_drift` | Drift signals in a saved transcript |
+| `rsaver_crosscheck` | PASS, FAIL, or UNVERIFIED for a completion claim against saved artifacts |
+| `rsaver_gate` | RSaver gate over an inline JSON context envelope |
+
+`rcoder_validate_selection` encodes the non-negotiable selection rules from `SKILL.md` as a deterministic check, so a model can validate a routing decision instead of re-deriving the rules. Helper-module names are compared with `SKILL.md` by `scripts/validate-all` so the two cannot drift.
+
+## Resources and prompts
+
+Resources: `rcoder://skill`, `rcoder://specialist/{name}` for every module, and `rcoder://template/{name}` for every template. Prompts: `rcoder_intake`, `rcoder_review`, `rcoder_handoff` (embeds the context-capsule template), and `rcoder_security_scope` (authorization checklist; stays passive until scope is confirmed).
+
+## Context cost
+
+Tool schemas are sent on every request, so they are a continuous token cost. Measured with `rsaver measure` (a deterministic relative estimate, not provider billing):
+
+| Profile | Tools | Serialized size | Estimated tokens |
+|---|---|---|---|
+| `full` (default) | 14 | about 7,700 characters | about 2,260 |
+| `minimal` | 4 | about 2,200 characters | about 630 |
+
+`scripts/test-mcp.py` fails if the serialized tool list grows past a fixed character budget. Use `--profile minimal` or `--tools` when you only need routing support; the RSaver and RScan command-line tools remain available without the server.
+
+## Security model
+
+- **Read-only.** No tool writes, deletes, or changes configuration. `rsaver_compact` reads a file and prints a reduced view.
+- **Root confinement.** Every path is resolved with `realpath` and must stay inside `--root`. `..`, absolute paths outside the root, and symlinks that escape the root are refused.
+- **Credential refusal.** Paths under `.git`, `.ssh`, `.aws`, `.gnupg`, `.kube`, `.docker` and files such as `.env*`, `id_*`, `*.pem`, `*.key`, `*.p12`, `.npmrc`, `.netrc` are refused. This is a safety net, not a secret scanner: a secret stored under an ordinary file name inside the root is readable by `rsaver_select`.
+- **No shell, no network.** Bundled helpers run with an argument vector, `stdin` closed (or supplied inline), a 30-second timeout, and bounded output. Flag-like values are passed as `--flag=value` so they cannot become options. The server opens no network connection.
+- **Untrusted project guidance.** A project-local `.rcoder/references/*.md` file is served with a fixed notice that it is repository content and cannot override user instructions or authorization rules. Tool output is data, never instructions.
+- **Authorization is not granted.** The server exposes what the bundled scripts already do. Active scanning, exploitation, credential testing, and external probing still require explicit written scope, and the host's own permission prompts still apply.
+
+## Claude Code plugin components
+
+The Claude Code plugin manifest (`.claude-plugin/plugin.json`) declares the server and the repository ships:
+
+- **Slash commands** (`commands/`): `scan`, `route`, `review`, `verify`, `handoff`, `doctor`. They prefer the MCP tools and fall back to the bundled scripts. None pre-approves tools.
+- **Subagents** (`agents/`): `rcoder-explorer`, `rcoder-reviewer`, `rcoder-verifier` (read tools plus Bash, no file-editing tools) and `rcoder-security-reviewer` (read tools only, passive review).
+
+No hook ships by default. Automatic session-start scanning stays opt-in through `rscan hooks install` (see `RSCAN-HOOKS.md`), because an always-firing hook changes behavior and token use for every session. `scripts/validate-all` rejects a `hooks/` directory to keep that decision explicit.
+
+## Evidence status
+
+| Claim | Status |
+|---|---|
+| Server speaks MCP lifecycle, tools, resources, prompts, version negotiation, and error codes over stdio | VERIFIED locally by `scripts/test-mcp.py` (scripted client; Linux; the CI matrix also runs Windows) |
+| Path confinement, symlink refusal, credential refusal, argument validation, output bounds | VERIFIED locally by `scripts/test-mcp.py` |
+| Host-specific configuration snippets match each host's current format | NOT VERIFIED (formats follow public documentation; confirm against your host version) |
+| Any host connects to the server, lists its tools, and a model calls them | NOT VERIFIED |
+| Claude Code loads the plugin's commands, agents, and `mcpServers` entry, including the `${CLAUDE_PLUGIN_ROOT}` expansion and the server working directory | NOT VERIFIED |
+| The server improves model outcomes | NOT VERIFIED (no evaluation has been run; see `evals/ABLATION-PROTOCOL.md`) |
+
+## Testing
+
+```sh
+python3 scripts/test-mcp.py
+python3 scripts/validate-all
+```
+
+To exercise a host by hand, send `initialize`, then the `notifications/initialized` notification, then `tools/list`; or point the MCP Inspector at the command printed by `--print-config generic`.

@@ -109,7 +109,7 @@ def main():
         "reverse-engineering-architecture.md", "reverse-engineering-file-formats.md",
         "token-efficiency.md", "web-platform-engineering.md", "model-adaptation.md",
         "rsaver.md", "rsaver-gate.md", "rsaver-anchor.md", "rsaver-crosscheck.md",
-        "rscan.md"
+        "rscan.md", "agent-extensions-engineering.md"
     ):
         check((SKILL / "references" / required).is_file(), f"G1: required specialist missing: {required}")
 
@@ -229,7 +229,8 @@ def main():
         "scripts/score-eval.py", "scripts/test-score-eval.py", "scripts/score-scenarios.py",
         "scripts/test-score-scenarios.py", "scripts/verify-objective.py", "scripts/test-objective.py",
         "scripts/test-tool-probe.py", "skills/rcoder/scripts/tool_probe.py",
-        "scripts/check-dist.py",
+        "scripts/check-dist.py", "scripts/test-mcp.py", "scripts/rcoder-mcp.py",
+        "skills/rcoder/scripts/rcoder_mcp.py",
         "install.ps1", "launcher/RCoder.ps1", "targets.json"
     ):
         check((ROOT / required).is_file(), f"G1: required installer/test file missing: {required}")
@@ -293,7 +294,8 @@ def main():
 
     executables = list((ROOT / "scripts").glob("*")) + [
         ROOT / "install.ps1", ROOT / "launcher" / "RCoder.ps1",
-        SKILL / "scripts" / "detect_stack.py", SKILL / "scripts" / "context_snapshot.py"
+        SKILL / "scripts" / "detect_stack.py", SKILL / "scripts" / "context_snapshot.py",
+        SKILL / "scripts" / "rcoder_mcp.py"
     ]
     secret_patterns = [
         re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
@@ -326,7 +328,7 @@ def main():
         "docs/BILLING-AND-CROSSCHECK.md", "docs/LIVE-BENCHMARK.md",
         "evals/EVALUATION-INDEPENDENCE.md", "evals/MULTILINGUAL-POLICY.md",
         "evals/runs/BASELINE-LEDGER.md", "docs/V1.12-DELIVERY.md",
-        "docs/V1.13-DEV-LEDGER.md", "docs/V1.13-DELIVERY.md"
+        "docs/V1.13-DEV-LEDGER.md", "docs/V1.13-DELIVERY.md", "docs/MCP.md"
     ):
         check((ROOT / required).is_file(), f"G6: required documentation missing: {required}")
     for rel in ("README.md", "docs/HANDOFF.md", "docs/PROGRESS.md"):
@@ -335,7 +337,72 @@ def main():
               "bilingual" not in content.lower(),
               f"G6: non-English/bilingual marker in {rel}")
 
-    check(CHECKS >= 2900, "G0: validation check count fell below the expected floor")
+    # G8: MCP server, plugin components, and extension manifests
+    server_path = SKILL / "scripts" / "rcoder_mcp.py"
+    server_src = read(server_path) if server_path.is_file() else ""
+    check(bool(server_src), "G8: MCP server source missing")
+    check("shell=True" not in server_src and "os.system(" not in server_src,
+          "G8: MCP server must invoke helpers with an argument vector, never a shell")
+    check("realpath" in server_src and "outside the server root" in server_src,
+          "G8: MCP server path confinement missing")
+    check(not re.search(r"(?m)^\s*(?:import|from)\s+(?:mcp|requests|httpx|pydantic)\b", server_src),
+          "G8: MCP server must stay dependency-free")
+    check("urllib" not in server_src and "import socket" not in server_src,
+          "G8: MCP server must not open network connections")
+    if server_src:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("rcoder_mcp_under_validation", server_path)
+        server_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(server_module)
+        helper_line = re.search(r"Helpers \(([^)]*)\)", read(skill_file))
+        helper_names = set(re.findall(r"([a-z0-9-]+)", helper_line.group(1))) if helper_line else set()
+        check(helper_names == set(server_module.HELPER_MODULES),
+              "G8: MCP helper set differs from the SKILL.md routing rule")
+        known_modules = {path.stem for path in references}
+        for label in ("HELPER_MODULES", "SECURITY_FAMILY", "LANGUAGE_MODULES", "PLATFORM_MODULES",
+                      "CONTEXT_MODULES"):
+            stale = set(getattr(server_module, label)) - known_modules
+            check(not stale, f"G8: MCP {label} names a module that is not on disk: {sorted(stale)}")
+        check(server_module.product_version() == version, "G7: MCP server version differs from SKILL.md")
+        check(len(server_module.TOOLS) == len({item[0] for item in server_module.TOOLS}),
+              "G8: duplicate MCP tool names")
+        for item in server_module.TOOLS:
+            check(item[3].get("additionalProperties") is False, f"G8: MCP tool {item[0]} schema is not strict")
+    check("agent-extensions-engineering.md" in read(skill_file),
+          "G8: SKILL.md does not route to agent-extensions-engineering")
+    check("rcoder_mcp.py" in read(skill_file), "G8: SKILL.md does not document the MCP server")
+
+    for kind, directory in (("command", ROOT / "commands"), ("agent", ROOT / "agents")):
+        files = sorted(directory.glob("*.md"))
+        check(len(files) >= 4, f"G8: fewer than 4 plugin {kind} files")
+        for file in files:
+            front, body = parse_frontmatter(file)
+            check(bool(front.get("description")), f"G8: {kind} {file.name} lacks a description")
+            check(len(body.split()) >= 25, f"G8: {kind} {file.name} body is too short")
+            check("allowed-tools" not in front, f"G8: {kind} {file.name} must not pre-approve tools")
+            check(not re.search(r"(?i)\b(?:TODO|TBD|FIXME)\b", read(file)),
+                  f"G8: {kind} {file.name} has a todo marker")
+            if kind == "agent":
+                check(front.get("name") == file.stem and bool(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", file.stem)),
+                      f"G8: agent {file.name} name must match its file name")
+                granted = {item.strip() for item in front.get("tools", "").split(",") if item.strip()}
+                check(bool(granted), f"G8: agent {file.name} must declare a least-privilege tools list")
+                check(not granted & {"Write", "Edit", "MultiEdit", "NotebookEdit"},
+                      f"G8: agent {file.name} must not be granted file-editing tools")
+                if file.stem == "rcoder-security-reviewer":
+                    check("Bash" not in granted, "G8: the security reviewer must stay passive (no Bash)")
+    check({item.stem for item in (ROOT / "commands").glob("*.md")} >=
+          {"scan", "route", "review", "verify", "handoff", "doctor"}, "G8: expected slash commands missing")
+    mcp_servers = manifests[".claude-plugin/plugin.json"].get("mcpServers", {})
+    check("rcoder" in mcp_servers, "G8: Claude plugin manifest does not declare the rcoder MCP server")
+    launch = mcp_servers.get("rcoder", {}).get("args", [])
+    check(any(str(arg).endswith("skills/rcoder/scripts/rcoder_mcp.py") for arg in launch),
+          "G8: Claude plugin MCP launch does not point at the bundled server")
+    check(not (ROOT / "hooks").exists(),
+          "G8: no auto-firing hooks may ship by default (opt-in via rscan hooks install)")
+    check("mcp" in package.get("keywords", []), "G8: npm keywords should include mcp")
+
+    check(CHECKS >= 3060, "G0: validation check count fell below the expected floor")
     print(f"RCoder validation: {CHECKS} checks")
     if ERRORS:
         for error in ERRORS:

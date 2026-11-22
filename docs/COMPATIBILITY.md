@@ -58,3 +58,14 @@ Consequences:
 ## Termux observation (2026-11-18)
 
 Verified runtimes in the development shell: Linux aarch64 (kernel `6.1.164-JetKernel-Venus`), Bash 5.3.15, Python 3.14.10, Node 24.22.3, npm 12.2.3, Git 2.56.1. The POSIX helper tests can run here; `gh`, `pwsh`, and `powershell` are absent, so Windows PowerShell, the `irm` bootstrap, hosted CI, and host-native activation cannot be executed and are recorded as `NOT VERIFIED` in this environment. Ordinary RCoder functionality must not require root, desktop Linux services, or shared-storage access. See `docs/ENVIRONMENT.md` for the capability-discovery record.
+
+## MCP server and plugin components (v1.14.0)
+
+| Evidence | Status |
+|---|---|
+| M0 — Protocol behavior of `rcoder_mcp.py` against a scripted stdio client | VERIFIED locally by `scripts/test-mcp.py` |
+| M1 — Host configuration snippet printed by `--print-config` matches the host's documented format | NOT VERIFIED for every host; confirm against the installed host version |
+| M2 — A real host connects, lists the tools, and a model calls them | NOT VERIFIED for every host |
+| P1 — Claude Code loads `commands/`, `agents/`, and the manifest `mcpServers` entry (including `${CLAUDE_PLUGIN_ROOT}` expansion and the server working directory) | NOT VERIFIED |
+
+Do not advertise MCP or plugin compatibility on M0 evidence alone.

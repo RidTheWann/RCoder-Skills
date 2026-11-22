@@ -1,9 +1,30 @@
 {
   "name": "rcoder",
-  "description": "A model-agnostic engineering, programming, cybersecurity, and reverse-engineering skill with progressive disclosure and evidence-led verification.",
-  "version": "1.13.0",
+  "description": "A model-agnostic engineering, programming, cybersecurity, and reverse-engineering skill with progressive disclosure, evidence-led verification, slash commands, review subagents, and an optional read-only MCP server.",
+  "version": "1.14.0",
   "author": {
     "name": "RidTheWann",
     "url": "https://github.com/RidTheWann"
+  },
+  "homepage": "https://github.com/RidTheWann/RCoder-Skills#readme",
+  "repository": "https://github.com/RidTheWann/RCoder-Skills",
+  "license": "MIT",
+  "keywords": [
+    "engineering",
+    "security",
+    "reverse-engineering",
+    "mcp",
+    "agent-skills",
+    "token-efficiency"
+  ],
+  "mcpServers": {
+    "rcoder": {
+      "command": "python3",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/skills/rcoder/scripts/rcoder_mcp.py",
+        "--root",
+        "."
+      ]
+    }
   }
 }
