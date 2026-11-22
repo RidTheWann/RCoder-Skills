@@ -417,6 +417,13 @@ def tool_rsaver_compact(args):
     return helper_result(*run_helper("rsaver.py", arguments))
 
 
+def tool_rsaver_audit(args):
+    arguments = ["audit", f"--root={resolve_in_root(args.get('root', '.'))}", "--json"]
+    if "top" in args:
+        arguments.append(f"--top={args['top']}")
+    return helper_result(*run_helper("rsaver.py", arguments))
+
+
 def tool_rsaver_budget(args):
     arguments = ["budget", f"--window={args['window']}", "--json"]
     for key, flag in (("output_reserve", "--output-reserve"), ("reasoning_reserve", "--reasoning-reserve"),
@@ -598,6 +605,10 @@ TOOLS = [
              "head": {**INT, "minimum": 0, "maximum": 500}, "tail": {**INT, "minimum": 0, "maximum": 500},
              "target_savings": {"type": "number", "minimum": 0, "maximum": 99},
              "critical": {"type": "string", "maxLength": 300}}, ["path"]), tool_rsaver_compact),
+    ("rsaver_audit", "Rank files by context cost",
+     "Read-only: rank project files by estimated token cost with exclusion advice; no file contents.",
+     schema({"root": PATH_PROP, "top": {**INT, "minimum": 1, "maximum": 100}}),
+     tool_rsaver_audit),
     ("rsaver_budget", "Plan a context window",
      "Allocate a context window across input, output, and reasoning reserves.",
      schema({"window": {**INT, "minimum": 1, "maximum": 10000000}, "output_reserve": {**INT, "minimum": 0},

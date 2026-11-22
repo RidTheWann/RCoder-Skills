@@ -12,6 +12,7 @@ import argparse
 import base64
 import hashlib
 import json
+import os
 import re
 import sys
 import zlib
@@ -1129,6 +1130,194 @@ def command_dedupe(args: argparse.Namespace) -> int:
     return emit(manifest, args.json, deduped_text, "dedupe", "deduped_text")
 
 
+AUDIT_SKIP_DIRS = {
+    ".git", ".hg", ".svn", "node_modules", "vendor", "dist", "build", "target", ".venv", "venv",
+    "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".next", ".nuxt", ".turbo",
+    "coverage", "DerivedData", ".gradle", ".idea", ".ssh", ".aws", ".gnupg", ".kube", ".docker",
+}
+AUDIT_SECRET_RE = re.compile(
+    r"(?i)(^\.env(\..*)?$|^id_(rsa|dsa|ecdsa|ed25519)(\.pub)?$|\.(pem|key|p12|pfx|jks|keystore|kdbx)$|"
+    r"^(\.npmrc|\.pypirc|\.netrc|\.git-credentials|credentials|secrets?\.(json|ya?ml|toml))$)"
+)
+AUDIT_LOCKFILES = {
+    "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "cargo.lock", "go.sum", "poetry.lock",
+    "pipfile.lock", "composer.lock", "gemfile.lock", "uv.lock", "bun.lockb", "packages.lock.json",
+}
+AUDIT_ADVICE = {
+    "lockfile": "exclude from context; look up one entry with `rsaver select --match <package>`",
+    "minified": "never load; read the unminified source instead",
+    "generated": "exclude from context; regenerate from the source of truth",
+    "log": "`rsaver compact --target-savings 80 --manifest <m.json> --verify` before loading",
+    "data": "sample with `rsaver select --match <key>`; do not load the whole file",
+    "large-source": "`rsaver select --match <symbol>` for a bounded window instead of the whole file",
+    "large-docs": "load one section with `rsaver select --match <heading>`",
+}
+AUDIT_WASTE = {"lockfile", "minified", "generated", "log", "data"}
+AUDIT_IGNORE_PATTERNS = {
+    "lockfile": ["package-lock.json", "yarn.lock", "pnpm-lock.yaml", "Cargo.lock", "go.sum", "poetry.lock"],
+    "minified": ["*.min.js", "*.min.css", "*.map"],
+    "generated": ["*.snap", "*.pb.go", "*_pb2.py", "*.generated.*"],
+    "log": ["*.log"],
+    "data": ["*.csv", "*.tsv", "*.jsonl", "*.ndjson"],
+}
+
+
+def audit_category(name: str, size: int, large_threshold_bytes: int) -> str:
+    lower = name.lower()
+    if lower in AUDIT_LOCKFILES:
+        return "lockfile"
+    if lower.endswith((".min.js", ".min.css", ".map")):
+        return "minified"
+    if lower.endswith((".snap", ".pb.go", "_pb2.py", ".g.dart")) or ".generated." in lower:
+        return "generated"
+    if lower.endswith((".log", ".out")):
+        return "log"
+    if lower.endswith((".csv", ".tsv", ".jsonl", ".ndjson", ".sql")):
+        return "data"
+    if lower.endswith(".json") and size >= large_threshold_bytes:
+        return "data"
+    if lower.endswith((".md", ".rst", ".txt")):
+        return "large-docs" if size >= large_threshold_bytes else "docs"
+    return "large-source" if size >= large_threshold_bytes else "source"
+
+
+def duplicate_line_upper_bound(text: str, profile: str) -> int:
+    """Estimated tokens in repeated non-critical lines beyond their first occurrence (an upper bound)."""
+    seen: set[str] = set()
+    total = 0
+    critical = re.compile(DEFAULT_CRITICAL)
+    for line in text.splitlines():
+        if not line.strip() or critical.search(line):
+            continue
+        key = normalize_template(line)
+        if key in seen:
+            total += estimate_v2(line, profile)
+        else:
+            seen.add(key)
+    return total
+
+
+def audit_project(root: Path, profile: str, top: int, max_files: int, max_read_bytes: int,
+                  large_tokens: int) -> dict:
+    """Read-only, bounded project context-cost audit. Never emits file contents."""
+    root = root.resolve()
+    large_threshold_bytes = large_tokens * 4
+    rows: list[dict] = []
+    skipped = {"secret": 0, "binary": 0, "symlink": 0, "unreadable": 0}
+    truncated = False
+    stack = [root]
+    scanned = 0
+    while stack and not truncated:
+        folder = stack.pop()
+        try:
+            entries = sorted(os.scandir(folder), key=lambda entry: entry.name.lower())
+        except OSError:
+            skipped["unreadable"] += 1
+            continue
+        for entry in entries:
+            if entry.is_symlink():
+                skipped["symlink"] += 1
+                continue
+            if entry.is_dir(follow_symlinks=False):
+                if entry.name not in AUDIT_SKIP_DIRS:
+                    stack.append(Path(entry.path))
+                continue
+            if not entry.is_file(follow_symlinks=False):
+                continue
+            if AUDIT_SECRET_RE.search(entry.name):
+                skipped["secret"] += 1
+                continue
+            if scanned >= max_files:
+                truncated = True
+                break
+            scanned += 1
+            try:
+                size = entry.stat(follow_symlinks=False).st_size
+                with open(entry.path, "rb") as handle:
+                    head = handle.read(4096)
+                    if b"\x00" in head:
+                        skipped["binary"] += 1
+                        continue
+                    data = head + handle.read(max(0, max_read_bytes - len(head)))
+            except OSError:
+                skipped["unreadable"] += 1
+                continue
+            text = data.decode("utf-8", errors="replace")
+            sized_only = size > max_read_bytes
+            tokens = (size + 3) // 4 if sized_only else estimate_v2(text, profile)
+            category = audit_category(entry.name, size, large_threshold_bytes)
+            rows.append({
+                "path": Path(entry.path).relative_to(root).as_posix(),
+                "bytes": size,
+                "tokens": tokens,
+                "category": category,
+                "size_only_estimate": sized_only,
+                "_text": None if sized_only else text,
+            })
+    rows.sort(key=lambda row: (-row["tokens"], row["path"]))
+    total = sum(row["tokens"] for row in rows)
+    by_category: dict[str, dict] = {}
+    for row in rows:
+        bucket = by_category.setdefault(row["category"], {"files": 0, "tokens": 0})
+        bucket["files"] += 1
+        bucket["tokens"] += row["tokens"]
+    top_rows = []
+    for row in rows[:top]:
+        duplicate = (duplicate_line_upper_bound(row["_text"], profile)
+                     if row["_text"] is not None and row["category"] not in AUDIT_WASTE else 0)
+        top_rows.append({
+            "path": row["path"], "bytes": row["bytes"], "tokens": row["tokens"],
+            "share_percent": round(100 * row["tokens"] / total, 2) if total else 0.0,
+            "category": row["category"], "size_only_estimate": row["size_only_estimate"],
+            "duplicate_line_tokens_upper_bound": duplicate,
+            "advice": AUDIT_ADVICE.get(row["category"], "no reduction needed unless it is repeatedly re-read"),
+        })
+    waste = sum(bucket["tokens"] for name, bucket in by_category.items() if name in AUDIT_WASTE)
+    patterns = sorted({pattern for name in by_category if name in AUDIT_WASTE
+                       for pattern in AUDIT_IGNORE_PATTERNS.get(name, [])})
+    return {
+        "tool": "RSaver", "version": VERSION, "command": "audit", "profile": profile,
+        "estimate_method": "content_class_pretoken_heuristic_v2",
+        "root": str(root), "files_scanned": len(rows), "truncated": truncated,
+        "limits": {"max_files": max_files, "max_read_bytes": max_read_bytes, "large_tokens": large_tokens},
+        "skipped": skipped, "total_estimate": total,
+        "avoidable_estimate": waste,
+        "avoidable_percent": round(100 * waste / total, 2) if total else 0.0,
+        "by_category": dict(sorted(by_category.items(), key=lambda item: -item[1]["tokens"])),
+        "top_files": top_rows,
+        "suggested_exclusions": patterns,
+        "note": ("Relative estimates only, not provider billing. File contents are never printed. "
+                 "avoidable_estimate counts categories that are rarely worth loading whole."),
+    }
+
+
+def command_audit(args: argparse.Namespace) -> int:
+    root = Path(args.root)
+    if not root.is_dir():
+        raise ValueError(f"--root is not a directory: {args.root}")
+    report = audit_project(root, args.profile, args.top, args.max_files, args.max_read_bytes,
+                           args.large_tokens)
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return 0
+    print(f"RSaver audit: {report['files_scanned']} files, ~{report['total_estimate']} tokens "
+          f"({'truncated at --max-files' if report['truncated'] else 'complete'})")
+    print(f"Avoidable if excluded or reduced: ~{report['avoidable_estimate']} tokens "
+          f"({report['avoidable_percent']}%)")
+    print("By category:")
+    for name, bucket in report["by_category"].items():
+        print(f"  {name}: files={bucket['files']} tokens={bucket['tokens']}")
+    print(f"Top {len(report['top_files'])} files:")
+    for row in report["top_files"]:
+        print(f"  {row['tokens']:>8} {row['share_percent']:>6}%  {row['path']}  [{row['category']}]")
+        print(f"           -> {row['advice']}")
+    if report["suggested_exclusions"]:
+        print("Suggested exclusions: " + ", ".join(report["suggested_exclusions"]))
+    print(report["note"])
+    return 0
+
+
+
 def verify_manifest(manifest: dict, lines: list[str]) -> list[str]:
     problems: list[str] = []
     original = "\n".join(lines)
@@ -1286,6 +1475,17 @@ def build_parser() -> argparse.ArgumentParser:
     dedupe.add_argument("--json", action="store_true")
     dedupe.set_defaults(func=command_dedupe)
 
+    audit = sub.add_parser("audit", help="rank files by estimated context cost and suggest exclusions (read-only)")
+    audit.add_argument("--root", default=".")
+    audit.add_argument("--top", type=int, default=15)
+    audit.add_argument("--max-files", type=int, default=5000)
+    audit.add_argument("--max-read-bytes", type=int, default=262144)
+    audit.add_argument("--large-tokens", type=int, default=4000,
+                       help="files above this estimate get a bounded-read recommendation")
+    audit.add_argument("--profile", choices=sorted(PROFILES), default="generic")
+    audit.add_argument("--json", action="store_true")
+    audit.set_defaults(func=command_audit)
+
     verify = sub.add_parser("verify", help="check a manifest against the original file")
     verify.add_argument("--manifest", required=True)
     verify.add_argument("--file", help="override the original file path")
@@ -1311,7 +1511,8 @@ def main() -> int:
         parser.error("--context must be >= 0 and --max-lines must be >= 1")
     if getattr(args, "target_savings", 0.0) < 0.0 or getattr(args, "target_savings", 0.0) > 99.0:
         parser.error("--target-savings must be between 0 and 99")
-    for key in ("recent_window", "repeat_threshold", "max_tokens"):
+    for key in ("recent_window", "repeat_threshold", "max_tokens", "top", "max_files",
+                "max_read_bytes", "large_tokens"):
         if key in vars(args) and getattr(args, key) < 1:
             parser.error(f"--{key.replace('_', '-')} must be >= 1")
     try:

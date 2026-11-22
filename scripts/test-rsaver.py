@@ -340,11 +340,42 @@ def main():
         failed = run("verify", "--manifest", str(manifest_path), "--file", str(tampered))
         assert failed.returncode == 1 and "RSAVER VERIFY FAIL" in failed.stderr
 
+        # --- audit: bounded, read-only project context-cost report ------------------------
+        project = root / "audit-project"
+        (project / "src").mkdir(parents=True)
+        (project / "node_modules" / "dep").mkdir(parents=True)
+        (project / "node_modules" / "dep" / "index.js").write_text("x = 1\n" * 5000, encoding="utf-8")
+        (project / "package-lock.json").write_text('{"name":"a","packages":{"n":{"v":"1"}}}\n' * 800, encoding="utf-8")
+        (project / "src" / "app.py").write_text("def f():\n    return 1\n" * 30, encoding="utf-8")
+        (project / "src" / "big.min.js").write_text("a=1;" * 4000, encoding="utf-8")
+        (project / "run.log").write_text("INFO tick\n" * 500 + "ERROR: boom\n", encoding="utf-8")
+        (project / ".env").write_text("API_KEY=SUPERSECRETVALUE\n", encoding="utf-8")
+        (project / "blob.bin").write_bytes(b"\x00\x01\x02" * 100)
+        audit = run_json("audit", "--root", str(project), "--json")
+        assert audit["command"] == "audit" and audit["truncated"] is False
+        paths = [row["path"] for row in audit["top_files"]]
+        assert "node_modules/dep/index.js" not in paths, "dependency trees must be skipped"
+        assert ".env" not in paths and "blob.bin" not in paths
+        assert audit["skipped"]["secret"] == 1 and audit["skipped"]["binary"] == 1
+        assert audit["by_category"]["lockfile"]["files"] == 1
+        assert audit["by_category"]["minified"]["files"] == 1 and audit["by_category"]["log"]["files"] == 1
+        assert 0 < audit["avoidable_estimate"] <= audit["total_estimate"]
+        assert "*.min.js" in audit["suggested_exclusions"] and "package-lock.json" in audit["suggested_exclusions"]
+        assert "SUPERSECRETVALUE" not in json.dumps(audit), "audit must never emit file contents or secrets"
+        shares = [row["tokens"] for row in audit["top_files"]]
+        assert shares == sorted(shares, reverse=True)
+        limited = run_json("audit", "--root", str(project), "--max-files", "2", "--json")
+        assert limited["truncated"] is True and limited["files_scanned"] <= 2
+        text_report = run("audit", "--root", str(project), "--top", "2")
+        assert text_report.returncode == 0 and "RSaver audit:" in text_report.stdout
+        assert run("audit", "--root", str(root / "missing-dir")).returncode == 2
+        assert run("audit", "--root", str(project), "--top", "0").returncode == 2
+
         assert run("compact", str(fixture), "--critical", "[", "--json").returncode == 2
         assert run("recover", "--file", str(fixture), "--range", "999:1000").returncode == 2
         assert run("measure", str(root / "missing.txt")).returncode == 2
 
-    print("PASS rsaver: bounded reduction, verbatim evidence, recoverability, verification, and dedupe economics")
+    print("PASS rsaver: bounded reduction, verbatim evidence, recoverability, verification, dedupe economics, and project audit")
 
 
 if __name__ == "__main__":
