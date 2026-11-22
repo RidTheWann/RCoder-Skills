@@ -109,7 +109,8 @@ def main():
         "reverse-engineering-architecture.md", "reverse-engineering-file-formats.md",
         "token-efficiency.md", "web-platform-engineering.md", "model-adaptation.md",
         "rsaver.md", "rsaver-gate.md", "rsaver-anchor.md", "rsaver-crosscheck.md",
-        "rscan.md", "agent-extensions-engineering.md"
+        "rscan.md", "agent-extensions-engineering.md", "llm-agent-security.md",
+        "observability-sre.md"
     ):
         check((SKILL / "references" / required).is_file(), f"G1: required specialist missing: {required}")
 

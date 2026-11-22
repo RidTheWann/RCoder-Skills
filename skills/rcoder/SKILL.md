@@ -100,6 +100,7 @@ For unfamiliar models or hosts, choose an execution profile before routing; see 
 | README, API docs, ADR, runbook, changelog | [documentation](references/documentation.md) |
 | SSR/hydration, service workers, browser storage, edge or browser-runtime boundaries | [web platform engineering](references/web-platform-engineering.md) |
 | MCP servers, Agent Skills, plugins, slash commands, hooks, subagents (build, review, package, debug discovery) | [agent extensions engineering](references/agent-extensions-engineering.md) |
+| Production telemetry, SLOs, alerting, dashboards, rollout/rollback safety | [observability and SRE](references/observability-sre.md) |
 | Version uncertainty, external claims, unsupported tools | [verification](references/verification.md) |
 
 ### Programming languages and systems
@@ -135,6 +136,7 @@ Start with [security](references/security.md) as the framing owner and keep it l
 - [Malware triage and analysis](references/malware-analysis.md), strictly for defensive understanding and containment
 - [Binary exploitation mitigation and hardening](references/binary-exploitation-defense.md)
 - [Smart contract security](references/smart-contract-security.md)
+- [LLM and agent security](references/llm-agent-security.md): prompt injection, tool poisoning, agent permission design
 
 ### Reverse engineering and interoperability
 
