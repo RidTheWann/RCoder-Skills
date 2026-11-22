@@ -408,7 +408,8 @@ def tool_rsaver_select(args):
 
 def tool_rsaver_compact(args):
     arguments = ["compact", resolve_in_root(args["path"]), "--json"]
-    for key, flag in (("max_lines", "--max-lines"), ("head", "--head"), ("tail", "--tail")):
+    for key, flag in (("max_lines", "--max-lines"), ("head", "--head"), ("tail", "--tail"),
+                      ("target_savings", "--target-savings")):
         if key in args:
             arguments.append(f"{flag}={args[key]}")
     if "critical" in args:
@@ -445,6 +446,96 @@ def tool_rsaver_crosscheck(args):
 def tool_rsaver_gate(args):
     envelope = json.dumps(args["envelope"])
     return helper_result(*run_helper("rsaver.py", ["gate", "-", "--json"], stdin_text=envelope))
+
+
+def tool_rsaver_anchor(args):
+    arguments = ["anchor"]
+    stdin_text = None
+    if "state" in args:
+        stdin_text = json.dumps(args["state"])
+        arguments.append("-")
+    elif "path" in args:
+        arguments.append(str(resolve_in_root(args["path"])))
+    else:
+        raise ToolError("provide 'state' object or 'path' to state file")
+    if "max_tokens" in args:
+        arguments.append(f"--max-tokens={args['max_tokens']}")
+    arguments.append("--json")
+    return helper_result(*run_helper("rsaver.py", arguments, stdin_text=stdin_text))
+
+
+def tool_rsaver_reanchor(args):
+    envelope_path = str(resolve_in_root(args["envelope"]))
+    state_path = str(resolve_in_root(args["state"]))
+    arguments = ["reanchor", f"--envelope={envelope_path}", f"--state={state_path}", "--json"]
+    if "max_tokens" in args:
+        arguments.append(f"--max-tokens={args['max_tokens']}")
+    return helper_result(*run_helper("rsaver.py", arguments))
+
+
+def tool_rsaver_dedupe(args):
+    arguments = ["dedupe"]
+    stdin_text = None
+    if "text" in args:
+        arguments.append("-")
+        stdin_text = args["text"]
+    else:
+        paths = [str(resolve_in_root(item)) for item in args.get("paths", [])]
+        if not paths:
+            raise ToolError("provide text or at least one path")
+        arguments.extend(paths)
+    if "critical" in args:
+        arguments.append(f"--critical={args['critical']}")
+    if "profile" in args:
+        arguments.append(f"--profile={args['profile']}")
+    if args.get("normalize"):
+        arguments.append("--normalize")
+    if args.get("blocks"):
+        arguments.append("--blocks")
+    if args.get("words"):
+        arguments.append("--words")
+    arguments.append("--json")
+    return helper_result(*run_helper("rsaver.py", arguments, stdin_text=stdin_text))
+
+
+def tool_rsaver_recover(args):
+    file_path = str(resolve_in_root(args["file"]))
+    arguments = ["recover", f"--file={file_path}", f"--range={args['range']}", "--json"]
+    return helper_result(*run_helper("rsaver.py", arguments))
+
+
+def tool_rsaver_verify(args):
+    manifest_path = str(resolve_in_root(args["manifest"]))
+    arguments = ["verify", f"--manifest={manifest_path}"]
+    if "file" in args:
+        arguments.append(f"--file={str(resolve_in_root(args['file']))}")
+    return helper_result(*run_helper("rsaver.py", arguments))
+
+
+def tool_rsaver_pack(args):
+    arguments = ["pack"]
+    stdin_text = None
+    if "text" in args:
+        arguments.append("-")
+        stdin_text = args["text"]
+    elif "path" in args:
+        arguments.append(str(resolve_in_root(args["path"])))
+    else:
+        raise ToolError("provide text or path")
+    if "profile" in args:
+        arguments.append(f"--profile={args['profile']}")
+    if "method" in args:
+        arguments.append(f"--method={args['method']}")
+    if args.get("force"):
+        arguments.append("--force")
+    arguments.append("--json")
+    return helper_result(*run_helper("rsaver.py", arguments, stdin_text=stdin_text))
+
+
+def tool_rsaver_unpack(args):
+    manifest_path = str(resolve_in_root(args["manifest"]))
+    arguments = ["unpack", f"--manifest={manifest_path}", "--json"]
+    return helper_result(*run_helper("rsaver.py", arguments))
 
 
 # ------------------------------------------------------------------------- tools
@@ -505,6 +596,7 @@ TOOLS = [
      "Prune non-critical lines from a log or output file, preserving errors and evidence. Original file is unchanged.",
      schema({"path": PATH_PROP, "max_lines": {**INT, "minimum": 10, "maximum": 5000},
              "head": {**INT, "minimum": 0, "maximum": 500}, "tail": {**INT, "minimum": 0, "maximum": 500},
+             "target_savings": {"type": "number", "minimum": 0, "maximum": 99},
              "critical": {"type": "string", "maxLength": 300}}, ["path"]), tool_rsaver_compact),
     ("rsaver_budget", "Plan a context window",
      "Allocate a context window across input, output, and reasoning reserves.",
@@ -522,6 +614,43 @@ TOOLS = [
     ("rsaver_gate", "Filter a context envelope",
      "Apply the RSaver gate to an inline JSON context envelope against input, cache, and output budgets.",
      schema({"envelope": {"type": "object"}}, ["envelope"]), tool_rsaver_gate),
+    ("rsaver_anchor", "Build dual-end anchor",
+     "Build dual-end explicit-ID anchor blocks to combat long-context drift.",
+     schema({"state": {"type": "object"}, "path": PATH_PROP,
+             "max_tokens": {**INT, "minimum": 50, "maximum": 5000}}), tool_rsaver_anchor),
+    ("rsaver_reanchor", "Re-anchor context envelope",
+     "Insert dual-end anchor blocks into a context envelope and re-evaluate gate decisions.",
+     schema({"envelope": PATH_PROP, "state": PATH_PROP,
+             "max_tokens": {**INT, "minimum": 50, "maximum": 5000}}, ["envelope", "state"]),
+     tool_rsaver_reanchor),
+    ("rsaver_dedupe", "Deduplicate repeated lines",
+     "Collapse exact repeated non-critical lines when summary marker costs fewer tokens than duplicates.",
+     schema({"text": {"type": "string", "maxLength": 200000},
+             "paths": {"type": "array", "items": PATH_PROP, "maxItems": 20},
+             "critical": {"type": "string", "maxLength": 300},
+             "normalize": {"type": "boolean"},
+             "blocks": {"type": "boolean"},
+             "words": {"type": "boolean"},
+             "profile": {"type": "string", "enum": [
+                 "generic", "openai-cl100k", "openai-o200k", "gpt2", "cjk-native"]}}),
+     tool_rsaver_dedupe),
+    ("rsaver_recover", "Recover omitted lines",
+     "Print exact original lines from an omitted range in a compacted file.",
+     schema({"file": PATH_PROP, "range": {"type": "string", "maxLength": 30}}, ["file", "range"]),
+     tool_rsaver_recover),
+    ("rsaver_verify", "Verify manifest integrity",
+     "Verify a compaction manifest against original file (SHA-256 and preserved critical lines).",
+     schema({"manifest": PATH_PROP, "file": PATH_PROP}, ["manifest"]), tool_rsaver_verify),
+    ("rsaver_pack", "Compress text when economical",
+     "Lossless zlib9/base64 or frequency dictionary compression when packed estimate is smaller than original text.",
+     schema({"text": {"type": "string", "maxLength": 200000}, "path": PATH_PROP,
+             "method": {"type": "string", "enum": ["zlib", "dict"]},
+             "profile": {"type": "string", "enum": [
+                 "generic", "openai-cl100k", "openai-o200k", "gpt2", "cjk-native"]},
+             "force": {"type": "boolean"}}), tool_rsaver_pack),
+    ("rsaver_unpack", "Restore packed text",
+     "Restore exact original text from a pack manifest with SHA-256 verification.",
+     schema({"manifest": PATH_PROP}, ["manifest"]), tool_rsaver_unpack),
 ]
 TOOL_INDEX = {item[0]: item for item in TOOLS}
 
@@ -664,6 +793,19 @@ PROMPTS = {
         "description": "Verify a completion claim against the diff and test output.",
         "arguments": [{"name": "claim", "description": "The completion claim to verify.", "required": True}],
     },
+    "rcoder_context_gate": {
+        "description": "Plan context allocation, reserve output/reasoning budget, and verify cache prefix stability.",
+        "arguments": [
+            {"name": "task", "description": "The task to plan for.", "required": True},
+            {"name": "window", "description": "Context window in tokens.", "required": True},
+        ],
+    },
+    "rcoder_reanchor": {
+        "description": "Restore task focus and hard constraints with explicit-ID anchor blocks when a session drifts.",
+        "arguments": [
+            {"name": "objective", "description": "Task objective to re-anchor.", "required": True},
+        ],
+    },
 }
 
 
@@ -749,6 +891,35 @@ def build_prompt(name: str, arguments: dict):
             "3. Report PASS, FAIL, or UNVERIFIED with line-referenced evidence for each claimed item. Anything "
             "not observed is UNVERIFIED, never PASS.\n"
             "4. Do not modify source files while verifying."
+        )
+    elif name == "rcoder_context_gate":
+        task = str(arguments.get("task", "")).strip()
+        window = str(arguments.get("window", "")).strip()
+        if not task:
+            raise ValueError("argument 'task' is required")
+        if not window:
+            raise ValueError("argument 'window' is required")
+        text = (
+            f"Apply the RSaver Gate to budget context for this task before proceeding.\n\n"
+            f"Task: {task}\n"
+            f"Context Window: {window} tokens\n\n"
+            "1. Reserve output tokens and reasoning tokens first.\n"
+            "2. Identify static prefix items (system prompt, tools) and dynamic items (working context, history).\n"
+            "3. Keep required items; defer optional history with recovery pointers.\n"
+            "4. Verify contiguous static cache prefix and ensure projected total <= context window.\n"
+            "5. Call rsaver_budget or rsaver_gate to validate the context envelope."
+        )
+    elif name == "rcoder_reanchor":
+        objective = str(arguments.get("objective", "")).strip()
+        if not objective:
+            raise ValueError("argument 'objective' is required")
+        text = (
+            f"Re-anchor this long-running task to prevent drift: {objective}\n\n"
+            "1. Diagnose drift signals in the session transcript using rsaver_drift.\n"
+            "2. Define the objective [OBJECTIVE-1], hard constraints [CONSTRAINT-N], verified facts [FACT-N], "
+            "decisions [DECISION-N], open unknowns [UNRESOLVED-N], and next action [NEXT-ACTION].\n"
+            "3. Call rsaver_anchor to build dual-end anchor blocks with explicit IDs.\n"
+            "4. Restate the objective and constraints at both the start and end of subsequent requests."
         )
     else:
         raise KeyError(name)

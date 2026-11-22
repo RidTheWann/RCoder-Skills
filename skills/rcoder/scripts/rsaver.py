@@ -47,6 +47,172 @@ CJK_RANGES = (
     (0x3400, 0x4DBF), (0x4E00, 0x9FFF), (0xF900, 0xFAFF),
     (0x3040, 0x30FF), (0xAC00, 0xD7AF), (0x1F300, 0x1FAFF),
 )
+NORMALIZE_RE = (
+    (re.compile(r"\b\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?\b"), "<TIMESTAMP>"),
+    (re.compile(r"\b\d{2}:\d{2}:\d{2}(?:\.\d+)?\b"), "<TIME>"),
+    (re.compile(r"\b0x[0-9a-fA-F]+\b"), "<HEX>"),
+    (re.compile(r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"), "<UUID>"),
+    (re.compile(r"\b\d+\b"), "<N>"),
+)
+
+
+def normalize_template(line: str) -> str:
+    template = line
+    for pattern, placeholder in NORMALIZE_RE:
+        template = pattern.sub(placeholder, template)
+    return template
+
+
+class MarkerFactory:
+    """Emits marker strings that cannot collide with existing content."""
+
+    def __init__(self, source: str) -> None:
+        self.source = source
+        self.used: set[str] = set()
+        self.counter = 0
+
+    def make(self, label: str) -> str:
+        while True:
+            marker = f"[RSaver#{self.counter}: {label}]"
+            self.counter += 1
+            if marker not in self.source and marker not in self.used:
+                self.used.add(marker)
+                return marker
+
+
+def collapse_phrase_repeats(text: str, profile: str = "generic", min_chars: int = 4, min_repeats: int = 2) -> tuple[str, list[dict]]:
+    n = len(text)
+    markers = MarkerFactory(text)
+    i = 0
+    result: list[str] = []
+    collapsed: list[dict] = []
+    while i < n:
+        best_l = 0
+        best_k = 1
+        for l in range(min_chars, min(1000, (n - i) // 2 + 1)):
+            sub = text[i:i + l]
+            if not sub.strip():
+                continue
+            k = 1
+            j = i + l
+            while j + l <= n and text[j:j + l] == sub:
+                k += 1
+                j += l
+            if k >= min_repeats and (k * l) > (best_k * best_l):
+                best_l = l
+                best_k = k
+        if best_k >= min_repeats and best_l >= min_chars:
+            unit = text[i:i + best_l]
+            marker = markers.make(f"repeat x{best_k - 1}")
+            if estimate_v2(marker, profile) < (best_k - 1) * estimate_v2(unit, profile):
+                result.append(unit)
+                result.append(marker)
+                collapsed.append({"marker": marker, "omitted": unit * (best_k - 1)})
+                i += best_k * best_l
+                continue
+        result.append(text[i])
+        i += 1
+    return "".join(result), collapsed
+
+
+def collapse_command_blocks(lines: list[str], normalize: bool = False) -> tuple[list[str], list[dict]]:
+    n = len(lines)
+    norm_lines = [normalize_template(l) if normalize else l for l in lines]
+    markers = MarkerFactory("\n".join(lines))
+    output: list[str] = []
+    collapsed: list[dict] = []
+    i = 0
+    while i < n:
+        best_b = 0
+        best_repeats = 1
+        for b in range(2, min(25, (n - i) // 2 + 1)):
+            pattern = norm_lines[i:i + b]
+            repeats = 1
+            j = i + b
+            while j + b <= n and norm_lines[j:j + b] == pattern:
+                repeats += 1
+                j += b
+            if repeats > 1 and (repeats * b) > (best_repeats * best_b):
+                best_b = b
+                best_repeats = repeats
+        if best_repeats > 1 and best_b >= 2:
+            for line in lines[i:i + best_b]:
+                output.append(line)
+            start_orig = i + best_b + 1
+            end_orig = i + best_b * best_repeats
+            marker = markers.make(f"block {best_b} lines repeated x{best_repeats - 1} orig {start_orig}-{end_orig}")
+            output.append(marker)
+            omitted = "\n".join(lines[i + best_b:i + best_b * best_repeats])
+            collapsed.append({"marker": marker, "omitted": omitted})
+            i += best_b * best_repeats
+        else:
+            output.append(lines[i])
+            i += 1
+    return output, collapsed
+
+
+def _reference_prefix(text: str) -> str:
+    """Pick a marker prefix that cannot collide with literal text already in the payload."""
+    for prefix in ("@", "\u00a7", "\u00b6", "\u2021", "\u00b5", "\u203b"):
+        if prefix not in text:
+            return prefix
+    # Fall back to a rare multi-char sentinel rather than emitting an ambiguous marker.
+    index = 0
+    while True:
+        sentinel = f"\u00a7\u00a7{index}\u00a7\u00a7"
+        if sentinel not in text:
+            return sentinel
+        index += 1
+
+
+def dedupe_frequency_dict(text: str, profile: str = "generic", min_chars: int = 4, min_occurrences: int = 2) -> tuple[str, dict]:
+    from collections import Counter
+    words = re.findall(r"\b[A-Za-z0-9_/-]{4,}\b", text)
+    word_counts = Counter(words)
+    phrases = Counter()
+    for line in text.splitlines():
+        line_words = re.findall(r"\b[A-Za-z0-9_/-]{3,}\b", line)
+        for n in range(2, 7):
+            for i in range(len(line_words) - n + 1):
+                p = " ".join(line_words[i:i + n])
+                if len(p) >= 8 and p in line:
+                    phrases[p] += 1
+
+    candidates = {}
+    for item, c in list(phrases.items()) + list(word_counts.items()):
+        if c >= min_occurrences and item in text:
+            cost = estimate_v2(item, profile)
+            savings = (c - 1) * cost - 1
+            if savings > 0:
+                candidates[item] = (c, savings)
+
+    sorted_items = sorted(candidates.keys(), key=lambda x: (len(x), candidates[x][1]), reverse=True)
+    prefix = _reference_prefix(text)
+    dictionary: dict[str, str] = {}
+    deduped = text
+    ref_idx = 0
+    for item in sorted_items:
+        if deduped.count(item) >= min_occurrences:
+            ref = f"{prefix}{ref_idx}"
+            ref_idx += 1
+            dictionary[ref] = item
+            parts = deduped.split(item)
+            deduped = parts[0] + item + ref.join(parts[1:])
+    return deduped, dictionary
+
+
+def restore_words_and_blocks(payload: str, dictionary: dict = None, blocks: list[dict] = None, inline_repeats: list[dict] = None) -> str:
+    restored = payload
+    if dictionary:
+        for ref in sorted(dictionary.keys(), key=lambda r: int(r[1:]) if r[1:].isdigit() else 0, reverse=True):
+            restored = restored.replace(ref, dictionary[ref])
+    if inline_repeats:
+        for item in inline_repeats:
+            restored = restored.replace(item["marker"], item["omitted"])
+    if blocks:
+        for item in blocks:
+            restored = restored.replace(item["marker"], item["omitted"])
+    return restored
 
 
 def is_emoji(char: str) -> bool:
@@ -287,7 +453,7 @@ def detect_drift(lines: list[str], recent_window: int, repeat_threshold: int) ->
     commands: dict[str, list[int]] = {}
     for offset, line in enumerate(recent):
         stripped = line.strip()
-        if stripped.startswith(("$ ", "CMD ", "RUN ")):
+        if stripped.startswith(("$ ", "CMD ", "RUN ", "TOOL ", "CALL ", "READ ")):
             commands.setdefault(stripped, []).append(recent_start + offset)
     for command, locations in commands.items():
         if len(locations) >= repeat_threshold:
@@ -373,12 +539,30 @@ BILLING_CAVEAT = (
 def command_pack(args: argparse.Namespace) -> int:
     text = sys.stdin.read() if args.path == "-" else Path(args.path).read_text(encoding="utf-8", errors="replace")
     original_estimate = estimate_v2(text, args.profile)
-    payload = base64.b64encode(zlib.compress(text.encode("utf-8"), 9)).decode("ascii")
-    packed_estimate = estimate_v2(payload, args.profile)
-    worthwhile = packed_estimate < original_estimate
-    saved = original_estimate - packed_estimate
+    method = getattr(args, "method", "zlib")
+    dictionary = {}
+    inline_repeats = []
+    blocks = []
+    if method == "dict":
+        working_text = text
+        if "\n" in text:
+            block_lines, blocks = collapse_command_blocks(text.splitlines())
+            has_trailing_nl = text.endswith("\n")
+            working_text = "\n".join(block_lines) + ("\n" if has_trailing_nl else "")
+        working_text, inline_repeats = collapse_phrase_repeats(working_text, profile=args.profile)
+        payload, dictionary = dedupe_frequency_dict(working_text, profile=args.profile)
+        packed_estimate = estimate_v2(payload, args.profile)
+        worthwhile = packed_estimate < original_estimate
+        saved = original_estimate - packed_estimate
+        pack_method = "frequency_dict_zero_dup"
+    else:
+        payload = base64.b64encode(zlib.compress(text.encode("utf-8"), 9)).decode("ascii")
+        packed_estimate = estimate_v2(payload, args.profile)
+        worthwhile = packed_estimate < original_estimate
+        saved = original_estimate - packed_estimate
+        pack_method = "zlib9_base64_roundtrip"
     result = {
-        "tool": "RSaver", "version": VERSION, "method": "zlib9_base64_roundtrip",
+        "tool": "RSaver", "version": VERSION, "method": pack_method,
         "source": args.path, "original_sha256": sha256_text(text),
         "original_chars": len(text), "compressed_chars": len(payload),
         "original_estimate": original_estimate, "packed_estimate": packed_estimate,
@@ -387,12 +571,18 @@ def command_pack(args: argparse.Namespace) -> int:
         "worthwhile": worthwhile, "payload": payload,
         "billing_note": BILLING_CAVEAT,
     }
+    if dictionary:
+        result["dictionary"] = dictionary
+    if blocks:
+        result["blocks"] = blocks
+    if inline_repeats:
+        result["inline_repeats"] = inline_repeats
     if args.json:
         print(json.dumps(result, indent=2, sort_keys=True))
     else:
         if worthwhile or args.force:
             print(payload)
-            print(f"RSaver pack: {original_estimate} -> {packed_estimate} estimate", file=sys.stderr)
+            print(f"RSaver pack ({pack_method}): {original_estimate} -> {packed_estimate} estimate", file=sys.stderr)
         else:
             print(text)
             print("RSaver pack: packed form costs more; original kept (use --force to emit anyway)",
@@ -402,9 +592,18 @@ def command_pack(args: argparse.Namespace) -> int:
 
 def command_unpack(args: argparse.Namespace) -> int:
     manifest = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
-    if manifest.get("method") != "zlib9_base64_roundtrip":
+    method = manifest.get("method")
+    if method == "zlib9_base64_roundtrip":
+        text = zlib.decompress(base64.b64decode(manifest["payload"])).decode("utf-8")
+    elif method == "frequency_dict_zero_dup":
+        text = restore_words_and_blocks(
+            manifest["payload"],
+            dictionary=manifest.get("dictionary"),
+            blocks=manifest.get("blocks"),
+            inline_repeats=manifest.get("inline_repeats"),
+        )
+    else:
         raise ValueError("unsupported pack method")
-    text = zlib.decompress(base64.b64decode(manifest["payload"])).decode("utf-8")
     if sha256_text(text) != manifest.get("original_sha256"):
         raise ValueError("original hash mismatch after unpack")
     if args.out:
@@ -552,6 +751,7 @@ def plan_envelope(envelope: dict) -> dict:
     reasoning_reserve = int(envelope.get("reasoning_reserve", 0))
     tool_schema = int(envelope.get("tool_schema_tokens", 0))
     cache_min = int(envelope.get("cache_min_tokens", 0))
+    profile = envelope.get("profile", "generic")
     items = envelope.get("items", [])
     if window <= 0:
         raise ValueError("window_tokens must be positive")
@@ -560,6 +760,10 @@ def plan_envelope(envelope: dict) -> dict:
     for index, item in enumerate(items):
         if not isinstance(item, dict) or not isinstance(item.get("id"), str):
             raise ValueError(f"item {index}: missing string id")
+        if item.get("tokens") is None and "text" in item:
+            item["tokens"] = estimate_v2(str(item["text"]), profile)
+        elif item.get("tokens") is None:
+            item["tokens"] = 0
         if int(item.get("tokens", 0)) < 0:
             raise ValueError(f"item {item['id']}: tokens must be non-negative")
         if item.get("section", "working") not in SECTION_ORDER:
@@ -807,8 +1011,26 @@ def command_compact(args: argparse.Namespace) -> int:
         for index in group:
             if index not in ranked:
                 ranked.append(index)
-    budget_exceeded = len(critical) > args.max_lines
-    kept = set(ranked) if budget_exceeded else set(ranked[:args.max_lines])
+    target_savings = getattr(args, "target_savings", 0.0)
+    if target_savings > 0.0:
+        orig_text = "\n".join(lines)
+        orig_est = estimate_v2(orig_text, args.profile)
+        max_compact_tokens = max(1, int(orig_est * (1.0 - min(target_savings, 99.0) / 100.0)))
+        critical_est = estimate_v2(line_text(lines, critical), args.profile)
+        budget_exceeded = critical_est > max_compact_tokens
+        kept_candidates = set(critical)
+        for index in ranked:
+            if index in kept_candidates:
+                continue
+            if len(kept_candidates) >= args.max_lines:
+                break
+            trial = kept_candidates | {index}
+            if estimate_v2(line_text(lines, trial), args.profile) <= max_compact_tokens:
+                kept_candidates.add(index)
+        kept = kept_candidates
+    else:
+        budget_exceeded = len(critical) > args.max_lines
+        kept = set(ranked) if budget_exceeded else set(ranked[:args.max_lines])
     text = line_text(lines, kept)
     manifest = make_manifest(args.path, lines, critical, kept, args.critical, "structure_preserving_prune",
                              budget_exceeded, args.profile)
@@ -827,47 +1049,83 @@ def command_dedupe(args: argparse.Namespace) -> int:
     all_lines: list[str] = []
     for path in args.paths:
         all_lines.extend(read_lines(path))
+    raw_lines = list(all_lines)
     critical = critical_indices(all_lines, args.critical)
+    do_norm = getattr(args, "normalize", False)
+    do_blocks = getattr(args, "blocks", False)
+    do_words = getattr(args, "words", False)
+
+    blocks: list[dict] = []
+    if do_blocks:
+        all_lines, blocks = collapse_command_blocks(all_lines, normalize=do_norm)
+        critical = critical_indices(all_lines, args.critical)
+
     counts: dict[str, list[int]] = {}
+    samples: dict[str, str] = {}
     for index, line in enumerate(all_lines, 1):
         if index not in critical:
-            counts.setdefault(line, []).append(index)
+            key = normalize_template(line) if do_norm else line
+            counts.setdefault(key, []).append(index)
+            if key not in samples:
+                samples[key] = line
 
-    def marker_for(line: str, duplicates: list[int]) -> str:
-        return f"[RSaver: {len(duplicates) - 1} identical non-critical line(s) collapsed; original lines {format_indices(duplicates)}]"
+    def marker_for(key: str, duplicates: list[int]) -> str:
+        label = "similar" if do_norm else "identical"
+        return f"[RSaver: {len(duplicates) - 1} {label} non-critical line(s) collapsed; original lines {format_indices(duplicates)}]"
 
     collapse: set[str] = set()
-    for line, duplicates in counts.items():
+    for key, duplicates in counts.items():
         if len(duplicates) > 1:
-            removed = (len(duplicates) - 1) * estimate(line)
-            if estimate(marker_for(line, duplicates)) < removed:
-                collapse.add(line)
+            sample_line = samples[key]
+            removed = (len(duplicates) - 1) * estimate(sample_line)
+            if estimate(marker_for(key, duplicates)) < removed:
+                collapse.add(key)
     seen: set[str] = set()
     output: list[str] = []
     for index, line in enumerate(all_lines, 1):
-        if index in critical or line not in collapse:
+        key = normalize_template(line) if do_norm else line
+        if index in critical or key not in collapse:
             output.append(line)
             continue
-        if line in seen:
+        if key in seen:
             continue
-        seen.add(line)
+        seen.add(key)
         output.append(line)
-        output.append(marker_for(line, counts[line]))
-    original_text = "\n".join(all_lines)
+        output.append(marker_for(key, counts[key]))
     deduped_text = "\n".join(output)
+
+    dictionary: dict[str, str] = {}
+    inline_repeats: list[dict] = []
+    if do_words:
+        deduped_text, inline_repeats = collapse_phrase_repeats(deduped_text, profile=args.profile)
+        deduped_text, dictionary = dedupe_frequency_dict(deduped_text, profile=args.profile)
+
+    original_text = "\n".join(raw_lines)
     original_estimate = estimate_v2(original_text, args.profile)
     deduped_estimate = estimate_v2(deduped_text, args.profile)
     saved = original_estimate - deduped_estimate
+    method = "frequency_dict_zero_dup" if do_words else (
+        "command_block_collapse" if do_blocks else (
+            "normalized_template_collapse" if do_norm else "exact_duplicate_collapse"
+        )
+    )
     stats = {
-        "method": "content_class_pretoken_heuristic_v2",
+        "method": method,
         "profile": args.profile,
         "original_estimate": original_estimate,
         "deduped_estimate": deduped_estimate,
         "saved_estimate": saved,
         "saved_percent": round(100 * saved / original_estimate, 2) if original_estimate else 0.0,
     }
-    manifest = {"tool": "RSaver", "version": VERSION, "method": "exact_duplicate_collapse",
+    manifest = {"tool": "RSaver", "version": VERSION,
+                "method": method,
                 "inputs": args.paths, "critical_lines_preserved": sorted(critical), "stats": stats}
+    if dictionary:
+        manifest["dictionary"] = dictionary
+    if blocks:
+        manifest["blocks"] = blocks
+    if inline_repeats:
+        manifest["inline_repeats"] = inline_repeats
     return emit(manifest, args.json, deduped_text, "dedupe", "deduped_text")
 
 
@@ -924,6 +1182,7 @@ def build_parser() -> argparse.ArgumentParser:
     pack = sub.add_parser("pack", help="compress text when the packed estimate is actually smaller")
     pack.add_argument("path")
     pack.add_argument("--profile", choices=sorted(PROFILES), default="generic")
+    pack.add_argument("--method", choices=["zlib", "dict"], default="zlib", help="pack method: zlib (binary) or dict (readable frequency dictionary)")
     pack.add_argument("--force", action="store_true", help="emit the packed form even when it costs more")
     pack.add_argument("--json", action="store_true")
     pack.set_defaults(func=command_pack)
@@ -1005,6 +1264,8 @@ def build_parser() -> argparse.ArgumentParser:
     compact.add_argument("--max-lines", type=int, default=120)
     compact.add_argument("--head", type=int, default=8)
     compact.add_argument("--tail", type=int, default=8)
+    compact.add_argument("--target-savings", type=float, default=0.0,
+                         help="target token savings percentage (e.g. 80 for 80%%+ reduction)")
     compact.add_argument("--critical", default=DEFAULT_CRITICAL)
     compact.add_argument("--profile", choices=sorted(PROFILES), default="generic")
     compact.add_argument("--manifest", help="write the recoverability manifest to this path")
@@ -1014,6 +1275,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     dedupe = sub.add_parser("dedupe", help="collapse exact repeated non-critical lines")
     dedupe.add_argument("paths", nargs="+")
+    dedupe.add_argument("--normalize", action="store_true",
+                        help="group non-critical lines by normalized template (timestamps, hex, numbers, UUIDs)")
+    dedupe.add_argument("--blocks", action="store_true",
+                        help="collapse repeating contiguous multi-line command and output blocks")
+    dedupe.add_argument("--words", action="store_true",
+                        help="eliminate duplicate words and phrases with zero-token references")
     dedupe.add_argument("--critical", default=DEFAULT_CRITICAL)
     dedupe.add_argument("--profile", choices=sorted(PROFILES), default="generic")
     dedupe.add_argument("--json", action="store_true")
@@ -1042,6 +1309,8 @@ def main() -> int:
     args = parser.parse_args()
     if getattr(args, "context", 0) < 0 or getattr(args, "max_lines", 1) < 1:
         parser.error("--context must be >= 0 and --max-lines must be >= 1")
+    if getattr(args, "target_savings", 0.0) < 0.0 or getattr(args, "target_savings", 0.0) > 99.0:
+        parser.error("--target-savings must be between 0 and 99")
     for key in ("recent_window", "repeat_threshold", "max_tokens"):
         if key in vars(args) and getattr(args, key) < 1:
             parser.error(f"--{key.replace('_', '-')} must be >= 1")

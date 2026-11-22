@@ -108,14 +108,14 @@ After installation, a fresh session can start with `python3 skills/rcoder/script
 
 ## MCP server and plugin components
 
-RCoder ships an optional, read-only, dependency-free stdio [MCP](https://modelcontextprotocol.io) server (`skills/rcoder/scripts/rcoder_mcp.py`) that exposes RScan, RSaver, stack detection, the bounded snapshot, specialist lookup with section-level loading, and a deterministic routing-selection validator, plus resources and workflow prompts. Every path is confined to the project root, credential files are refused, helpers run without a shell, and output is bounded.
+RCoder ships an optional, read-only, dependency-free stdio [MCP](https://modelcontextprotocol.io) server (`skills/rcoder/scripts/rcoder_mcp.py`) that exposes RScan, the complete RSaver toolset (budgeting, gating, compaction, deduplication, drift detection, anchor/re-anchor, pack/unpack, range recovery, verification), stack detection, the bounded snapshot, specialist lookup with section-level loading, and a deterministic routing-selection validator, plus resources and workflow prompts. Every path is confined to the project root, credential files are refused, helpers run without a shell, and output is bounded.
 
 ```sh
 python3 skills/rcoder/scripts/rcoder_mcp.py --print-config claude-code   # also: codex, cursor, gemini-cli, vscode, opencode, generic
-python3 skills/rcoder/scripts/rcoder_mcp.py --root . --profile minimal   # 4 tools, about 630 estimated tokens
+python3 skills/rcoder/scripts/rcoder_mcp.py --root . --profile minimal   # 4 tools, about 675 estimated tokens
 ```
 
-The Claude Code plugin additionally provides slash commands (`scan`, `route`, `review`, `verify`, `handoff`, `doctor`) and four least-privilege subagents (`rcoder-explorer`, `rcoder-reviewer`, `rcoder-verifier`, `rcoder-security-reviewer`). A new `agent-extensions-engineering` specialist covers building, reviewing, packaging, and debugging MCP servers, Agent Skills, plugins, hooks, and subagents. No hook is installed automatically. See [docs/MCP.md](docs/MCP.md) for tools, security model, context cost, and the evidence status: protocol behavior is verified locally; native host connection and plugin loading are NOT VERIFIED.
+The Claude Code plugin additionally provides slash commands (`scan`, `route`, `review`, `verify`, `handoff`, `doctor`, `saver`) and five least-privilege subagents (`rcoder-explorer`, `rcoder-reviewer`, `rcoder-verifier`, `rcoder-security-reviewer`, `rcoder-saver`). A new `agent-extensions-engineering` specialist covers building, reviewing, packaging, and debugging MCP servers, Agent Skills, plugins, hooks, and subagents. No hook is installed automatically. See [docs/MCP.md](docs/MCP.md) for tools, security model, context cost, and the evidence status: protocol behavior is verified locally; native host connection and plugin loading are NOT VERIFIED.
 
 ## Engineering and programming coverage
 

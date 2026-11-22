@@ -117,6 +117,17 @@ def main():
         assert short_plan["cache"]["eligible"] is False
         assert "cache_prefix_below_minimum" in short_plan["warnings"]
 
+        inline_envelope = {
+            "window_tokens": 10000, "output_reserve": 1000, "reasoning_reserve": 2000,
+            "items": [
+                {"id": "inline-doc", "section": "working", "text": "This is inline documentation text for test.",
+                 "stability": "dynamic", "priority": "required"}
+            ]
+        }
+        inline_gate = run_json("gate", "-", "--json", stdin_text=json.dumps(inline_envelope))
+        assert inline_gate["decisions"][0]["tokens"] > 0
+        assert inline_gate["decisions"][0]["decision"] == "keep"
+
         assert run("gate", "-", "--json", stdin_text='{"window_tokens": 0, "items": []}').returncode == 2
         assert run("gate", "-", "--json", stdin_text='{"window_tokens": 10, "items": [{"id": 1}]}').returncode == 2
         assert run("budget", "--window", "10", "--output-reserve", "20").returncode == 2
@@ -134,6 +145,14 @@ def main():
         assert "repeated_command" in signals
         assert "completion_claim_with_open_unknowns" in signals
         assert drift["diagnosis"].startswith("NOT VERIFIED")
+
+        tool_loop = root / "tool-loop.txt"
+        tool_loop.write_text("\n".join(
+            ["# session"] + [f"noise {index}" for index in range(20)]
+            + ["TOOL view src/parser.py"] * 4
+        ) + "\n", encoding="utf-8")
+        tool_drift = run_json("drift", str(tool_loop), "--json")
+        assert any(item["signal"] == "repeated_command" for item in tool_drift["signals"])
 
         state = root / "state.json"
         state.write_text(json.dumps({
@@ -231,6 +250,11 @@ def main():
             assert text in reduced, text
         assert all(line in original_lines for line in reduced.splitlines())
 
+        compact_80 = run_json("compact", str(fixture), "--target-savings", "80", "--json")
+        assert compact_80["estimate"]["saved_percent"] >= 80.0, f"Expected >= 80% savings, got {compact_80['estimate']['saved_percent']}%"
+        for text in critical.values():
+            assert text in compact_80["compacted"]
+
         written = run("compact", str(fixture), "--max-lines", "20", "--manifest", str(manifest_path), "--verify")
         assert written.returncode == 0, written.stderr
         verified = run("verify", "--manifest", str(manifest_path))
@@ -256,6 +280,60 @@ def main():
         assert deduped["stats"]["saved_estimate"] > 0
         assert "original lines 1-40" in deduped["deduped_text"]
         assert "ERROR: boom" in deduped["deduped_text"]
+
+        timestamped = root / "timestamped.txt"
+        timestamped.write_text("\n".join(
+            [f"2026-11-22T19:0{i:02d}:00.123 [worker-{i}] processed batch {1000+i} ok" for i in range(50)]
+            + ["ERROR: worker crashed"]
+        ) + "\n", encoding="utf-8")
+        norm_deduped = run_json("dedupe", str(timestamped), "--normalize", "--json")
+        assert norm_deduped["stats"]["saved_percent"] >= 80.0, f"Expected >= 80% savings, got {norm_deduped['stats']['saved_percent']}%"
+        assert "ERROR: worker crashed" in norm_deduped["deduped_text"]
+        assert "similar non-critical line(s) collapsed" in norm_deduped["deduped_text"]
+
+        # Test command block deduplication (90%+ savings)
+        ps_block = (
+            'PS D:\\RCoder-Skills> powershell -Command "python scripts/validate-all"\n'
+            'RCoder validation: 3139 checks\n'
+            'PASS: skill structure, specialist routing, evaluation data\n'
+            '<shellId: 1 completed with exit code 0>\n'
+        )
+        cmd_file = root / "commands.log"
+        cmd_file.write_text(ps_block * 25, encoding="utf-8")
+        block_deduped = run_json("dedupe", str(cmd_file), "--blocks", "--json")
+        assert block_deduped["stats"]["saved_percent"] >= 90.0, f"Expected >= 90%, got {block_deduped['stats']['saved_percent']}%"
+        assert "block 4 lines repeated x24" in block_deduped["deduped_text"]
+        assert "RSaver#" in block_deduped["deduped_text"]
+
+        # Test zero-token duplicate word/phrase frequency deduplication (90%+ savings)
+        phrase_sample = "powershell -ExecutionPolicy Bypass -Command Get-ChildItem -Recurse. " * 30
+        phrase_file = root / "phrases.txt"
+        phrase_file.write_text(phrase_sample, encoding="utf-8")
+        word_deduped = run_json("dedupe", str(phrase_file), "--words", "--json")
+        assert word_deduped["stats"]["saved_percent"] >= 90.0, f"Expected >= 90%, got {word_deduped['stats']['saved_percent']}%"
+
+        # Test pack --method dict and unpack roundtrip
+        dict_packed = run_json("pack", str(phrase_file), "--method", "dict", "--json")
+        assert dict_packed["saved_percent"] >= 90.0
+        dict_manifest = root / "dict_manifest.json"
+        dict_manifest.write_text(json.dumps(dict_packed), encoding="utf-8")
+        dict_restored = root / "dict_restored.txt"
+        unpacked_dict = run("unpack", "--manifest", str(dict_manifest), "--out", str(dict_restored))
+        assert unpacked_dict.returncode == 0
+        assert dict_restored.read_text(encoding="utf-8") == phrase_sample
+
+        # Adversarial: literal reference/marker text in source must not corrupt restore
+        hostile_file = root / "hostile.txt"
+        hostile_text = ("deploy failed at stage @0 and marker [RSaver#0: repeat x5] appears literally\n"
+                        + "the deploy pipeline checks the token. " * 12)
+        hostile_file.write_text(hostile_text, encoding="utf-8")
+        hostile_packed = run_json("pack", str(hostile_file), "--method", "dict", "--json")
+        hostile_manifest = root / "hostile_manifest.json"
+        hostile_manifest.write_text(json.dumps(hostile_packed), encoding="utf-8")
+        hostile_restored = root / "hostile_restored.txt"
+        hostile_run = run("unpack", "--manifest", str(hostile_manifest), "--out", str(hostile_restored))
+        assert hostile_run.returncode == 0, hostile_run.stderr
+        assert hostile_restored.read_text(encoding="utf-8") == hostile_text
 
         tampered = root / "tampered.txt"
         tampered.write_text(fixture.read_text(encoding="utf-8") + "ERROR: new evidence\n", encoding="utf-8")

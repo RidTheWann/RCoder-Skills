@@ -5,8 +5,8 @@
 RCoder remains one portable Agent Skill with progressive disclosure. The core router selects focused references rather than injecting the entire specialist library into every agent context.
 
 Version 1.14.0 adds:
-- A read-only, dependency-free stdio MCP server (`skills/rcoder/scripts/rcoder_mcp.py`) with 14 tools, resources, and workflow prompts; Claude Code plugin slash commands and least-privilege subagents; the `agent-extensions-engineering` specialist; and validator group G8. Details: `CHANGELOG.md` and `docs/MCP.md`.
-- Pending in `CHANGELOG.md` under `[Unreleased]` (not yet released): a fix so MCP resources honor project-local overrides, a `query` filter on `rcoder_list_specialists`, `completion/complete`, and `rcoder_route` / `rcoder_verify` prompts. Locally verified only; hosted CI for it is not recorded.
+- A read-only, dependency-free stdio MCP server (`skills/rcoder/scripts/rcoder_mcp.py`) with 21 tools, resources, and workflow prompts; Claude Code plugin slash commands and least-privilege subagents; the `agent-extensions-engineering` specialist; and validator group G8. Details: `CHANGELOG.md` and `docs/MCP.md`.
+- Pending in `CHANGELOG.md` under `[Unreleased]` (not yet released): a fix so MCP resources honor project-local overrides, a `query` filter on `rcoder_list_specialists`, `completion/complete`, `rcoder_route` / `rcoder_verify` prompts, the RSaver zero-token duplicate elimination (`dedupe --blocks`, `dedupe --words`, `pack --method dict`), `compact --target-savings`, the seven new RSaver MCP tools, the `saver` slash command and `rcoder-saver` subagent, and a marker-collision fix that restores byte-exact `unpack`. Locally verified only; hosted CI for it is not recorded.
 
 Version 1.13.0 adds:
 - An operational selection gate and stronger base-plus-narrow composition in `specialist-routing.md` and SKILL.md, derived from case-level control errors and checked in a fresh, bounded live ablation against the unmodified v1.11.0 skill.

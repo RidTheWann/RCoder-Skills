@@ -6,18 +6,36 @@ RCoder follows Semantic Versioning.
 
 ### Fixed
 - MCP resources ignored project-local guidance: `resources/read` for `rcoder://specialist/{name}` always returned the built-in module even when `.rcoder/references/<name>.md` replaced it (as `SKILL.md` and `rcoder_get_specialist` already specified), and project-local extension modules were neither listed nor readable as resources. Resources now follow the same override rules and are served behind the same untrusted-content notice. `rcoder_list_specialists` now summarizes the active override instead of the shadowed built-in text.
+- RSaver reference/marker collision: `dedupe --words` emitted `@N` references and `dedupe --blocks`/`collapse_phrase_repeats` emitted `[RSaver: ...]` markers. When the source text already contained that literal string, `unpack` expanded the wrong span and the restore was not byte-exact. References now use a prefix proven absent from the payload (`_reference_prefix`), and markers are allocated by `MarkerFactory`, which guarantees uniqueness against the original source. `scripts/test-rsaver.py` adds an adversarial case with literal `@0` and `[RSaver#0: ...]` in the input.
 
 ### Added
-- `rcoder_list_specialists` accepts an optional `query` that ranks candidate module names by name, title, and "Activate when" text (top 15 with a score). It keeps the tool count at 14, so the tool-list context cost grows by about 150 characters instead of a new tool schema, and it never chooses a primary.
+- RSaver zero-token duplicate elimination. `dedupe --words` collapses repeated words and 2-7 word phrases to a single reference per distinct value; `dedupe --blocks` collapses contiguous repeated command/output blocks (PowerShell, CMD, terminal, test/build runners) keeping the first execution verbatim; `pack --method dict` / `unpack` provide the same dictionary form as a pack manifest. All three are byte-exact and SHA-256 checked on restore.
+- `rsaver compact --target-savings N` prunes non-critical lines toward an explicit savings percentage while always retaining every critical (error, status, hash, URL) line.
+- MCP tools `rsaver_anchor`, `rsaver_reanchor`, `rsaver_dedupe`, `rsaver_recover`, `rsaver_verify`, `rsaver_pack`, `rsaver_unpack`; `rsaver_compact` and `rsaver_dedupe` gained the corresponding parameters. Tool count is now 21.
+- MCP prompts `rcoder_context_gate` and `rcoder_reanchor`.
+- Slash command `saver` and least-privilege subagent `rcoder-saver` (read-only; no file-editing tools).
+
+### Changed
+- `docs/MCP.md` and `README.md` document the expanded RSaver toolset, the new prompts and plugin components, and the re-measured tool-list cost (21 tools; about 11,800 characters and 3,470 estimated tokens serialized).
+
+### Measured savings (deterministic relative estimate)
+- Repeating command blocks: about 94% (1424 -> 76).
+- Repeating phrases/words: about 95% (481 -> 25).
+- Timestamped template logs: about 96% (1253 -> 55).
+- Low-repetition or high-entropy text: 0-5%; the tools report this instead of inflating it.
+- Every figure above is reproducible from the working tree with `rsaver dedupe`/`rsaver pack`; they are relative estimates, not provider billing.
+
+### Verification status
+- Behavior above is VERIFIED locally by `scripts/test-rsaver.py`, `scripts/test-mcp.py`, and `scripts/validate-all` (3139 checks). Host-side activation and hosted CI for this change are NOT VERIFIED.
+
+### Added
+- `rcoder_list_specialists` accepts an optional `query` that ranks candidate module names by name, title, and "Activate when" text (top 15 with a score). It never chooses a primary.
 - `completion/complete` for the `{name}` argument of the specialist and template resource templates (case-insensitive prefix, at most 100 values), with the `completions` capability advertised from protocol `2025-03-26`.
 - MCP prompts `rcoder_route` and `rcoder_verify`, mirroring the plugin's `/route` and `/verify` commands for hosts that surface MCP prompts.
 - `scripts/test-mcp.py` covers the resource override and extension behavior, query ranking and rejection paths, completion success, hostile-value, and invalid-parameter paths, capability gating by protocol version, and the new prompts. The new assertions fail against the previous server.
 
 ### Changed
-- `docs/MCP.md` documents the above and the re-measured tool-list cost (`full` about 7,900 characters and 2,300 estimated tokens; `minimal` about 2,300 characters and 675); `commands/route.md` mentions `query`; `docs/HANDOFF.md` now covers v1.14.0.
-
-### Verification status
-- Behavior above is VERIFIED locally by `scripts/test-mcp.py` and `scripts/validate-all`. Host-side use of completion, the new prompts, or `query`, and hosted CI for this change, are NOT VERIFIED.
+- `commands/route.md` mentions `query`; `docs/HANDOFF.md` now covers v1.14.0.
 
 ## [1.14.0] - 2026-11-22
 

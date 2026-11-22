@@ -47,6 +47,13 @@ All tools are read-only (`readOnlyHint: true`, `destructiveHint: false`) and use
 | `rsaver_drift` | Drift signals in a saved transcript |
 | `rsaver_crosscheck` | PASS, FAIL, or UNVERIFIED for a completion claim against saved artifacts |
 | `rsaver_gate` | RSaver gate over an inline JSON context envelope |
+| `rsaver_anchor` | Build dual-end explicit-ID anchor blocks (`[OBJECTIVE-1]`, `[CONSTRAINT-N]`, `[FACT-N]`, `[NEXT-ACTION]`) to combat long-context drift |
+| `rsaver_reanchor` | Insert dual-end anchor blocks into a context envelope and re-evaluate gate decisions |
+| `rsaver_dedupe` | Collapse repeated non-critical lines, contiguous repeated command/output blocks (`blocks`), or repeated words and phrases (`words`) with a collision-free reference |
+| `rsaver_recover` | Print exact original lines from an omitted range in a compacted file |
+| `rsaver_verify` | Verify a compaction manifest against the original file (SHA-256 and preserved critical lines) |
+| `rsaver_pack` | Lossless compression when the packed estimate is smaller: `method=zlib` (base64) or `method=dict` (readable frequency dictionary) |
+| `rsaver_unpack` | Restore exact original text from a pack manifest with SHA-256 verification |
 
 `rcoder_validate_selection` encodes the non-negotiable selection rules from `SKILL.md` as a deterministic check, so a model can validate a routing decision instead of re-deriving the rules. Helper-module names are compared with `SKILL.md` by `scripts/validate-all` so the two cannot drift.
 
@@ -54,7 +61,7 @@ All tools are read-only (`readOnlyHint: true`, `destructiveHint: false`) and use
 
 Resources: `rcoder://skill`, `rcoder://specialist/{name}` for every module, and `rcoder://template/{name}` for every template. Resources follow the same project-local rules as `rcoder_get_specialist`: a `.rcoder/references/<name>.md` file replaces the built-in module and an extra file is listed as its own resource, and both are served behind the fixed untrusted-content notice.
 
-Prompts: `rcoder_intake`, `rcoder_route` (select and validate specialists before work), `rcoder_review`, `rcoder_verify` (check a completion claim with `rsaver_crosscheck`), `rcoder_handoff` (embeds the context-capsule template), and `rcoder_security_scope` (authorization checklist; stays passive until scope is confirmed). `rcoder_route` and `rcoder_verify` give hosts that surface MCP prompts the same workflows as the plugin's `/route` and `/verify` commands.
+Prompts: `rcoder_intake`, `rcoder_route` (select and validate specialists before work), `rcoder_review`, `rcoder_verify` (check a completion claim with `rsaver_crosscheck`), `rcoder_handoff` (embeds the context-capsule template), `rcoder_security_scope` (authorization checklist; stays passive until scope is confirmed), `rcoder_context_gate` (context envelope budgeting and cache prefix verification), and `rcoder_reanchor` (dual-end explicit-ID anchor block generation). `rcoder_route` and `rcoder_verify` give hosts that surface MCP prompts the same workflows as the plugin's `/route` and `/verify` commands.
 
 Completion: `completion/complete` is advertised from protocol `2025-03-26` and completes the `{name}` argument of the specialist and template resource templates by case-insensitive prefix (at most 100 values). Prompt arguments are free text and complete to nothing.
 
@@ -64,7 +71,7 @@ Tool schemas are sent on every request, so they are a continuous token cost. Mea
 
 | Profile | Tools | Serialized size | Estimated tokens |
 |---|---|---|---|
-| `full` (default) | 14 | about 7,900 characters | about 2,300 |
+| `full` (default) | 21 | about 11,800 characters | about 3,470 |
 | `minimal` | 4 | about 2,300 characters | about 675 |
 
 `scripts/test-mcp.py` fails if the serialized tool list grows past a fixed character budget. Use `--profile minimal` or `--tools` when you only need routing support; the RSaver and RScan command-line tools remain available without the server.
@@ -82,8 +89,8 @@ Tool schemas are sent on every request, so they are a continuous token cost. Mea
 
 The Claude Code plugin manifest (`.claude-plugin/plugin.json`) declares the server and the repository ships:
 
-- **Slash commands** (`commands/`): `scan`, `route`, `review`, `verify`, `handoff`, `doctor`. They prefer the MCP tools and fall back to the bundled scripts. None pre-approves tools.
-- **Subagents** (`agents/`): `rcoder-explorer`, `rcoder-reviewer`, `rcoder-verifier` (read tools plus Bash, no file-editing tools) and `rcoder-security-reviewer` (read tools only, passive review).
+- **Slash commands** (`commands/`): `scan`, `route`, `review`, `verify`, `handoff`, `doctor`, `saver`. They prefer the MCP tools and fall back to the bundled scripts. None pre-approves tools.
+- **Subagents** (`agents/`): `rcoder-explorer`, `rcoder-reviewer`, `rcoder-verifier`, `rcoder-security-reviewer` (passive review), and `rcoder-saver` (read-only context optimization, budgeting, and evidence recovery).
 
 No hook ships by default. Automatic session-start scanning stays opt-in through `rscan hooks install` (see `RSCAN-HOOKS.md`), because an always-firing hook changes behavior and token use for every session. `scripts/validate-all` rejects a `hooks/` directory to keep that decision explicit.
 
