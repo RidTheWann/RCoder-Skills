@@ -50,7 +50,7 @@ The frontmatter parser deliberately accepts only flat string fields plus one lev
 | Frontmatter parser agrees with PyYAML on `SKILL.md` | Asserted by the same test when PyYAML is installed. |
 | Any host calls `server/discover`, `skills/list`, or `skills/get` against this server | NOT VERIFIED. The community support matrix lists Skills support only as partial for a few clients. Use `npx @modelcontextprotocol/inspector` or another client that implements the extension to check. |
 | The Streamable HTTP transport | NOT IMPLEMENTED. Only stdio is served. |
-| Plugin manifests (`.claude-plugin/plugin.json`, `.codex-plugin`, `plugin.json`) launch this entry point | NOT DONE. They still launch `rcoder_mcp.py`. |
+| Claude Code plugin manifest (`.claude-plugin/plugin.json`) launches this entry point | DONE. Legacy `initialize` sessions still reach the unchanged core, so existing clients are unaffected (asserted by `scripts/test-mcp-modern.py`). `.codex-plugin` and `plugin.json` declare no MCP server. |
 
 ## Maintenance notes
 
