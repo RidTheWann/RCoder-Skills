@@ -93,7 +93,7 @@ The Claude Code plugin manifest (`.claude-plugin/plugin.json`) declares the serv
 - **Slash commands** (`commands/`): `scan`, `route`, `review`, `verify`, `handoff`, `doctor`, `saver`, `agent-security`, `observe`. They prefer the MCP tools and fall back to the bundled scripts. None pre-approves tools.
 - **Subagents** (`agents/`): `rcoder-explorer`, `rcoder-reviewer`, `rcoder-verifier`, `rcoder-security-reviewer` (passive review), and `rcoder-saver` (read-only context optimization, budgeting, and evidence recovery).
 
-No hook ships by default. Automatic session-start scanning stays opt-in through `rscan hooks install` (see `RSCAN-HOOKS.md`), because an always-firing hook changes behavior and token use for every session. `scripts/validate-all` rejects a `hooks/` directory to keep that decision explicit.
+One hook ships by default (D-019): a read-only `SessionStart` hook (`hooks/hooks.json`) that runs `rscan scan` and adds a bounded development menu (about 400 tokens) to each new session. `scripts/validate-all` allows only that event and command; blocking and tool-event hooks stay forbidden. Disable it by disabling the plugin or through `/hooks`. Do not also run `rscan hooks install` for Claude Code, or the menu is injected twice.
 
 ## Evidence status
 

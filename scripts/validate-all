@@ -401,8 +401,22 @@ def main():
     check(any(str(arg).endswith(("skills/rcoder/scripts/rcoder_mcp.py",
                                  "skills/rcoder/scripts/rcoder_mcp_modern.py")) for arg in launch),
           "G8: Claude plugin MCP launch does not point at the bundled server")
-    check(not (ROOT / "hooks").exists(),
-          "G8: no auto-firing hooks may ship by default (opt-in via rscan hooks install)")
+    hooks_file = ROOT / "hooks" / "hooks.json"
+    check(hooks_file.is_file(), "G8: plugin hooks/hooks.json missing (D-019)")
+    hook_events = load_json(hooks_file).get("hooks", {}) if hooks_file.is_file() else {}
+    check(set(hook_events) == {"SessionStart"},
+          "G8: the plugin may ship only a SessionStart hook; blocking or tool-event hooks are forbidden (D-019)")
+    for entry in hook_events.get("SessionStart", []):
+        check(entry.get("matcher") == "startup", "G8: the plugin hook must match startup only")
+        for hook in entry.get("hooks", []):
+            command = hook.get("command", "")
+            check(hook.get("type") == "command" and 0 < hook.get("timeout", 0) <= 30,
+                  "G8: the plugin hook must be a command with a timeout of at most 30 seconds")
+            check("skills/rcoder/scripts/rscan.py" in command and " scan " in command
+                  and "--hook claude" in command and not re.search(r"[;&|]\s*(?!\|)", command.replace("||", "")),
+                  "G8: the plugin hook may only run the bundled read-only rscan scan")
+            check(not re.search(r"(?i)\b(curl|wget|rm|sudo|eval|install)\b", command),
+                  "G8: the plugin hook command contains a forbidden program")
     check("mcp" in package.get("keywords", []), "G8: npm keywords should include mcp")
 
     check(CHECKS >= 3060, "G0: validation check count fell below the expected floor")

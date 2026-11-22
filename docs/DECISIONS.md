@@ -55,9 +55,14 @@
 - Criteria: no runtime dependency (matches the installers), safe by construction (root confinement, credential refusal, argument-vector subprocesses, timeouts, bounded output), cheap in context (a `minimal` profile and an allowlist), and testable without a model.
 - Consequence: the server proves protocol behavior only. Host connection and model use are separate evidence gates.
 
-## D-017 — No default hooks
+## D-017 — No default hooks (superseded by D-019)
 - Decision: do not ship an auto-firing `SessionStart` hook with the plugin. Automatic RScan stays opt-in through `rscan hooks install`.
 - Rationale: an always-on hook changes behavior and token use for every session and runs a command with the user's permissions. `scripts/validate-all` rejects a `hooks/` directory so a change of this decision is deliberate.
+
+## D-019 — Bundled read-only SessionStart hook
+- Decision: the Claude Code plugin ships `hooks/hooks.json` with one `SessionStart` (matcher `startup`) hook that runs the bundled `rscan.py scan --hook claude`. Authorized explicitly by the repository owner on 2026-11-23, superseding D-017.
+- Rationale: the scan is read-only, bounded (about 1.6 KB of context, 15 s timeout), and gives every session a ranked menu of next steps without a manual call.
+- Limits: `scripts/validate-all` allows only this one event and command shape; blocking or tool-event hooks (`PreToolUse`, `PostToolUse`, `Stop`) and network or destructive programs stay forbidden. Cost: roughly 400 tokens per session start. Disable by disabling the plugin or via `/hooks`. Do not also run `rscan hooks install` for Claude Code, or the menu is injected twice.
 
 ## D-018 — Least-privilege subagents and unapproved commands
 - Decision: plugin subagents are never granted file-editing tools, the security reviewer has no shell, and slash commands do not pre-approve tools. `scripts/validate-all` enforces this.

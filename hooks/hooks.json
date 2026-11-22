@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/rcoder/scripts/rscan.py\" scan --root \"${CLAUDE_PROJECT_DIR:-.}\" --hook claude || python \"${CLAUDE_PLUGIN_ROOT}/skills/rcoder/scripts/rscan.py\" scan --root \"${CLAUDE_PROJECT_DIR:-.}\" --hook claude",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
