@@ -60,6 +60,8 @@ jobs:
           patch_path.write_bytes(patch)
           subprocess.run(["git", "apply", "--check", "--index", str(patch_path)], check=True)
           subprocess.run(["git", "apply", "--index", str(patch_path)], check=True)
+          # Keep the workflow registration change for a later GitHub-App-authorized commit.
+          subprocess.run(["git", "restore", "--source=HEAD", "--staged", "--worktree", ".github/workflows/quality.yml"], check=True)
 
           expected_blobs = {}
           for block in re.split(rb"(?m)(?=^diff --git )", patch):
@@ -67,14 +69,14 @@ jobs:
               index = re.search(rb"(?m)^index [0-9a-f]+\.\.([0-9a-f]{7,40})", block)
               if match and index:
                   expected_blobs[match.group(1).decode("utf-8")] = index.group(1).decode("ascii")
-          assert set(expected_blobs) == allowlist, "not all expected blob IDs are present"
+          push_allowlist = allowlist - {".github/workflows/quality.yml"}
+          assert set(expected_blobs) == push_allowlist, f"missing blob IDs: {sorted(push_allowlist - set(expected_blobs))}"
           for path, expected in expected_blobs.items():
               actual = subprocess.check_output(["git", "hash-object", path], text=True).strip()
               assert actual.startswith(expected), f"blob mismatch for {path}: {actual} does not start with {expected}"
 
           staged = set(subprocess.check_output(["git", "diff", "--cached", "--name-only"], text=True).splitlines())
-          assert staged == allowlist, f"staged paths mismatch: {sorted(staged ^ allowlist)}"
-          subprocess.run(["git", "rm", "-f", ".github/workflows/apply-installer-mcp-batch.yml"], check=True)
+          assert staged == push_allowlist, f"staged paths mismatch: {sorted(staged ^ push_allowlist)}"
           subprocess.run(["git", "rm", "-r", "-f", "tmp"], check=True)
           subprocess.run(["git", "add", "-u"], check=True)
           subprocess.run(["git", "config", "user.name", "github-actions[bot]"], check=True)
@@ -82,18 +84,5 @@ jobs:
           subprocess.run(["git", "commit", "-m", "fix(installer): integrate MCP setup and repair bootstrap paths"], check=True)
           subprocess.run(["git", "push", "origin", "HEAD:refs/heads/fix/installer-mcp-setup-batch"], check=True)
 
-          # GITHUB_TOKEN pushes do not create follow-on push workflow runs, so explicitly dispatch the
-          # repository's default-branch quality workflow against the patched branch.
-          import json, os
-          request = urllib.request.Request(
-              "https://api.github.com/repos/RidTheWann/RCoder-Skills/actions/workflows/quality.yml/dispatches",
-              data=json.dumps({"ref": "fix/installer-mcp-setup-batch"}).encode(),
-              headers={"Authorization": "Bearer " + os.environ["GH_TOKEN"],
-                       "Accept": "application/vnd.github+json",
-                       "X-GitHub-Api-Version": "2022-11-28",
-                       "Content-Type": "application/json"},
-              method="POST")
-          with urllib.request.urlopen(request, timeout=30) as response:
-              assert response.status == 204, response.status
-          print("Exact batch applied; repository quality workflow dispatched.")
+          print("Exact installer MCP batch applied; workflow registration will be committed separately.")
           PY
