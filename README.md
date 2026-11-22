@@ -106,6 +106,17 @@ RCoder adapts to the model and host actually present. The [model adaptation spec
 
 After installation, a fresh session can start with `python3 skills/rcoder/scripts/rscan.py scan --root .`. RScan is read-only and bounded: it reports detected stacks, quality entry points, risk signals, and a ranked menu of development options with first commands and specialist references. For automatic launch scanning, `rscan hooks install --host claude-code|gemini-cli --scope project|user` merges a documented `SessionStart` hook with a backup and idempotence check; other hosts require manual invocation until evidence exists. See `docs/RSCAN-HOOKS.md` and `skills/rcoder/references/rscan.md`.
 
+## MCP server and plugin components
+
+RCoder ships an optional, read-only, dependency-free stdio [MCP](https://modelcontextprotocol.io) server (`skills/rcoder/scripts/rcoder_mcp.py`) that exposes RScan, RSaver, stack detection, the bounded snapshot, specialist lookup with section-level loading, and a deterministic routing-selection validator, plus resources and workflow prompts. Every path is confined to the project root, credential files are refused, helpers run without a shell, and output is bounded.
+
+```sh
+python3 skills/rcoder/scripts/rcoder_mcp.py --print-config claude-code   # also: codex, cursor, gemini-cli, vscode, opencode, generic
+python3 skills/rcoder/scripts/rcoder_mcp.py --root . --profile minimal   # 4 tools, about 630 estimated tokens
+```
+
+The Claude Code plugin additionally provides slash commands (`scan`, `route`, `review`, `verify`, `handoff`, `doctor`) and four least-privilege subagents (`rcoder-explorer`, `rcoder-reviewer`, `rcoder-verifier`, `rcoder-security-reviewer`). A new `agent-extensions-engineering` specialist covers building, reviewing, packaging, and debugging MCP servers, Agent Skills, plugins, hooks, and subagents. No hook is installed automatically. See [docs/MCP.md](docs/MCP.md) for tools, security model, context cost, and the evidence status: protocol behavior is verified locally; native host connection and plugin loading are NOT VERIFIED.
+
 ## Engineering and programming coverage
 
 The router selects focused specialists on demand. Coverage includes:
@@ -113,6 +124,7 @@ The router selects focused specialists on demand. Coverage includes:
 - **Languages and runtimes:** C, C++, Rust, Python, JavaScript/TypeScript, Node.js, C#, .NET, Java/JVM, Go, Swift, Kotlin, PHP, Ruby, Dart/Flutter, Scala, Elixir/Erlang, Haskell, Lua, R/Julia, plus functional and reactive programming.
 - **Product and platform engineering:** frontend, browser/SSR, backend/API, database, protocol contracts, mobile, game engines and emulators, embedded firmware, ML/AI systems, distributed systems, build systems, compilers, and toolchains.
 - **Core disciplines:** architecture, accessibility/UI, debugging, test engineering, performance, DevOps/CI/CD, review/refactoring, verification, and technical documentation.
+- **Agent extensions:** MCP servers, Agent Skills, plugins and marketplaces, slash commands, hooks, and subagents.
 
 ## Cybersecurity coverage
 
@@ -156,6 +168,8 @@ RCoder uses progressive disclosure to reduce unnecessary context. The token-effi
 - `skills/rcoder/scripts/detect_stack.py` — read-only stack reconnaissance.
 - `skills/rcoder/scripts/context_snapshot.py` — bounded metadata-only repository snapshot.
 - `skills/rcoder/scripts/rsaver.py` — RSaver measurement, budgeting, gating, pruning, deduplication, and recovery CLI (bundled); `scripts/rsaver.py` is a repository-root wrapper.
+- `skills/rcoder/scripts/rcoder_mcp.py` — read-only stdio MCP server (tools, resources, prompts); `scripts/rcoder-mcp.py` is a repository-root wrapper; `docs/MCP.md` documents it.
+- `commands/` and `agents/` — Claude Code plugin slash commands and least-privilege subagents.
 - `skills/rcoder/scripts/rscan.py` — RScan bounded project scanner and session-start hook installer (bundled); `scripts/rscan.py` is a repository-root wrapper.
 - `docs/RSCAN-HOOKS.md` — evidenced host hook matrix.
 - `docs/TOKEN-ECONOMICS.md` — input, cached-input, output, and reasoning token mechanics.
@@ -174,6 +188,7 @@ python3 scripts/test-context-snapshot.py
 python3 scripts/test-score-eval.py
 python3 scripts/test-rsaver.py
 python3 scripts/test-rscan.py
+python3 scripts/test-mcp.py
 node --check scripts/rcoder.mjs
 node scripts/test-node-installer.mjs
 npm pack --dry-run --json

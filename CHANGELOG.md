@@ -2,6 +2,30 @@
 
 RCoder follows Semantic Versioning.
 
+## [1.14.0] - 2026-11-22
+
+### Added
+- `skills/rcoder/scripts/rcoder_mcp.py`: a read-only, dependency-free stdio MCP server (protocol versions 2025-06-18, 2025-03-26, 2024-11-05) with 14 tools (RScan, RSaver, stack detection, bounded snapshot, specialist list/get with section-level loading, routing-selection validator, doctor), resources for the router, every specialist and every template, and four workflow prompts. Path arguments are confined to `--root`, symlink escapes and credential files are refused, helpers run with an argument vector, timeouts, and bounded output. `--profile minimal`, `--tools`, and `--print-config HOST` (claude-code, codex, cursor, gemini-cli, vscode, opencode, generic) are provided. Project-local `.rcoder/references/` guidance is served with an untrusted-content notice.
+- `scripts/rcoder-mcp.py` repository-root wrapper and `docs/MCP.md` (tools, security model, measured context cost, evidence status).
+- `agent-extensions-engineering` specialist (MCP servers, Agent Skills, plugins, marketplaces, slash commands, hooks, subagents), routed from `SKILL.md`.
+- Claude Code plugin components: slash commands `scan`, `route`, `review`, `verify`, `handoff`, `doctor`, and subagents `rcoder-explorer`, `rcoder-reviewer`, `rcoder-verifier`, `rcoder-security-reviewer` (no file-editing tools; the security reviewer has no shell); the plugin manifest declares the MCP server.
+- `scripts/test-mcp.py`: scripted-client protocol, negotiation, schema, confinement, secret-refusal, argument-injection, output-bound, resource, prompt, and CLI tests, including a character budget on the tool list.
+- Expanded routing dataset cases `ex-19` and `ex-20` for the new specialist.
+- Validator group G8: MCP server safety invariants (no shell, no network, no third-party imports, confinement present), helper-set parity with `SKILL.md`, stale-module-name detection, strict tool schemas, command and agent frontmatter rules, least-privilege agent tools, and a ban on default hooks.
+
+### Changed
+- `SKILL.md` gained an optional MCP section, a routing row for the new specialist, and a `compatibility` field. The skill description is unchanged so trigger behavior is not altered.
+- `scripts/package` includes `commands/` and `agents/` in the Claude plugin archive; CI runs the MCP tests and verifies the printed configuration is valid JSON.
+- `docs/ARCHITECTURE.md`, `docs/DECISIONS.md` (D-016 to D-018), `docs/COMPATIBILITY.md`, and `README.md` describe the new layer.
+
+### Decisions
+- No hook ships by default; automatic RScan stays opt-in through `rscan hooks install`.
+- Slash commands do not pre-approve tools.
+
+### Verification status
+- MCP protocol behavior, confinement, secret refusal, output bounds, validator invariants, and packaging are VERIFIED locally by the scripts above.
+- Host connection to the server, host-specific configuration formats, Claude Code loading of commands, agents, and the manifest `mcpServers` entry, and any effect on model outcomes are NOT VERIFIED.
+
 ## [1.13.0] - 2026-11-19
 
 ### Added

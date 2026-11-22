@@ -8,7 +8,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parent.parent
 SKILL = ROOT / 'skills' / 'rcoder'
 DIST = ROOT / 'dist'
-VERSION = '1.13.0'
+VERSION = '1.14.0'
 FIXED_TIME = (2026, 1, 1, 0, 0, 0)
 
 def add_file(archive, path, archive_name):
@@ -31,7 +31,7 @@ def main():
     DIST.mkdir(exist_ok=True)
     packages = [
         (f'rcoder-v{VERSION}.skill.zip', [(SKILL, 'rcoder')]),
-        (f'rcoder-v{VERSION}.claude-plugin.zip', [(ROOT / '.claude-plugin', '.claude-plugin'), (SKILL.parent, 'skills'), (ROOT / 'LICENSE', 'LICENSE'), (ROOT / 'README.md', 'README.md')]),
+        (f'rcoder-v{VERSION}.claude-plugin.zip', [(ROOT / '.claude-plugin', '.claude-plugin'), (ROOT / 'commands', 'commands'), (ROOT / 'agents', 'agents'), (SKILL.parent, 'skills'), (ROOT / 'LICENSE', 'LICENSE'), (ROOT / 'README.md', 'README.md')]),
         (f'rcoder-v{VERSION}.agent-plugin.zip', [(ROOT / 'plugin.json', 'plugin.json'), (SKILL.parent, 'skills'), (ROOT / 'LICENSE', 'LICENSE'), (ROOT / 'README.md', 'README.md')]),
         (f'rcoder-v{VERSION}.codex-plugin.zip', [(ROOT / 'plugin.json', 'plugin.json'), (ROOT / '.codex-plugin', '.codex-plugin'), (SKILL.parent, 'skills'), (ROOT / 'LICENSE', 'LICENSE'), (ROOT / 'README.md', 'README.md')]),
     ]

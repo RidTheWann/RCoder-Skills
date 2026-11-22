@@ -49,3 +49,15 @@
 
 ## D-015 — Evidence-led machine semantics
 - Decision: undocumented ABI, instruction, register, memory, and file-format behavior remains unknown until corroborated by specifications, independent observations, or differential tests.
+
+## D-016 — Read-only, dependency-free MCP server
+- Decision: expose RCoder's deterministic helpers, specialist lookup, and the routing-selection rules through a stdio MCP server that uses only the Python standard library and has no write tools.
+- Criteria: no runtime dependency (matches the installers), safe by construction (root confinement, credential refusal, argument-vector subprocesses, timeouts, bounded output), cheap in context (a `minimal` profile and an allowlist), and testable without a model.
+- Consequence: the server proves protocol behavior only. Host connection and model use are separate evidence gates.
+
+## D-017 — No default hooks
+- Decision: do not ship an auto-firing `SessionStart` hook with the plugin. Automatic RScan stays opt-in through `rscan hooks install`.
+- Rationale: an always-on hook changes behavior and token use for every session and runs a command with the user's permissions. `scripts/validate-all` rejects a `hooks/` directory so a change of this decision is deliberate.
+
+## D-018 — Least-privilege subagents and unapproved commands
+- Decision: plugin subagents are never granted file-editing tools, the security reviewer has no shell, and slash commands do not pre-approve tools. `scripts/validate-all` enforces this.

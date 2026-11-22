@@ -1,6 +1,6 @@
 {
   "name": "rcoder",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "description": "A portable, model-agnostic software engineering, cybersecurity, and reverse-engineering skill manager.",
   "license": "MIT",
   "repository": {
@@ -23,6 +23,8 @@
     "node": ">=18.18.0"
   },
   "keywords": [
+    "mcp",
+    "mcp-server",
     "agent-skills",
     "coding-agent",
     "software-engineering",

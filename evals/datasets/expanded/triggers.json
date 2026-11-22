@@ -16,5 +16,7 @@
   {"id": "ex-15", "prompt": "Translate this recipe into French.", "should_trigger": false, "category": "translation", "language": "EN"},
   {"id": "ex-16", "prompt": "Create a four-day travel itinerary for Kyoto.", "should_trigger": false, "category": "travel", "language": "EN"},
   {"id": "ex-17", "prompt": "Generate a logo image for a coffee shop.", "should_trigger": false, "category": "image creation", "language": "EN"},
-  {"id": "ex-18", "prompt": "What is the weather forecast in Berlin tomorrow?", "should_trigger": false, "category": "weather", "language": "EN"}
+  {"id": "ex-18", "prompt": "What is the weather forecast in Berlin tomorrow?", "should_trigger": false, "category": "weather", "language": "EN"},
+  {"id": "ex-19", "prompt": "Build a stdio MCP server that exposes read-only repository search to coding agents and harden it against path traversal and prompt injection through tool output.", "should_trigger": true, "category": "agent-extensions/security", "language": "EN"},
+  {"id": "ex-20", "prompt": "Package our skill, slash commands, and review subagents as a plugin with a marketplace manifest, then find out why the host never discovers the skill.", "should_trigger": true, "category": "agent-extensions/packaging", "language": "EN"}
 ]
