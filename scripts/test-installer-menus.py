@@ -101,10 +101,39 @@ def run_node(temp):
                 except OSError:
                     return
 
-    for answer in ("1", "3", "1", "1", "2", str(project), "0"):
-        drain(0.8)
-        os.write(fd, (answer + "\n").encode())
-    drain(2.0)
+    cursor = 0
+
+    def respond(prompt, answer, timeout=30):
+        nonlocal output, cursor
+        marker = prompt.encode("utf-8")
+        deadline = time.monotonic() + timeout
+        while True:
+            position = output.find(marker, cursor)
+            if position >= 0:
+                cursor = position + len(marker)
+                os.write(fd, (answer + "\n").encode())
+                return
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                rendered = re.sub(rb"\\x1b\\[[0-9;?]*[A-Za-z]", b"", output).decode("utf-8", "replace")
+                raise AssertionError(f"Node manager did not display prompt {prompt!r} within {timeout}s\\n{rendered}")
+            ready, _, _ = select.select([fd], [], [], min(0.1, remaining))
+            if ready:
+                try:
+                    output += os.read(fd, 65536)
+                except OSError:
+                    break
+
+    # Drive the manager from observed prompts instead of fixed sleeps. readline may not
+    # have installed its next question yet when a fast PTY writer sends the next line.
+    respond("Choose an action: ", "1")
+    respond("Select one or more targets (for example 1,7,10; A = all): ", "3")
+    respond("Choose installation scope: ", "1")
+    respond("Enable optional tools: ", "1")
+    respond("MCP server: ", "2")
+    respond("Project directory [", str(project))
+    respond("Choose an action: ", "0")
+    drain(1.0)
     try:
         os.waitpid(pid, 0)
     except ChildProcessError:
