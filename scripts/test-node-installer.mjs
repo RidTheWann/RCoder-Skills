@@ -78,6 +78,12 @@ try {
   assert.ok(existsSync(path.join(appRoot, 'launcher', 'McpSetup.ps1')), 'MCP setup helper was not bundled');
   assert.ok(existsSync(path.join(appRoot, 'targets.json')), 'Target catalog was not bundled');
   assert.ok(existsSync(path.join(appRoot, 'skills', 'rcoder', 'SKILL.md')), 'Canonical skill was not bundled');
+  assert.ok(existsSync(path.join(appRoot, 'launcher', 'rcoder-mcp.mjs')), 'Cross-platform MCP launcher was not bundled');
+  assert.ok(existsSync(path.join(appRoot, '.opencode', 'plugins', 'rcoder.js')), 'OpenCode integration adapter was not bundled');
+  assert.ok(existsSync(path.join(appRoot, 'gemini-extension.json')), 'Gemini extension manifest was not bundled');
+  assert.ok(existsSync(path.join(appRoot, '.agents', 'plugins', 'marketplace.json')), 'Codex marketplace catalog was not bundled');
+  assert.ok(existsSync(path.join(appRoot, 'skills', 'rcoder', 'scripts', 'skill_authoring.py')),
+    'Skill authoring toolkit was not bundled');
 
   const backupRoot = path.join(launcherRoot, 'backups');
   const before = existsSync(backupRoot) ? readdirSync(backupRoot).length : 0;
