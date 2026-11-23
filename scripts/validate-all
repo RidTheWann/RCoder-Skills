@@ -193,13 +193,25 @@ def main():
               f"G3: missing expanded scenario fixture {sid}")
 
     multilingual = load_json(ROOT / "evals" / "datasets" / "multilingual.triggers.json")
-    check(len(multilingual) >= 6, "G3: multilingual research dataset too small")
-    check(all(item.get("language") in {"ID", "EN", "MIXED_ID_EN"} for item in multilingual),
-          "G3: invalid language tag in multilingual dataset")
+    check(len(multilingual) >= 12, "G3: multilingual research dataset too small")
+    check(len({item.get("id") for item in multilingual}) == len(multilingual),
+          "G3: duplicate multilingual case IDs")
+    check({item.get("language") for item in multilingual} >= {"ID", "EN", "MIXED_ID_EN"},
+          "G3: multilingual dataset must include Indonesian, English, and mixed prompts")
+    check(sum(not item.get("expected_specialists") for item in multilingual) >= 3,
+          "G3: multilingual negative controls were lost")
     for item in multilingual:
+        check(item.get("language") in {"ID", "EN", "MIXED_ID_EN"},
+              f"G3: multilingual case {item.get('id')} has an invalid language tag")
         check(all(name in module_names for name in item.get("expected_specialists", [])),
               f"G3: multilingual case {item.get('id')} references an unknown specialist")
-        check(bool(item.get("prompt", "").strip()), f"G3: multilingual case {item.get('id')} has empty prompt")
+        prompt = item.get("prompt", "")
+        check(bool(prompt.strip()), f"G3: multilingual case {item.get('id')} has empty prompt")
+        check(all(isinstance(token, str) and token and token in prompt
+                  for token in item.get("identifier_integrity", [])),
+              f"G3: multilingual case {item.get('id')} changed or omitted an identifier")
+    check((ROOT / "scripts" / "test-multilingual-data.py").is_file(),
+          "G3: multilingual static fixture test missing")
 
     ledger = read(ROOT / "evals" / "runs" / "BASELINE-LEDGER.md")
     for digest, filename in re.findall(r"`([0-9a-f]{64})`\s*\|\s*([A-Za-z0-9_.-]+)", ledger):
@@ -210,13 +222,17 @@ def main():
 
     manifest_paths = (
         "plugin.json", ".claude-plugin/plugin.json",
-        ".claude-plugin/marketplace.json", ".codex-plugin/plugin.json"
+        ".claude-plugin/marketplace.json", ".codex-plugin/plugin.json",
+        "gemini-extension.json"
     )
     manifests = {path: load_json(ROOT / path) for path in manifest_paths}
     package = load_json(ROOT / "package.json")
     contract = load_json(SKILL / "contracts" / "rcoder-v2.json")
     catalog = load_json(ROOT / "targets.json")
     portable = manifests["plugin.json"]
+    codex_marketplace = load_json(ROOT / ".agents" / "plugins" / "marketplace.json")
+    claude_mcp = load_json(ROOT / ".mcp.json")
+    portable_mcp = load_json(ROOT / "mcp.json")
 
     check(package.get("name") == "rcoder", "G1: npm package name must be rcoder")
     check(package.get("version") == version, "G7: npm package version mismatch")
@@ -224,6 +240,41 @@ def main():
     check(contract.get("mcp", {}).get("modern_protocol") == "2026-07-28", "G8: modern MCP protocol version mismatch")
     check(contract.get("mcp", {}).get("transports", {}).get("streamable_http", {}).get("bind_host") == "127.0.0.1",
           "G8: Streamable HTTP must declare loopback binding")
+    check(manifests["gemini-extension.json"].get("version") == version,
+          "G7: Gemini extension version mismatch")
+    check(manifests["gemini-extension.json"].get("name") == "rcoder",
+          "G8: Gemini extension name mismatch")
+    check(manifests[".claude-plugin/plugin.json"].get("mcpServers") == "./.mcp.json",
+          "G8: Claude plugin must reference its bundled compatibility MCP config")
+    check(manifests[".codex-plugin/plugin.json"].get("mcpServers") == "./.mcp.json",
+          "G8: Codex compatibility plugin must reference its bundled MCP config")
+    check(manifests[".codex-plugin/plugin.json"].get("skills") == "./skills/",
+          "G8: Codex compatibility plugin must expose the bundled skills directory")
+    check(codex_marketplace.get("plugins", [{}])[0].get("source", {}).get("url") ==
+          "https://github.com/RidTheWann/RCoder-Skills",
+          "G8: Codex marketplace must point to the actual repository source")
+    check(codex_marketplace.get("plugins", [{}])[0].get("policy", {}).get("installation") == "AVAILABLE",
+          "G8: Codex marketplace plugin must be installable")
+    gemini_mcp = manifests["gemini-extension.json"].get("mcpServers", {}).get("rcoder", {})
+    check(bool(gemini_mcp.get("command")) and any("extensionPath" in str(arg) for arg in gemini_mcp.get("args", [])),
+          "G8: Gemini extension MCP server must use its extension-root launcher")
+    check(manifests["gemini-extension.json"].get("contextFileName") == "GEMINI.md",
+          "G8: Gemini extension context file is not declared")
+    check(portable_mcp.get("mcpServers", {}).get("rcoder", {}).get("type") == "stdio",
+          "G8: portable plugin MCP transport must be stdio")
+    check(portable_mcp.get("mcpServers", {}).get("rcoder", {}).get("command") == "node",
+          "G8: portable plugin must use the cross-platform Node MCP launcher")
+    check(claude_mcp.get("mcpServers", {}).get("rcoder", {}).get("command") == "node",
+          "G8: Claude/Codex compatibility MCP config must use Node launcher")
+    check((ROOT / ".opencode" / "plugins" / "rcoder.js").is_file(),
+          "G8: OpenCode V1 adapter missing")
+    opencode_plugin = read(ROOT / ".opencode" / "plugins" / "rcoder.js")
+    check("experimental.chat.system.transform" in opencode_plugin and "RCoder:" in opencode_plugin,
+          "G8: OpenCode adapter must inject bounded RCoder guidance through the V1 hook")
+    check("mcp-transport-engineering.md" in read(skill_file),
+          "G8: SKILL.md must route to MCP transport engineering")
+    check("Multilingual activation" in read(skill_file),
+          "G8: SKILL.md must define the multilingual activation contract")
     check(package.get("bin", {}).get("rcoder") == "./scripts/rcoder.mjs", "G1: npm rcoder binary missing")
     package_files = set(package.get("files", []))
     for required in ("skills/rcoder/**", "scripts/rcoder.mjs", "targets.json", "launcher/RCoder.ps1"):
@@ -243,7 +294,13 @@ def main():
         "install.ps1", "launcher/RCoder.ps1", "launcher/McpSetup.ps1", "targets.json",
         "skills/rcoder/scripts/rcoder_mcp_setup.py", "scripts/test-mcp-setup.py",
         "skills/rcoder/contracts/rcoder-v2.json", "skills/rcoder/scripts/rcoder_contract.py",
-        "scripts/test-mcp-contract.py", "scripts/test-mcp-http.py", "scripts/test-cli-doctor.mjs", "scripts/test-installer-menus.py"
+        "scripts/test-mcp-contract.py", "scripts/test-mcp-http.py", "scripts/test-cli-doctor.mjs",
+        "scripts/test-installer-menus.py", "scripts/test-integrations.mjs",
+        "scripts/test-skill-authoring.py", "scripts/test-cli-skill.mjs",
+        "scripts/test-multilingual-data.py",
+        "skills/rcoder/scripts/skill_authoring.py", "skills/rcoder/references/mcp-transport-engineering.md",
+        "launcher/rcoder-mcp.mjs", ".opencode/plugins/rcoder.js", "gemini-extension.json",
+        "GEMINI.md", ".mcp.json", "mcp.json", ".agents/plugins/marketplace.json"
     ):
         check((ROOT / required).is_file(), f"G1: required installer/test file missing: {required}")
 
@@ -406,12 +463,9 @@ def main():
                     check("Bash" not in granted, "G8: the security reviewer must stay passive (no Bash)")
     check({item.stem for item in (ROOT / "commands").glob("*.md")} >=
           {"scan", "route", "review", "verify", "handoff", "doctor"}, "G8: expected slash commands missing")
-    mcp_servers = manifests[".claude-plugin/plugin.json"].get("mcpServers", {})
-    check("rcoder" in mcp_servers, "G8: Claude plugin manifest does not declare the rcoder MCP server")
-    launch = mcp_servers.get("rcoder", {}).get("args", [])
-    check(any(str(arg).endswith(("skills/rcoder/scripts/rcoder_mcp.py",
-                                 "skills/rcoder/scripts/rcoder_mcp_modern.py")) for arg in launch),
-          "G8: Claude plugin MCP launch does not point at the bundled server")
+    launch = claude_mcp.get("mcpServers", {}).get("rcoder", {}).get("args", [])
+    check(any("launcher/rcoder-mcp.mjs" in str(arg) for arg in launch),
+          "G8: compatibility MCP launch does not point at the bundled cross-platform launcher")
     hooks_file = ROOT / "hooks" / "hooks.json"
     check(hooks_file.is_file(), "G8: plugin hooks/hooks.json missing (D-019)")
     hook_events = load_json(hooks_file).get("hooks", {}) if hooks_file.is_file() else {}
