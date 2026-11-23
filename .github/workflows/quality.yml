@@ -51,6 +51,14 @@ jobs:
         run: python scripts/test-mcp-http.py
       - name: RCoder CLI doctor
         run: node scripts/test-cli-doctor.mjs
+      - name: Agent Skill authoring scaffold, linter and package tests
+        run: python scripts/test-skill-authoring.py
+      - name: Node CLI skill authoring commands
+        run: node scripts/test-cli-skill.mjs
+      - name: Multilingual dataset and identifier integrity
+        run: python scripts/test-multilingual-data.py
+      - name: Host integration installer simulations
+        run: node scripts/test-integrations.mjs
       - name: Modern MCP entry point (stateless protocol, Skills over MCP)
         run: python scripts/test-mcp-modern.py
       - name: MCP installer helper (safe config merge, snippets, self-test)
@@ -60,7 +68,7 @@ jobs:
       - name: MCP server syntax and host configuration snippets
         shell: bash
         run: |
-          python -m py_compile skills/rcoder/scripts/rcoder_mcp.py skills/rcoder/scripts/rcoder_mcp_modern.py skills/rcoder/scripts/rcoder_mcp_http.py skills/rcoder/scripts/rcoder_mcp_setup.py skills/rcoder/scripts/rcoder_contract.py
+          python -m py_compile skills/rcoder/scripts/rcoder_mcp.py skills/rcoder/scripts/rcoder_mcp_modern.py skills/rcoder/scripts/rcoder_mcp_http.py skills/rcoder/scripts/rcoder_mcp_setup.py skills/rcoder/scripts/rcoder_contract.py skills/rcoder/scripts/skill_authoring.py
           python scripts/rcoder-mcp.py --print-config generic > "$RUNNER_TEMP/mcp-generic.json"
           python skills/rcoder/scripts/rcoder_mcp_modern.py --print-config generic > "$RUNNER_TEMP/mcp-modern.json"
           python -c "import json,sys; json.load(open(sys.argv[1]))" "$RUNNER_TEMP/mcp-modern.json"
@@ -75,7 +83,12 @@ jobs:
           python scripts/rscan.py hooks adapter --host opencode --api v2 --scope project --root . --dry-run > "$RUNNER_TEMP/rscan-v2.js"
           node --check "$RUNNER_TEMP/rscan-v2.js"
       - name: Node syntax check
-        run: node --check scripts/rcoder.mjs
+        shell: bash
+        run: |
+          node --check scripts/rcoder.mjs
+          node --check launcher/rcoder-mcp.mjs
+          cp .opencode/plugins/rcoder.js "$RUNNER_TEMP/rcoder-plugin.mjs"
+          node --check "$RUNNER_TEMP/rcoder-plugin.mjs"
       - name: Node installer and terminal launcher simulations
         run: node scripts/test-node-installer.mjs
       - name: Verify npm package contents
