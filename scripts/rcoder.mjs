@@ -162,6 +162,7 @@ function doctorReport() {
     ['plugin.json', (value) => value.version],
     ['.claude-plugin/plugin.json', (value) => value.version],
     ['.codex-plugin/plugin.json', (value) => value.version],
+    ['gemini-extension.json', (value) => value.version],
     ['.claude-plugin/marketplace.json', (value) => value.plugins?.[0]?.version]
   ];
   const versions = {};
@@ -194,7 +195,10 @@ function doctorReport() {
   const required = [
     'skills/rcoder/scripts/rcoder_mcp.py', 'skills/rcoder/scripts/rcoder_mcp_modern.py',
     'skills/rcoder/scripts/rcoder_mcp_http.py', 'skills/rcoder/scripts/rscan.py',
-    'skills/rcoder/scripts/rsaver.py', 'skills/rcoder/scripts/rcoder_mcp_setup.py'
+    'skills/rcoder/scripts/rsaver.py', 'skills/rcoder/scripts/rcoder_mcp_setup.py',
+    'skills/rcoder/contracts/rcoder-v2.json', 'skills/rcoder/scripts/rcoder_contract.py',
+    'launcher/rcoder-mcp.mjs', '.opencode/plugins/rcoder.js', 'gemini-extension.json',
+    'GEMINI.md', '.mcp.json', 'mcp.json', '.claude-plugin/plugin.json', '.codex-plugin/plugin.json'
   ];
   for (const relative of required) {
     const present = existsSync(path.join(PACKAGE_ROOT, relative));
@@ -202,7 +206,9 @@ function doctorReport() {
   }
   const python = findPython();
   add('python3', python ? 'PASS' : 'WARN', python ? `usable interpreter: ${python.exe}` : 'Python 3 not found; optional helpers and MCP server cannot run');
-  add('node', Number(process.versions.node.split('.')[0]) >= 18 ? 'PASS' : 'FAIL', `Node.js ${process.versions.node}`);
+  const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
+  const nodeSupported = nodeMajor > 18 || (nodeMajor === 18 && nodeMinor >= 18);
+  add('node', nodeSupported ? 'PASS' : 'FAIL', `Node.js ${process.versions.node} (minimum 18.18.0)`);
   if (contract) {
     add('mcp:protocol', contract.mcp?.modern_protocol === '2026-07-28' ? 'PASS' : 'FAIL', contract.mcp?.modern_protocol || 'missing');
     add('mcp:stdio', contract.mcp?.transports?.stdio?.enabled === true ? 'PASS' : 'FAIL', 'stdio transport declaration');
@@ -257,24 +263,39 @@ function runIntegration(options) {
     if (action === 'verify') {
       const exists = existsSync(destination) && statSync(destination).isFile();
       const content = exists ? readFileSync(destination, 'utf8') : '';
-      const valid = content.includes('export const RCoderPlugin') && content.includes('RCoder:');
+      const adapterValid = content.includes('export const RCoderPlugin') && content.includes('RCoder:');
       const skillPath = scope === 'project'
         ? path.join(projectRoot, '.opencode', 'skills', 'rcoder', 'SKILL.md')
         : path.join(path.resolve(homeDir), '.config', 'opencode', 'skills', 'rcoder', 'SKILL.md');
-      console.log(`OpenCode adapter: ${valid ? 'PRESENT' : 'MISSING'} — ${destination}`);
-      console.log(`RCoder skill: ${existsSync(skillPath) ? 'PRESENT' : 'NOT FOUND'} — ${skillPath}`);
-      return valid ? 0 : 1;
+      const skillValid = existsSync(skillPath) && statSync(skillPath).isFile();
+      console.log(`OpenCode adapter: ${adapterValid ? 'PRESENT' : 'MISSING'} — ${destination}`);
+      console.log(`RCoder skill: ${skillValid ? 'PRESENT' : 'NOT FOUND'} — ${skillPath}`);
+      return adapterValid && skillValid ? 0 : 1;
     }
     if (action === 'uninstall') {
-      if (!existsSync(destination)) { console.log('OpenCode adapter is not installed.'); return 0; }
-      const content = readFileSync(destination, 'utf8');
-      if (!content.includes('export const RCoderPlugin')) {
-        throw new Error(`Refusing to remove a file that is not a recognized RCoder adapter: ${destination}`);
+      const target = TARGET_BY_ID.get('opencode');
+      const base = scope === 'project' ? projectRoot : path.resolve(homeDir);
+      const skillDestination = targetPaths(target, scope, base).destination;
+      if (!dryRun && existsSync(destination)) {
+        const content = readFileSync(destination, 'utf8');
+        if (!content.includes('export const RCoderPlugin')) {
+          throw new Error(`Refusing to remove a file that is not a recognized RCoder adapter: ${destination}`);
+        }
+        rmSync(destination);
       }
-      if (!dryRun) rmSync(destination);
-      console.log(`${dryRun ? 'DRY RUN: would remove' : 'Removed'} ${destination}`);
+      if (!dryRun) {
+        installTarget({ scope, projectDir: projectRoot, homeDir: path.resolve(homeDir), uninstall: true, dryRun: false }, target);
+        writeFeatureManifest({ scope, projectDir: projectRoot, homeDir: path.resolve(homeDir), uninstall: true, dryRun: false }, target);
+      } else {
+        console.log(`DRY RUN: would remove adapter ${destination} and uninstall skill ${skillDestination}`);
+      }
+      console.log('Existing host MCP configuration is left untouched; remove its rcoder server entry separately when desired.');
       return 0;
     }
+    const target = TARGET_BY_ID.get('opencode');
+    const installOptions = { scope, projectDir: projectRoot, homeDir: path.resolve(homeDir), uninstall: false, dryRun, features: 'rsaver,rscan' };
+    installTarget(installOptions, target);
+    writeFeatureManifest(installOptions, target);
     if (dryRun) { console.log(`DRY RUN: would install OpenCode V1 adapter to ${destination}`); return 0; }
     mkdirSync(path.dirname(destination), { recursive: true });
     if (existsSync(destination)) {
@@ -290,6 +311,7 @@ function runIntegration(options) {
     }
     cpSync(source, destination);
     console.log(`Installed OpenCode V1 adapter: ${destination}`);
+    console.log('MCP settings are not changed by this adapter install. Run RCoder MCP setup separately when tool access is required.');
     console.log('Start a new OpenCode session. Native plugin loading still needs to be verified in that host.');
     return 0;
   }
