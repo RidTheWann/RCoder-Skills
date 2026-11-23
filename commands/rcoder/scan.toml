@@ -1,0 +1,5 @@
+description = "Scan the current repository and summarize stack, risks, and ranked next steps."
+prompt = """
+Use the RCoder MCP tool rcoder_scan on the current workspace. Summarize detected stacks, repository risks, quality signals, and ranked development options with the first safe commands. Do not modify files.
+Additional focus: {{args}}
+"""

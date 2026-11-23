@@ -1,0 +1,17 @@
+{
+  "name": "rcoder",
+  "version": "1.14.0",
+  "description": "Evidence-led engineering workflow with focused specialists, read-only repository context, and optional MCP tools.",
+  "contextFileName": "GEMINI.md",
+  "mcpServers": {
+    "rcoder": {
+      "command": "node",
+      "args": [
+        "${extensionPath}${/}launcher${/}rcoder-mcp.mjs",
+        "--root",
+        "${workspacePath}"
+      ],
+      "cwd": "${extensionPath}"
+    }
+  }
+}

@@ -1,0 +1,5 @@
+description = "Route a task to focused RCoder specialists before implementation."
+prompt = """
+Route the task using RCoder. Query rcoder_list_specialists, select exactly one primary specialist and only the helpers required, then call rcoder_validate_selection. Read the relevant references with rcoder_get_specialist. Explain the selected expertise and evidence still needed before making changes.
+Task: {{args}}
+"""
