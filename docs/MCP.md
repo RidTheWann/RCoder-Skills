@@ -68,6 +68,8 @@ All tools are read-only (`readOnlyHint: true`, `destructiveHint: false`) and use
 | `rsaver_verify` | Verify a compaction manifest against the original file (SHA-256 and preserved critical lines) |
 | `rsaver_pack` | Lossless compression when the packed estimate is smaller: `method=zlib` (base64) or `method=dict` (readable frequency dictionary) |
 | `rsaver_unpack` | Restore exact original text from a pack manifest with SHA-256 verification |
+| `rsaver_redact` | Mask credential-shaped values (private keys, cloud and GitHub tokens, JWTs, bearer tokens, URL credentials, password/token assignments) before text enters a context or report; lossy, not recoverable, best-effort pattern matching; `fail_on_found` turns it into a gate; credential files are refused |
+| `rsaver_ledger` | Read-only cumulative savings report from a ledger JSON inside the server root; recording stays in the CLI (`rsaver ledger record`, `--ledger`) so every MCP tool remains read-only |
 
 `rcoder_validate_selection` encodes the non-negotiable selection rules from `SKILL.md` as a deterministic check, so a model can validate a routing decision instead of re-deriving the rules. Helper-module names are compared with `SKILL.md` by `scripts/validate-all` so the two cannot drift.
 
@@ -85,10 +87,10 @@ Tool schemas are sent on every request, so they are a continuous token cost. Mea
 
 | Profile | Tools | Serialized size | Estimated tokens |
 |---|---|---|---|
-| `full` (default) | 22 | about 12,300 characters | about 3,630 |
+| `full` (default) | 24 | about 13,300 characters | about 3,880 |
 | `minimal` | 4 | about 2,300 characters | about 675 |
 
-The 22-tool figure scales the earlier measured characters-to-token ratio rather than re-running a tokenizer. `scripts/test-mcp.py` fails if the serialized tool list grows past a fixed character budget. Use `--profile minimal` or `--tools` when you only need routing support; the RSaver and RScan command-line tools remain available without the server.
+The 24-tool figure was measured with `rsaver measure` on the serialized tool list. `scripts/test-mcp.py` fails if the serialized tool list grows past a fixed character budget. Use `--profile minimal` or `--tools` when you only need routing support; the RSaver and RScan command-line tools remain available without the server.
 
 ## Security model
 
