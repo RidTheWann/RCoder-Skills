@@ -53,6 +53,11 @@ After installation, open a new terminal and type RCoder.`);
 }
 
 function parseArgs(args) {
+  if (args[0] === 'doctor') {
+    const unknown = args.slice(1).filter((item) => item !== '--json');
+    if (unknown.length) throw new Error(`Unknown doctor option: ${unknown.join(' ')}`);
+    return { command: 'doctor', json: args.includes('--json') };
+  }
   const options = {
     target: 'agents', scope: 'project', projectDir: process.cwd(),
     homeDir: HOME, dryRun: false, uninstall: false, interactive: false,
@@ -118,6 +123,74 @@ function showFeatures() {
   FEATURES.forEach((feature) => {
     console.log(`  - ${feature.label.padEnd(8)} ${feature.description}`);
   });
+}
+
+function doctorReport() {
+  const checks = [];
+  const add = (id, status, detail) => checks.push({ id, status, detail });
+  const readJson = (relative) => JSON.parse(readFileSync(path.join(PACKAGE_ROOT, relative), 'utf8'));
+  const versionFiles = [
+    ['package.json', (value) => value.version],
+    ['plugin.json', (value) => value.version],
+    ['.claude-plugin/plugin.json', (value) => value.version],
+    ['.codex-plugin/plugin.json', (value) => value.version],
+    ['.claude-plugin/marketplace.json', (value) => value.plugins?.[0]?.version]
+  ];
+  const versions = {};
+  for (const [relative, select] of versionFiles) {
+    try { versions[relative] = select(readJson(relative)); }
+    catch (error) { versions[relative] = null; add(`manifest:${relative}`, 'FAIL', error.message); }
+  }
+  try {
+    const skill = readFileSync(path.join(SOURCE, 'SKILL.md'), 'utf8');
+    const match = skill.match(/^metadata:\\s*\\n(?:[^\\n]*\\n)*?\\s+version:\\s*[\"']?([^\"'\\n]+)[\"']?/m);
+    versions['skills/rcoder/SKILL.md'] = match?.[1]?.trim() || null;
+    if (!versions['skills/rcoder/SKILL.md']) add('skill:metadata-version', 'FAIL', 'SKILL.md metadata version is missing');
+  } catch (error) { add('skill:metadata-version', 'FAIL', error.message); }
+  try {
+    const builder = readFileSync(path.join(PACKAGE_ROOT, 'scripts', 'package'), 'utf8');
+    versions['scripts/package'] = builder.match(/^VERSION\\s*=\\s*['\"]([^'\"]+)['\"]/m)?.[1] || null;
+    if (!versions['scripts/package']) add('package-builder:version', 'FAIL', 'Package builder VERSION is missing');
+  } catch (error) { add('package-builder:version', 'FAIL', error.message); }
+  let contract = null;
+  try {
+    contract = readJson('skills/rcoder/contracts/rcoder-v2.json');
+    versions['contract'] = contract.product?.version || null;
+    add('contract:loaded', 'PASS', `contract ${contract.contract_id || 'unknown'} loaded`);
+  } catch (error) { add('contract:loaded', 'FAIL', error.message); }
+  const distinct = [...new Set(Object.values(versions).filter(Boolean))];
+  const parity = distinct.length === 1 && Object.values(versions).every(Boolean);
+  add('version-parity', parity ? 'PASS' : 'FAIL', parity ? `all ${Object.keys(versions).length} version declarations match ${distinct[0]}` : JSON.stringify(versions));
+  const required = [
+    'skills/rcoder/scripts/rcoder_mcp.py', 'skills/rcoder/scripts/rcoder_mcp_modern.py',
+    'skills/rcoder/scripts/rcoder_mcp_http.py', 'skills/rcoder/scripts/rscan.py',
+    'skills/rcoder/scripts/rsaver.py', 'skills/rcoder/scripts/rcoder_mcp_setup.py'
+  ];
+  for (const relative of required) {
+    const present = existsSync(path.join(PACKAGE_ROOT, relative));
+    add(`file:${relative}`, present ? 'PASS' : 'FAIL', present ? 'present' : 'missing');
+  }
+  const python = findPython();
+  add('python3', python ? 'PASS' : 'WARN', python ? `usable interpreter: ${python.exe}` : 'Python 3 not found; optional helpers and MCP server cannot run');
+  add('node', Number(process.versions.node.split('.')[0]) >= 18 ? 'PASS' : 'FAIL', `Node.js ${process.versions.node}`);
+  if (contract) {
+    add('mcp:protocol', contract.mcp?.modern_protocol === '2026-07-28' ? 'PASS' : 'FAIL', contract.mcp?.modern_protocol || 'missing');
+    add('mcp:stdio', contract.mcp?.transports?.stdio?.enabled === true ? 'PASS' : 'FAIL', 'stdio transport declaration');
+    add('mcp:streamable-http', contract.mcp?.transports?.streamable_http?.enabled === true ? 'PASS' : 'FAIL', 'Streamable HTTP transport declaration');
+  }
+  const ok = checks.every((item) => item.status !== 'FAIL');
+  return { tool: 'RCoder doctor', version: VERSION, ok, checks };
+}
+
+function runDoctor(jsonMode) {
+  const report = doctorReport();
+  if (jsonMode) console.log(JSON.stringify(report, null, 2));
+  else {
+    console.log(`RCoder doctor — ${report.version}`);
+    for (const item of report.checks) console.log(`${item.status.padEnd(4)} ${item.id}: ${item.detail}`);
+    console.log(`\\n${report.ok ? 'Environment checks passed.' : 'Environment checks found failures.'}`);
+  }
+  return report.ok ? 0 : 1;
 }
 
 function findPython() {
@@ -536,7 +609,8 @@ async function runInteractive(options) {
 try {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) { usage(); process.exit(0); }
-  if (options.version) { console.log(VERSION); process.exit(0); }
+  if (options.command === 'doctor') { process.exitCode = runDoctor(options.json); }
+  else if (options.version) { console.log(VERSION); process.exit(0); }
   if (options.listTargets) { showTargets(); process.exit(0); }
   if (options.listFeatures) { showFeatures(); process.exit(0); }
   if (options.interactive) {

@@ -214,11 +214,16 @@ def main():
     )
     manifests = {path: load_json(ROOT / path) for path in manifest_paths}
     package = load_json(ROOT / "package.json")
+    contract = load_json(SKILL / "contracts" / "rcoder-v2.json")
     catalog = load_json(ROOT / "targets.json")
     portable = manifests["plugin.json"]
 
     check(package.get("name") == "rcoder", "G1: npm package name must be rcoder")
     check(package.get("version") == version, "G7: npm package version mismatch")
+    check(contract.get("product", {}).get("version") == version, "G7: shared contract product version mismatch")
+    check(contract.get("mcp", {}).get("modern_protocol") == "2026-07-28", "G8: modern MCP protocol version mismatch")
+    check(contract.get("mcp", {}).get("transports", {}).get("streamable_http", {}).get("bind_host") == "127.0.0.1",
+          "G8: Streamable HTTP must declare loopback binding")
     check(package.get("bin", {}).get("rcoder") == "./scripts/rcoder.mjs", "G1: npm rcoder binary missing")
     package_files = set(package.get("files", []))
     for required in ("skills/rcoder/**", "scripts/rcoder.mjs", "targets.json", "launcher/RCoder.ps1"):
@@ -237,7 +242,8 @@ def main():
         "scripts/test-mcp-modern.py",
         "install.ps1", "launcher/RCoder.ps1", "launcher/McpSetup.ps1", "targets.json",
         "skills/rcoder/scripts/rcoder_mcp_setup.py", "scripts/test-mcp-setup.py",
-        "scripts/test-installer-menus.py"
+        "skills/rcoder/contracts/rcoder-v2.json", "skills/rcoder/scripts/rcoder_contract.py",
+        "scripts/test-mcp-contract.py", "scripts/test-cli-doctor.mjs", "scripts/test-installer-menus.py"
     ):
         check((ROOT / required).is_file(), f"G1: required installer/test file missing: {required}")
 
