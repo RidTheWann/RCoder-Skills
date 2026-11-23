@@ -78,7 +78,7 @@ def main():
         (spread / "README.md").write_text("# Spread\\n", encoding="utf-8")
         (spread / "package.json").write_text('{"name":"spread"}\\n', encoding="utf-8")
         (spread / "package-lock.json").write_text("{}\\n", encoding="utf-8")
-        deep = spread / "aaa-src"
+        deep = spread / ".a-source"
         deep.mkdir()
         for index in range(120):
             (deep / f"module-{index:03}.js").write_text("export const value = 1;\\n", encoding="utf-8")
