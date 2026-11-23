@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import hmac
 import json
 import os
@@ -18,6 +19,7 @@ import rcoder_contract as contract  # noqa: E402
 MODERN_SERVER = Path(__file__).resolve().with_name("rcoder_mcp_modern.py")
 VALID_ACCEPT = {"application/json", "text/event-stream"}
 NAME_METHODS = {"tools/call": "name", "resources/read": "uri", "prompts/get": "name"}
+HEADER_MISMATCH = -32020
 
 
 def encode_json(value: dict) -> bytes:
@@ -35,12 +37,31 @@ def accept_types(value: str) -> set[str]:
     return {part.split(";", 1)[0].strip().lower() for part in value.split(",") if part.strip()}
 
 
+def decode_mcp_name(value: str) -> str:
+    """Decode the protocol Base64 sentinel and reject unsafe plain HTTP header values."""
+    prefix, suffix = "=?base64?", "?="
+    if value.startswith(prefix) and value.endswith(suffix):
+        encoded = value[len(prefix):-len(suffix)]
+        try:
+            result = base64.b64decode(encoded, validate=True).decode("utf-8")
+        except (ValueError, UnicodeDecodeError) as error:
+            raise ValueError("invalid Base64-encoded Mcp-Name header") from error
+        if base64.b64encode(result.encode("utf-8")).decode("ascii") != encoded:
+            raise ValueError("non-canonical Base64-encoded Mcp-Name header")
+        return result
+    if not value or value[0] in " \\t" or value[-1] in " \\t":
+        raise ValueError("Mcp-Name with leading or trailing whitespace must use Base64 sentinel encoding")
+    if any(not (0x20 <= ord(char) <= 0x7E or ord(char) == 0x09) for char in value):
+        raise ValueError("Mcp-Name must be visible ASCII or use Base64 sentinel encoding")
+    return value
+
+
 class Server(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
     def __init__(self, address, handler, *, root, token, token_env, allowed_origins,
-                 timeout, max_request_bytes, profile, tools, endpoint_path):
+                 timeout, max_request_bytes, max_response_bytes, profile, tools, endpoint_path):
         super().__init__(address, handler)
         self.root = str(root)
         self.token = token
@@ -48,6 +69,7 @@ class Server(ThreadingHTTPServer):
         self.allowed_origins = frozenset(allowed_origins)
         self.request_timeout = timeout
         self.max_request_bytes = max_request_bytes
+        self.max_response_bytes = max_response_bytes
         self.profile = profile
         self.tools = tools
         self.endpoint_path = endpoint_path
@@ -141,31 +163,38 @@ class Handler(BaseHTTPRequestHandler):
         params = request.get("params") or {}
         if not isinstance(params, dict):
             return self._send(400, encode_json(rpc_error(request_id, -32602, "params must be an object")), origin=origin)
+        # For protocol 2026-07-28 the notification response is 202 with no body.
+        # Mirrored method/name/version headers are required for requests carrying an id.
+        if "id" not in request:
+            return self._send(202, b"", origin=origin)
         meta = params.get("_meta")
         requested_version = meta.get("io.modelcontextprotocol/protocolVersion") if isinstance(meta, dict) else None
         if requested_version != contract.MODERN_PROTOCOL:
-            return self._send(400, encode_json(rpc_error(request_id, -32022, "protocol version metadata is missing or unsupported",
+            return self._send(400, encode_json(rpc_error(request_id, -32022,
+                "protocol version metadata is missing or unsupported",
                 {"supported": [contract.MODERN_PROTOCOL, *contract.LEGACY_PROTOCOLS],
                  "requested": requested_version})), origin=origin)
-        if self.headers.get("MCP-Protocol-Version") != contract.MODERN_PROTOCOL:
-            return self._send(400, encode_json(rpc_error(request_id, -32602,
+        if self.headers.get("MCP-Protocol-Version") != requested_version:
+            return self._send(400, encode_json(rpc_error(request_id, HEADER_MISMATCH,
                 "MCP-Protocol-Version header must match request metadata")), origin=origin)
         method = request["method"]
         if self.headers.get("Mcp-Method") != method:
-            return self._send(400, encode_json(rpc_error(request_id, -32602,
+            return self._send(400, encode_json(rpc_error(request_id, HEADER_MISMATCH,
                 "Mcp-Method header must match JSON-RPC method")), origin=origin)
         name_key = NAME_METHODS.get(method)
         if name_key:
             expected_name = params.get(name_key)
-            if not isinstance(expected_name, str) or self.headers.get("Mcp-Name") != expected_name:
-                return self._send(400, encode_json(rpc_error(request_id, -32602,
+            supplied_name = self.headers.get("Mcp-Name")
+            if not isinstance(expected_name, str) or supplied_name is None:
+                return self._send(400, encode_json(rpc_error(request_id, HEADER_MISMATCH,
+                    "Mcp-Name header is required and must match request name or URI")), origin=origin)
+            try:
+                decoded_name = decode_mcp_name(supplied_name)
+            except ValueError as error:
+                return self._send(400, encode_json(rpc_error(request_id, HEADER_MISMATCH, str(error))), origin=origin)
+            if decoded_name != expected_name:
+                return self._send(400, encode_json(rpc_error(request_id, HEADER_MISMATCH,
                     "Mcp-Name header must match request name or URI")), origin=origin)
-        elif self.headers.get("Mcp-Name") not in (None, ""):
-            return self._send(400, encode_json(rpc_error(request_id, -32602,
-                "Mcp-Name is not valid for this method")), origin=origin)
-        if "id" not in request:
-            return self._send(202, b"", origin=origin)
-
         command = [sys.executable, str(MODERN_SERVER), "--root", self.server.root,
                    "--profile", self.server.profile]
         if self.server.tools:
@@ -192,7 +221,11 @@ class Handler(BaseHTTPRequestHandler):
             response = json.loads(responses[0])
         except json.JSONDecodeError:
             return self._send(502, encode_json(rpc_error(request_id, -32603, "invalid MCP worker JSON")), origin=origin)
-        self._send(200, encode_json(response), origin=origin)
+        payload = encode_json(response)
+        if len(payload) > self.server.max_response_bytes:
+            return self._send(502, encode_json(rpc_error(request_id, -32603, "MCP response exceeds configured size limit")), origin=origin)
+        status = 404 if response.get("error", {}).get("code") == -32601 else 200
+        self._send(status, payload, origin=origin)
 
 
 def build_parser():
@@ -207,6 +240,7 @@ def build_parser():
     parser.add_argument("--allowed-origin", action="append", default=[])
     parser.add_argument("--request-timeout", type=int, default=30)
     parser.add_argument("--max-request-bytes", type=int, default=1024 * 1024)
+    parser.add_argument("--max-response-bytes", type=int, default=32 * 1024 * 1024)
     parser.add_argument("--version", action="version", version=f"RCoder MCP HTTP {contract.PRODUCT_VERSION}")
     return parser
 
@@ -217,8 +251,9 @@ def main(argv=None):
         raise SystemExit("security error: RCoder MCP HTTP may bind only to 127.0.0.1")
     if not args.path.startswith("/") or "?" in args.path or "#" in args.path:
         raise SystemExit("invalid endpoint path")
-    if args.port < 0 or args.port > 65535 or args.request_timeout < 1:
-        raise SystemExit("invalid port or request timeout")
+    if args.port < 0 or args.port > 65535 or args.request_timeout < 1 \\
+            or args.max_request_bytes < 1 or args.max_response_bytes < 1:
+        raise SystemExit("invalid port, timeout, or request/response size limit")
     token = os.environ.get(args.token_env, "")
     if len(token) < 32:
         raise SystemExit(f"security error: set {args.token_env} to a random token of at least 32 characters")
@@ -228,7 +263,8 @@ def main(argv=None):
     server = Server(
         (args.host, args.port), Handler, root=root, token=token, token_env=args.token_env,
         allowed_origins=args.allowed_origin, timeout=args.request_timeout,
-        max_request_bytes=args.max_request_bytes, profile=args.profile, tools=args.tools.strip(),
+        max_request_bytes=args.max_request_bytes, max_response_bytes=args.max_response_bytes,
+        profile=args.profile, tools=args.tools.strip(),
         endpoint_path=args.path,
     )
     sys.stderr.write(f"RCoder MCP HTTP listening on http://127.0.0.1:{server.server_port}{args.path}\n")

@@ -93,20 +93,34 @@ def main():
             assert request(port, "server/discover", token=None)[0] == 401
             assert request(port, "server/discover", origin="http://evil.example")[0] == 403
             assert request(port, "server/discover", protocol="2025-06-18")[0] == 400
-            assert request(port, "server/discover", method_header="tools/list")[0] == 400
+            status, _, body = request(port, "server/discover", method_header="tools/list")
+            assert status == 400 and json.loads(body)["error"]["code"] == -32020
             assert request(port, "server/discover", accept="application/json")[0] == 406
             assert request(port, "server/discover", path="/wrong")[0] == 404
             assert request(port, "server/discover", protocol=None)[0] == 400
-            assert request(port, "tools/call",
-                           {"name": "rcoder_doctor", "arguments": {}}, name="wrong")[0] == 400
+            status, _, body = request(port, "tools/call",
+                                      {"name": "rcoder_doctor", "arguments": {}}, name="wrong")
+            assert status == 400 and json.loads(body)["error"]["code"] == -32020
 
-            note = {
-                "jsonrpc": "2.0", "method": "notifications/initialized",
-                "params": {"_meta": {"io.modelcontextprotocol/protocolVersion": PROTOCOL}},
-            }
-            status, _, body = request(port, "notifications/initialized", note["params"],
-                                      body_override=json.dumps(note).encode("utf-8"))
-            assert status == 202 and body == b""
+            # The protocol Base64 sentinel is decoded before comparing Mcp-Name to the JSON body.
+            status, _, body = request(port, "tools/call", {"name": "sample", "arguments": {}},
+                                      name="=?base64?c2FtcGxl?=")
+            assert status == 200 and json.loads(body)["error"]["code"] == -32602
+
+            # An unknown method gets the transport-level 404 and JSON-RPC method error.
+            status, _, body = request(port, "unknown/method")
+            assert status == 404 and json.loads(body)["error"]["code"] == -32601
+
+            # Notification transport framing returns 202 without mirrored request headers.
+            note = {"jsonrpc": "2.0", "method": "notifications/initialized"}
+            notification = urllib.request.Request(
+                f"http://127.0.0.1:{port}/mcp",
+                data=json.dumps(note).encode("utf-8"),
+                headers={"Content-Type": "application/json", "Accept": "application/json, text/event-stream",
+                         "Authorization": "Bearer " + TOKEN, "Origin": ORIGIN},
+                method="POST")
+            with urllib.request.urlopen(notification, timeout=10) as response:
+                assert response.status == 202 and response.read() == b""
 
             get_request = urllib.request.Request(f"http://127.0.0.1:{port}/mcp", method="GET")
             try:
