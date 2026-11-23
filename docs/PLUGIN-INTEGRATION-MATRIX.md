@@ -37,7 +37,7 @@ The RCoder integration manager invokes those CLI commands. The host must be rest
 
 ### Codex plugin and marketplace
 
-The repository root contains the portable Agent Plugins manifest and `mcp.json`. Compatibility metadata is also provided in `.codex-plugin/plugin.json` and `.mcp.json`. The Git marketplace source is recorded in `.agents/plugins/marketplace.json`.
+The repository root contains the portable Agent Plugins manifest and `mcp.json`. Codex uses `.codex-plugin/plugin.json` plus `codex-mcp.json` (a direct server map); Claude Code uses `.claude-plugin/plugin.json` plus `claude-mcp.json` (an `mcpServers` wrapper). The Git marketplace source is recorded in `.agents/plugins/marketplace.json`.
 
 - Add marketplace: `codex plugin marketplace add RidTheWann/RCoder-Skills`
 - Upgrade marketplace: `codex plugin marketplace upgrade rcoder-skills`
@@ -48,7 +48,7 @@ Marketplace registration and plugin installation are separate actions. The integ
 
 ### Claude Code plugin
 
-The repository contains `.claude-plugin/plugin.json`, commands, agents, and a compatibility MCP config at `.mcp.json`. The plugin manifest references that file as a relative MCP server configuration.
+The repository contains `.claude-plugin/plugin.json`, commands, agents, and a compatibility MCP config at `claude-mcp.json`. The plugin manifest references that file as a relative MCP server configuration.
 
 Run inside a Claude Code session:
 
