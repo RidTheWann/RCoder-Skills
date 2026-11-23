@@ -22,8 +22,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import rcoder_mcp as core  # noqa: E402  (sibling module; path set above)
+import rcoder_contract as contract  # noqa: E402
 
-MODERN_PROTOCOL = "2026-07-28"
+MODERN_PROTOCOL = contract.MODERN_PROTOCOL
 META_VERSION = "io.modelcontextprotocol/protocolVersion"
 META_SERVER_INFO = "io.modelcontextprotocol/serverInfo"
 SKILLS_EXTENSION = "io.modelcontextprotocol/skills"
@@ -164,8 +165,6 @@ def require_skills() -> None:
 
 def skills_list(params: dict) -> dict:
     require_skills()
-    if params.get("cursor") is not None:
-        raise core.RpcError(ERR_INVALID_PARAMS, "invalid cursor: this server returns one page")
     return {"skills": [skill_entry()]}
 
 
@@ -210,24 +209,27 @@ def discover() -> dict:
 
 def modern_result(method: str, params: dict) -> dict:
     if method == "server/discover":
-        return discover()
-    if method == "skills/list":
-        return skills_list(params)
-    if method == "skills/get":
-        return skills_get(params)
-    uri = params.get("uri")
-    if method == "resources/read" and isinstance(uri, str) and uri.startswith("skill://"):
-        return {"contents": [read_skill_file(uri)]}
-    previous = core.State.protocol
-    core.State.protocol = MODERN_PROTOCOL  # unlocks titles and structuredContent in core
-    try:
-        return core.handle(method, params)
-    except core.RpcError as error:
-        if method == "resources/read" and error.code == LEGACY_NOT_FOUND:
-            raise core.RpcError(ERR_INVALID_PARAMS, error.message) from error
-        raise
-    finally:
-        core.State.protocol = previous
+        result = discover()
+    elif method == "skills/list":
+        result = skills_list(params)
+    elif method == "skills/get":
+        result = skills_get(params)
+    else:
+        uri = params.get("uri")
+        if method == "resources/read" and isinstance(uri, str) and uri.startswith("skill://"):
+            result = {"contents": [read_skill_file(uri)]}
+        else:
+            previous = core.State.protocol
+            core.State.protocol = MODERN_PROTOCOL  # unlocks titles and structuredContent in core
+            try:
+                result = core.handle(method, params)
+            except core.RpcError as error:
+                if method == "resources/read" and error.code == LEGACY_NOT_FOUND:
+                    raise core.RpcError(ERR_INVALID_PARAMS, error.message) from error
+                raise
+            finally:
+                core.State.protocol = previous
+    return contract.paginate_result(method, result, params)
 
 
 def finalize(method: str, result: dict) -> dict:
@@ -273,6 +275,8 @@ def serve_modern(request: dict) -> None:
         result = finalize(method, modern_result(method, params))
     except core.RpcError as error:
         return reply_error(request_id, error.code, error.message)
+    except ValueError as error:
+        return reply_error(request_id, ERR_INVALID_PARAMS, str(error))
     except Exception as error:  # noqa: BLE001 - last-resort protocol guard, as in core
         sys.stderr.write(f"rcoder-mcp internal error: {error!r}\n")
         return reply_error(request_id, ERR_INTERNAL, "internal error")
