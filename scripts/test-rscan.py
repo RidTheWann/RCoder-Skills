@@ -95,7 +95,22 @@ def main():
         assert stratified["quality"]["tests"] is True and stratified["quality"]["tests_confidence"] == "observed"
         assert ".github/workflows/ci.yml" in stratified["sampled_paths"]
 
-        text = run("scan", "--root", str(minimal))
+        # Missing README/lockfile is not a verified absence when the bounded inventory is truncated.
+        sparse = root / "sparse-truncated"
+        sparse.mkdir()
+        (sparse / "package.json").write_text('{"name":"sparse"}\n', encoding="utf-8")
+        source_tree = sparse / ".a-source"
+        source_tree.mkdir()
+        for index in range(2100):
+            (source_tree / f"module-{index:04}.js").write_text("export const value = 1;\n", encoding="utf-8")
+        uncertain = run_json("scan", "--root", str(sparse), "--max-paths", "10", "--format", "json")
+        uncertain_risks = {item["id"] for item in uncertain["risk_signals"]}
+        assert uncertain["scan"]["truncated"] is True
+        assert uncertain["quality"]["readme_confidence"] == "unknown-truncated"
+        assert uncertain["quality"]["lockfile_confidence"] == "unknown-truncated"
+        assert "no_readme" not in uncertain_risks
+        assert "dependency_without_lock" not in uncertain_risks
+\n        text = run("scan", "--root", str(minimal))
         assert text.returncode == 0 and "Development options:" in text.stdout
         markdown = run("scan", "--root", str(minimal), "--format", "markdown")
         assert markdown.returncode == 0 and "## Development options" in markdown.stdout
