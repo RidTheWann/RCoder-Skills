@@ -739,8 +739,12 @@ function installLauncher(homeDir) {
   if (process.platform === 'win32') {
     const cmdPath = path.join(binRoot, 'RCoder.cmd');
     const manager = path.join(appRoot, 'launcher', 'RCoder.ps1').replaceAll('%', '%%');
-    const cmd = ['@echo off', 'where powershell.exe >nul 2>nul', 'if not errorlevel 1 goto winps',
+    const managerCli = path.join(appRoot, 'scripts', 'rcoder.mjs');
+    const cmd = ['@echo off',
+      'if "%~1"=="skill" goto nodecli', 'if "%~1"=="integration" goto nodecli', 'if "%~1"=="doctor" goto nodecli',
+      'where powershell.exe >nul 2>nul', 'if not errorlevel 1 goto winps',
       'where pwsh.exe >nul 2>nul', 'if not errorlevel 1 goto pwsh7', 'echo PowerShell was not found on PATH.', 'exit /b 1',
+      ':nodecli', 'node "' + managerCli + '" %*', 'exit /b %ERRORLEVEL%',
       ':winps', 'powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "' + manager + '" %*', 'goto :eof',
       ':pwsh7', 'pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "' + manager + '" %*', ''].join('\r\n');
     writeFileSync(cmdPath, cmd, 'utf8');
@@ -749,7 +753,10 @@ function installLauncher(homeDir) {
   } else {
     const managerCli = path.join(appRoot, 'scripts', 'rcoder.mjs');
     const commandPath = path.join(binRoot, 'RCoder');
-    const wrapper = ['#!/bin/sh', 'set -eu', 'exec node ' + shellQuote(managerCli) + ' --interactive "$@"', ''].join('\n');
+    const wrapper = ['#!/bin/sh', 'set -eu',
+      'manager=' + shellQuote(managerCli),
+      'if [ "$#" -eq 0 ]; then exec node "$manager" --interactive; fi',
+      'exec node "$manager" "$@"', ''].join('\n');
     writeFileSync(commandPath, wrapper, { encoding: 'utf8', mode: 0o755 });
     chmodSync(commandPath, 0o755);
     registerPosixPath(homeDir, binRoot);
