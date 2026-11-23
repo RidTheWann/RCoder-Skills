@@ -251,8 +251,13 @@ def main(argv=None):
         raise SystemExit("security error: RCoder MCP HTTP may bind only to 127.0.0.1")
     if not args.path.startswith("/") or "?" in args.path or "#" in args.path:
         raise SystemExit("invalid endpoint path")
-    if args.port < 0 or args.port > 65535 or args.request_timeout < 1 \\
-            or args.max_request_bytes < 1 or args.max_response_bytes < 1:
+    if (
+        args.port < 0
+        or args.port > 65535
+        or args.request_timeout < 1
+        or args.max_request_bytes < 1
+        or args.max_response_bytes < 1
+    ):
         raise SystemExit("invalid port, timeout, or request/response size limit")
     token = os.environ.get(args.token_env, "")
     if len(token) < 32:
