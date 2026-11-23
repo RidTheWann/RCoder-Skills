@@ -68,15 +68,18 @@
     "ex-17": [],
     "ex-18": [],
     "ex-19": [
-      "mcp-transport-engineering",
-      "security",
-      "testing-qa"
+      "agent-extensions-engineering",
+      "security"
     ],
     "ex-20": [
       "agent-extensions-engineering",
-      "testing-qa"
+      "verification"
     ],
-    "ex-21": [],
+    "ex-21": [
+      "security",
+      "llm-agent-security",
+      "threat-modeling"
+    ],
     "ex-22": [
       "observability-sre",
       "backend-api-engineering"
@@ -109,6 +112,16 @@
       "graphics-gpu-engineering",
       "debugging"
     ],
-    "ex-30": []
+    "ex-30": [],
+    "ex-31": [
+      "mcp-transport-engineering",
+      "security",
+      "testing-qa"
+    ],
+    "ex-32": [
+      "agent-extensions-engineering",
+      "testing-qa"
+    ],
+    "ex-33": []
   }
 }

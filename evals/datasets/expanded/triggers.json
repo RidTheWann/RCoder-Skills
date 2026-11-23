@@ -210,21 +210,21 @@
     "language": "EN"
   },
   {
-    "id": "ex-19",
+    "id": "ex-31",
     "prompt": "Implement a stateless Streamable HTTP MCP adapter with loopback-only binding, bearer authentication, exact Origin validation, pagination, and protocol conformance tests.",
     "should_trigger": true,
     "category": "MCP transport/security",
     "language": "EN"
   },
   {
-    "id": "ex-20",
+    "id": "ex-32",
     "prompt": "Create an Agent Skill authoring CLI with new, lint, and reproducible package commands; reject symlinks, secret files, and broken references.",
     "should_trigger": true,
     "category": "Agent Skills/tooling",
     "language": "EN"
   },
   {
-    "id": "ex-21",
+    "id": "ex-33",
     "prompt": "Write a weekend travel itinerary for a quiet coastal town, with restaurants and hotel suggestions.",
     "should_trigger": false,
     "category": "travel planning",
