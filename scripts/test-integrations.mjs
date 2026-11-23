@@ -53,6 +53,8 @@ try {
   // Dry-run prints the exact native installer commands but does not require those CLIs.
   const gemini = run(['integration', 'install', 'gemini-cli', '--dry-run']);
   assert.match(gemini, /gemini extensions install https:\/\/github\.com\/RidTheWann\/RCoder-Skills/);
+  const geminiVerify = run(['integration', 'verify', 'gemini-cli', '--dry-run']);
+  assert.match(geminiVerify, /gemini extensions list/);
   const codex = run(['integration', 'install', 'codex', '--dry-run']);
   assert.match(codex, /codex plugin marketplace add RidTheWann\/RCoder-Skills/);
   const claude = run(['integration', 'install', 'claude-code']);

@@ -329,13 +329,13 @@ function runIntegration(options) {
       install: ['extensions', 'install', 'https://github.com/RidTheWann/RCoder-Skills'],
       update: ['extensions', 'update', 'rcoder'],
       uninstall: ['extensions', 'uninstall', 'rcoder'],
-      verify: ['--list-extensions']
+      verify: ['extensions', 'list']
     };
     if (action === 'instructions') {
       console.log('Install: gemini extensions install https://github.com/RidTheWann/RCoder-Skills');
       console.log('Update:  gemini extensions update rcoder');
       console.log('Remove:  gemini extensions uninstall rcoder');
-      console.log('Verify:  gemini --list-extensions');
+      console.log('Verify:  gemini extensions list');
       return 0;
     }
     const args = commands[action];

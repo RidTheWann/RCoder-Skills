@@ -31,7 +31,7 @@ The source tree contains `gemini-extension.json`, `GEMINI.md`, and namespaced TO
 - Install: `gemini extensions install https://github.com/RidTheWann/RCoder-Skills`
 - Update: `gemini extensions update rcoder`
 - Remove: `gemini extensions uninstall rcoder`
-- List: `gemini --list-extensions`
+- List/verify: `gemini extensions list`
 
 The RCoder integration manager invokes those CLI commands. The host must be restarted after installation. Extension listing does not prove that a model invoked the skill or MCP tools.
 
