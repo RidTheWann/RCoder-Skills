@@ -184,7 +184,7 @@ function doctorReport() {
   } catch (error) { add('skill:metadata-version', 'FAIL', error.message); }
   try {
     const builder = readFileSync(path.join(PACKAGE_ROOT, 'scripts', 'package'), 'utf8');
-    versions['scripts/package'] = builder.split("\n").find((item) => item.startsWith("VERSION = "))?.match(/^VERSION = ['"]([^'"]+)['"]$/)?.[1] || null;
+    versions['scripts/package'] = builder.match(/^\s*VERSION\s*=\s*['"]([^'"]+)['"]\s*$/m)?.[1] || null;
     if (!versions['scripts/package']) add('package-builder:version', 'FAIL', 'Package builder VERSION is missing');
   } catch (error) { add('package-builder:version', 'FAIL', error.message); }
   let contract = null;

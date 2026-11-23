@@ -85,7 +85,7 @@ Findings and evidence.
 """, encoding="utf-8")
         assert json.loads(run("lint", skill, "--json"))["ok"] is True
         module.write_text("# Domain specialist\n\n## Activate when\nOnly one section.\n", encoding="utf-8")
-        bad = json.loads(run("lint", skill, "--json"))
+        bad = json.loads(run("lint", skill, "--json", expect=1))
         assert bad["ok"] is False and any("missing" in item for item in bad["errors"])
         module.unlink()
 
