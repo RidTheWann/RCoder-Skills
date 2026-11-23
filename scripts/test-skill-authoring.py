@@ -93,7 +93,7 @@ Findings and evidence.
         readme = skill / "references" / "notes.md"
         references.rmdir()
         (skill / "references").mkdir()
-        readme.write_text("# Notes\n\n[Missing](../outside.md)\n", encoding="utf-8")
+        readme.write_text("# Notes\n\n[Missing](../../outside.md)\n", encoding="utf-8")
         bad = json.loads(run("lint", skill, "--json"))
         assert bad["ok"] is False and any("escapes skill root" in item for item in bad["errors"])
 
