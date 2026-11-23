@@ -3,32 +3,59 @@
     "id": "ml-01",
     "prompt": "Perbaiki regressi pada fungsi parser ini: tes yang sebelumnya lolos sekarang gagal setelah perubahan terakhir.",
     "language": "ID",
-    "expected_specialists": ["debugging", "testing-qa"],
-    "identifier_integrity": ["parser", "regressi"],
+    "expected_specialists": [
+      "debugging",
+      "testing-qa"
+    ],
+    "identifier_integrity": [
+      "parser",
+      "regressi"
+    ],
     "note": "Indonesian request; technical identifiers must not be translated."
   },
   {
     "id": "ml-02",
     "prompt": "Tolong audit keamanan aplikasi ini untuk masalah injeksi SQL dan berikan klasifikasi risikonya.",
     "language": "ID",
-    "expected_specialists": ["security", "application-security", "secure-code-review"],
-    "identifier_integrity": ["SQL"],
+    "expected_specialists": [
+      "security",
+      "application-security",
+      "secure-code-review"
+    ],
+    "identifier_integrity": [
+      "SQL"
+    ],
     "note": "Indonesian request; base security framing plus narrow application security required."
   },
   {
     "id": "ml-03",
     "prompt": "Optimize this Rust decoder: profil menunjukkan bottleneck di alokasi memori, ukur baseline dulu ya.",
     "language": "MIXED_ID_EN",
-    "expected_specialists": ["systems-programming", "performance"],
-    "identifier_integrity": ["Rust", "decoder", "baseline"],
+    "expected_specialists": [
+      "systems-programming",
+      "performance"
+    ],
+    "identifier_integrity": [
+      "Rust",
+      "decoder",
+      "baseline"
+    ],
     "note": "Mixed Indonesian-English technical request."
   },
   {
     "id": "ml-04",
     "prompt": "Analyze this binary trace and reconstruct the file format, simpan observation dan hypothesis terpisah.",
     "language": "MIXED_ID_EN",
-    "expected_specialists": ["reverse-engineering", "reverse-engineering-file-formats"],
-    "identifier_integrity": ["binary", "file format", "observation", "hypothesis"],
+    "expected_specialists": [
+      "reverse-engineering",
+      "reverse-engineering-file-formats"
+    ],
+    "identifier_integrity": [
+      "binary",
+      "file format",
+      "observation",
+      "hypothesis"
+    ],
     "note": "Mixed request; evidence discipline must survive language switching."
   },
   {
@@ -46,5 +73,96 @@
     "expected_specialists": [],
     "identifier_integrity": [],
     "note": "Negative control in Indonesian; must not trigger engineering routing."
+  },
+  {
+    "id": "ml-07",
+    "language": "ID",
+    "prompt": "Tolong audit Streamable HTTP MCP endpoint ini: pastikan Origin allowlist, Bearer token, dan loopback bind di 127.0.0.1 aman.",
+    "expected_specialists": [
+      "mcp-transport-engineering",
+      "security",
+      "network-security"
+    ],
+    "identifier_integrity": [
+      "Streamable HTTP",
+      "MCP",
+      "Origin",
+      "Bearer token",
+      "127.0.0.1"
+    ],
+    "note": "Indonesian security review; transport is the owner, security is the framing base, network security narrows the boundary."
+  },
+  {
+    "id": "ml-08",
+    "language": "MIXED_ID_EN",
+    "prompt": "Implement pagination for tools/list dengan opaque cursor, structuredContent, nextCursor, dan invalid-cursor conformance tests.",
+    "expected_specialists": [
+      "mcp-transport-engineering",
+      "testing-qa"
+    ],
+    "identifier_integrity": [
+      "tools/list",
+      "opaque cursor",
+      "structuredContent",
+      "nextCursor"
+    ],
+    "note": "Mixed prompt; select MCP transport owner plus test owner, not generic keyword matches."
+  },
+  {
+    "id": "ml-09",
+    "language": "ID",
+    "prompt": "Buat Agent Skill baru dengan rcoder skill new, lint, lalu package. Pastikan metadata, local links, symlink, dan secret checks.",
+    "expected_specialists": [
+      "agent-extensions-engineering",
+      "testing-qa"
+    ],
+    "identifier_integrity": [
+      "Agent Skill",
+      "rcoder skill new",
+      "lint",
+      "package",
+      "symlink"
+    ],
+    "note": "Indonesian authoring request; extension lifecycle plus verification."
+  },
+  {
+    "id": "ml-10",
+    "language": "MIXED_ID_EN",
+    "prompt": "Configure OpenCode plugin, Gemini CLI extension, and Codex marketplace entries tanpa mengubah existing user MCP settings.",
+    "expected_specialists": [
+      "agent-extensions-engineering"
+    ],
+    "identifier_integrity": [
+      "OpenCode",
+      "Gemini CLI",
+      "Codex",
+      "marketplace",
+      "MCP"
+    ],
+    "note": "Mixed host integration request; one extension owner, no unnecessary protocol specialist."
+  },
+  {
+    "id": "ml-11",
+    "language": "ID",
+    "prompt": "Perbaiki regression RScan sampling supaya CI tidak dianggap hilang saat scan terpotong; tambahkan deterministic regression test.",
+    "expected_specialists": [
+      "agent-extensions-engineering",
+      "debugging",
+      "testing-qa"
+    ],
+    "identifier_integrity": [
+      "RScan",
+      "CI",
+      "deterministic"
+    ],
+    "note": "Indonesian tooling regression; extension owner plus diagnosis and regression test."
+  },
+  {
+    "id": "ml-12",
+    "language": "ID",
+    "prompt": "Buatkan itinerary wisata santai dua hari di Jepara dengan pilihan kuliner lokal.",
+    "expected_specialists": [],
+    "identifier_integrity": [],
+    "note": "Negative control in Indonesian; non-engineering task must not activate specialists."
   }
 ]
