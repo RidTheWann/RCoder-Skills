@@ -70,7 +70,7 @@ For non-interactive use, run `npx -y github:RidTheWann/RCoder-Skills --help`. Us
 
 ### MCP server setup
 
-The MCP server is optional and is not started by installing the skill; the host must be told how to launch it. The installers can do that for you:
+The MCP server is optional and is not started by installing the skill; the host must be told how to launch it. The installers can configure the stdio transport. An additional loopback-only Streamable HTTP transport is available for local clients that specifically need HTTP; it requires a locally generated bearer token and explicit Origin allowlist and is never enabled by the installer.
 
 | Route | Print the config | Set it up automatically |
 |---|---|---|
@@ -79,7 +79,7 @@ The MCP server is optional and is not started by installing the skill; the host 
 | Node / npx | `--mcp show` | `--mcp install` |
 | POSIX helper | `--mcp show` | `--mcp install` |
 
-Automatic setup needs Python 3 (the server is a Python script) and supports Claude Code, Cursor, Gemini CLI, GitHub Copilot (VS Code, project scope), OpenCode, and Codex (user scope). It only adds the `rcoder` entry, backs up the file first, never overwrites a different entry, leaves files with comments untouched (printing the snippet instead), and finishes with a live self-test. Other hosts print the generic `mcpServers` snippet. Project scope uses a relative script path, so the config is safe to commit; user scope uses an absolute path.
+Automatic setup needs Python 3 (the server is a Python script) and supports Claude Code, Cursor, Gemini CLI, GitHub Copilot (VS Code, project scope), OpenCode, and Codex (user scope). It only adds the `rcoder` entry, backs up the file first, never overwrites a different entry, leaves files with comments untouched (printing the snippet instead), and finishes with a live self-test. Other hosts print the generic `mcpServers` snippet. Project scope uses a relative script path, so the config is safe to commit; user scope uses an absolute path. For the optional HTTP transport, see [MCP Streamable HTTP](docs/MCP.md#streamable-http-transport); it is not configured automatically.
 
 ## Supported Agentic AI and CLI hosts
 

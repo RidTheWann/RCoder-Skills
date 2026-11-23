@@ -239,11 +239,11 @@ def main():
         "scripts/test-tool-probe.py", "skills/rcoder/scripts/tool_probe.py",
         "scripts/check-dist.py", "scripts/test-mcp.py", "scripts/rcoder-mcp.py",
         "skills/rcoder/scripts/rcoder_mcp.py", "skills/rcoder/scripts/rcoder_mcp_modern.py",
-        "scripts/test-mcp-modern.py",
+        "skills/rcoder/scripts/rcoder_mcp_http.py", "scripts/test-mcp-modern.py",
         "install.ps1", "launcher/RCoder.ps1", "launcher/McpSetup.ps1", "targets.json",
         "skills/rcoder/scripts/rcoder_mcp_setup.py", "scripts/test-mcp-setup.py",
         "skills/rcoder/contracts/rcoder-v2.json", "skills/rcoder/scripts/rcoder_contract.py",
-        "scripts/test-mcp-contract.py", "scripts/test-cli-doctor.mjs", "scripts/test-installer-menus.py"
+        "scripts/test-mcp-contract.py", "scripts/test-mcp-http.py", "scripts/test-cli-doctor.mjs", "scripts/test-installer-menus.py"
     ):
         check((ROOT / required).is_file(), f"G1: required installer/test file missing: {required}")
 

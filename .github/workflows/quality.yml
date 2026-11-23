@@ -47,6 +47,8 @@ jobs:
         run: python scripts/test-mcp.py
       - name: Shared MCP contract and pagination conformance
         run: python scripts/test-mcp-contract.py
+      - name: MCP Streamable HTTP transport conformance
+        run: python scripts/test-mcp-http.py
       - name: RCoder CLI doctor
         run: node scripts/test-cli-doctor.mjs
       - name: Modern MCP entry point (stateless protocol, Skills over MCP)
@@ -58,7 +60,7 @@ jobs:
       - name: MCP server syntax and host configuration snippets
         shell: bash
         run: |
-          python -m py_compile skills/rcoder/scripts/rcoder_mcp.py skills/rcoder/scripts/rcoder_mcp_modern.py skills/rcoder/scripts/rcoder_mcp_setup.py skills/rcoder/scripts/rcoder_contract.py
+          python -m py_compile skills/rcoder/scripts/rcoder_mcp.py skills/rcoder/scripts/rcoder_mcp_modern.py skills/rcoder/scripts/rcoder_mcp_http.py skills/rcoder/scripts/rcoder_mcp_setup.py skills/rcoder/scripts/rcoder_contract.py
           python scripts/rcoder-mcp.py --print-config generic > "$RUNNER_TEMP/mcp-generic.json"
           python skills/rcoder/scripts/rcoder_mcp_modern.py --print-config generic > "$RUNNER_TEMP/mcp-modern.json"
           python -c "import json,sys; json.load(open(sys.argv[1]))" "$RUNNER_TEMP/mcp-modern.json"

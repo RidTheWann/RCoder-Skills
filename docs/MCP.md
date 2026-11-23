@@ -131,3 +131,31 @@ python3 scripts/validate-all
 ```
 
 To exercise a host by hand, send `initialize`, then the `notifications/initialized` notification, then `tools/list`; or point the MCP Inspector at the command printed by `--print-config generic`.
+
+
+## Streamable HTTP transport
+
+The optional `skills/rcoder/scripts/rcoder_mcp_http.py` adapter exposes the stateless modern MCP server over one local endpoint. The existing stdio configuration remains the default and is not rewritten automatically.
+
+```sh
+export RCODER_MCP_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')"
+python3 skills/rcoder/scripts/rcoder_mcp_http.py --root . --port 8765 \
+  --allowed-origin http://localhost:3000
+```
+
+Security contract:
+
+- Binding is hard-limited to `127.0.0.1`; requests cannot expose the server on a LAN interface.
+- Every POST requires `Authorization: Bearer ...`; the token must be at least 32 characters and is never printed.
+- If an `Origin` header is present it must exactly match one of the repeated `--allowed-origin` values. Missing Origin is accepted for native clients. Browser preflight is constrained to the same allowlist.
+- `MCP-Protocol-Version`, `Mcp-Method`, and (for tool, resource and prompt calls) `Mcp-Name` must match the body.
+- The JSON-RPC body and response are bounded; a fresh stdio worker handles each POST, so mutable per-request protocol state is not shared between concurrent clients.
+- The adapter returns JSON. It does not implement GET streams, SSE resumability, or MCP sessions; DELETE is rejected. Notifications receive HTTP 202 with no body.
+
+This is an optional local transport, not a public server. Do not weaken loopback binding, token validation, request bounds, or Origin validation to make remote access work. Use an authenticated tunnel or a separately reviewed deployment design for remote access.
+
+### Pagination and structured output
+
+Modern list methods use the common stateless cursor contract (10 items per page); clients must treat `nextCursor` as opaque. Tool calls return the existing text content plus `structuredContent` when a bounded JSON object is available. Skills-over-MCP continues to return the eligible file manifest inline with exact-byte SHA-256 digests and sizes.
+
+Run `python3 scripts/test-mcp-contract.py` and `python3 scripts/test-mcp-http.py` for local conformance coverage. The live report covers the earlier stdio run and is not evidence that the new HTTP transport or newly added RSaver tools have been exercised in a native host.
