@@ -79,7 +79,7 @@ The existing host table describes skill-folder discovery. The following matrix r
 |---|---|---|---|---|
 | OpenCode | V1 plugin adapter in `.opencode/plugins/rcoder.js` plus canonical skill | Installer fixture and V1 hook-source checks; adapter targets the previously observed 1.19.6 V1 API | NOT VERIFIED for this adapter | NOT VERIFIED for this adapter |
 | Gemini CLI | `gemini-extension.json`, `GEMINI.md`, custom commands, MCP launcher | Manifest and package checks; official extension install command is generated | NOT VERIFIED | NOT VERIFIED |
-| Codex | Root portable plugin/`mcp.json`, `.codex-plugin` compatibility manifest/`.mcp.json`, repository marketplace | Manifest, path, and CLI command tests | NOT VERIFIED | NOT VERIFIED |
-| Claude Code | `.claude-plugin/plugin.json` with `.mcp.json`, commands and agents | Manifest and plugin package checks; install commands are printed for the host session | NOT VERIFIED | NOT VERIFIED |
+| Codex | Root portable plugin/`mcp.json`, `.codex-plugin/plugin.json` with `codex-mcp.json` direct map, repository marketplace | Manifest, path, and CLI command tests | NOT VERIFIED | NOT VERIFIED |
+| Claude Code | `.claude-plugin/plugin.json` with `claude-mcp.json` wrapper, commands and agents | Manifest and plugin package checks; install commands are printed for the host session | NOT VERIFIED | NOT VERIFIED |
 
 The OpenCode T2/T3 result earlier in this document refers to the canonical Agent Skill and the previously tested RScan V1 hook on OpenCode 1.19.6. It is not evidence that the new full RCoder adapter loaded or that its new system guidance was followed. Likewise, the Gemini and Codex installer dry-runs do not prove that a marketplace or extension was installed. Update this table only after direct observation on the exact host build.

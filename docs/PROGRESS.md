@@ -134,3 +134,8 @@ This branch is implementation work, not a 2.0 release. No host-native activation
 - The remaining failure was an incorrect test expectation for secret refusal: `skill lint` intentionally returns exit code 2 when it refuses a credential-shaped file. The fixture was corrected to expect 2 in the current branch. Broken local-reference and incomplete-specialist findings continue to expect exit code 1.
 - The current branch head includes the fixture correction. A fresh hosted CI result for that head is required before calling the baseline green.
 - The separate Actions run `45131167725` belongs to the merged specialist PR commit and is not evidence for this RCoder 2.0 branch.
+
+
+### Codex/Claude MCP config boundary — 2026-11-23
+
+The root portable Agent Plugin continues to use `mcp.json`. Claude Code uses `claude-mcp.json` with its `mcpServers` wrapper. Codex uses `codex-mcp.json` as a direct name-to-server map referenced from `.codex-plugin/plugin.json`. The ambiguous root `.mcp.json` was removed so Codex cannot auto-read a Claude-format wrapper as its plugin MCP configuration.

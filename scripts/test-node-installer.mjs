@@ -83,6 +83,8 @@ try {
   assert.ok(existsSync(path.join(appRoot, 'launcher', 'rcoder-mcp.mjs')), 'Cross-platform MCP launcher was not bundled');
   assert.ok(existsSync(path.join(appRoot, '.opencode', 'plugins', 'rcoder.js')), 'OpenCode integration adapter was not bundled');
   assert.ok(existsSync(path.join(appRoot, 'gemini-extension.json')), 'Gemini extension manifest was not bundled');
+  assert.ok(existsSync(path.join(appRoot, 'claude-mcp.json')), 'Claude MCP wrapper was not bundled');
+  assert.ok(existsSync(path.join(appRoot, 'codex-mcp.json')), 'Codex direct server map was not bundled');
   assert.ok(existsSync(path.join(appRoot, '.agents', 'plugins', 'marketplace.json')), 'Codex marketplace catalog was not bundled');
   assert.ok(existsSync(path.join(appRoot, 'skills', 'rcoder', 'scripts', 'skill_authoring.py')),
     'Skill authoring toolkit was not bundled');
