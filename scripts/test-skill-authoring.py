@@ -19,7 +19,7 @@ def run(*args, expect=0):
                           cwd=ROOT, text=True, encoding="utf-8", capture_output=True,
                           timeout=30, check=False)
     assert done.returncode == expect, (args, done.returncode, done.stdout, done.stderr)
-    return done.stdout
+    return done.stdout + done.stderr
 
 
 def main():

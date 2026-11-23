@@ -50,6 +50,7 @@ Options:
   --version           Show version
   doctor [--json]     Check runtime, manifest parity, shared contract, and MCP files
   integration <action> <host>  Manage OpenCode, Gemini CLI, Codex, and Claude Code adapters
+  skill <new|lint|package>      Author, validate, and package Agent Skills
 
 After installation, open a new terminal and type RCoder.`);
 }
@@ -59,6 +60,9 @@ function parseArgs(args) {
     const unknown = args.slice(1).filter((item) => item !== '--json');
     if (unknown.length) throw new Error(`Unknown doctor option: ${unknown.join(' ')}`);
     return { command: 'doctor', json: args.includes('--json') };
+  }
+  if (args[0] === 'skill') {
+    return { command: 'skill', args: args.slice(1) };
   }
   if (args[0] === 'integration') {
     const action = args[1] || 'instructions';
@@ -196,6 +200,7 @@ function doctorReport() {
     'skills/rcoder/scripts/rcoder_mcp.py', 'skills/rcoder/scripts/rcoder_mcp_modern.py',
     'skills/rcoder/scripts/rcoder_mcp_http.py', 'skills/rcoder/scripts/rscan.py',
     'skills/rcoder/scripts/rsaver.py', 'skills/rcoder/scripts/rcoder_mcp_setup.py',
+    'skills/rcoder/scripts/skill_authoring.py',
     'skills/rcoder/contracts/rcoder-v2.json', 'skills/rcoder/scripts/rcoder_contract.py',
     'launcher/rcoder-mcp.mjs', '.opencode/plugins/rcoder.js', 'gemini-extension.json',
     'GEMINI.md', '.mcp.json', 'mcp.json', '.claude-plugin/plugin.json', '.codex-plugin/plugin.json'
@@ -379,6 +384,25 @@ function runIntegration(options) {
     return 0;
   }
   throw new Error(`Unsupported integration host: ${host}`);
+}
+
+
+function runSkillCommand(arguments_) {
+  const python = findPython();
+  if (!python) {
+    console.error('RCoder skill toolkit requires Python 3. Install Python 3 or set it on PATH.');
+    return 127;
+  }
+  const script = path.join(SOURCE, 'scripts', 'skill_authoring.py');
+  if (!existsSync(script)) throw new Error(`Bundled skill authoring toolkit is missing: ${script}`);
+  const result = spawnSync(python.exe, [...python.pre, script, ...arguments_], {
+    cwd: process.cwd(), stdio: 'inherit', windowsHide: true
+  });
+  if (result.error) {
+    console.error(`Could not start skill toolkit: ${result.error.message}`);
+    return 1;
+  }
+  return result.status ?? 1;
 }
 
 function findPython() {
@@ -800,6 +824,8 @@ try {
     process.exitCode = runDoctor(options.json);
   } else if (options.command === 'integration') {
     process.exitCode = runIntegration(options);
+  } else if (options.command === 'skill') {
+    process.exitCode = runSkillCommand(options.args);
   } else if (options.help) {
     usage();
   } else if (options.version) {
