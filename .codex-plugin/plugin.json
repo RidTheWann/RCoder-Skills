@@ -13,5 +13,5 @@
     "displayName": "RCoder",
     "shortDescription": "Evidence-led engineering and security workflow"
   },
-  "mcpServers": "./.mcp.json"
+  "mcpServers": "./codex-mcp.json"
 }

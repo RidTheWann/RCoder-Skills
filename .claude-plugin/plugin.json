@@ -17,5 +17,5 @@
     "agent-skills",
     "token-efficiency"
   ],
-  "mcpServers": "./.mcp.json"
+  "mcpServers": "./claude-mcp.json"
 }
