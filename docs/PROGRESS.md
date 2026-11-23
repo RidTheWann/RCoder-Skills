@@ -126,3 +126,11 @@ CI validates static structure, packaging, and simulated file-system behavior. It
 - [ ] Confirm package ZIP contents and checksums from the CI artifacts, then issue a release only after evidence and compatibility matrix are updated.
 
 This branch is implementation work, not a 2.0 release. No host-native activation, new MCP HTTP live run, multilingual accuracy number, or post-change ablation is claimed.
+
+
+### CI iteration record — 2026-11-23
+
+- Run `45131137590` tested commit `64868e8` on Ubuntu and Windows. Static validation, MCP contract checks, HTTP transport conformance, RScan, and `rcoder doctor` passed on the completed Ubuntu steps; the run stopped at the Skill authoring test.
+- The remaining failure was an incorrect test expectation for secret refusal: `skill lint` intentionally returns exit code 2 when it refuses a credential-shaped file. The fixture was corrected to expect 2 in the current branch. Broken local-reference and incomplete-specialist findings continue to expect exit code 1.
+- The current branch head includes the fixture correction. A fresh hosted CI result for that head is required before calling the baseline green.
+- The separate Actions run `45131167725` belongs to the merged specialist PR commit and is not evidence for this RCoder 2.0 branch.
