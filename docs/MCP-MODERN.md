@@ -10,6 +10,8 @@ Nothing here is started by installing the skill. A host must be configured to la
 python3 skills/rcoder/scripts/rcoder_mcp_modern.py --root . --profile minimal
 python3 skills/rcoder/scripts/rcoder_mcp_modern.py --print-config generic   # snippet points at this entry point
 python3 scripts/test-mcp-modern.py
+python3 scripts/test-mcp-contract.py
+python3 scripts/test-mcp-http.py
 ```
 
 All options of `rcoder_mcp.py` (`--root`, `--profile`, `--tools`, `--print-config`, `--command`, `--version`) work unchanged. Existing host configurations keep working because they still launch `rcoder_mcp.py`; switch a configuration to the new file to opt in.
@@ -28,8 +30,11 @@ A request is modern only when `params._meta["io.modelcontextprotocol/protocolVer
 | Removed methods | `ping`, `initialize`, `logging/setLevel`, `resources/subscribe`, and `resources/unsubscribe` return `-32601`. |
 | Resource not found | `-32602` (legacy requests keep `-32002`). |
 | Tools, prompts, completion | Delegated to the core with titles and `structuredContent` enabled; behavior and security model are identical to `docs/MCP.md`. |
+| Pagination | `tools/list`, `resources/list`, `resources/templates/list`, `prompts/list`, and `skills/list` use the shared opaque versioned cursor contract (10 entries per page). Invalid cursors return Invalid params. |
 
-Not implemented: `subscriptions/listen`, Multi Round-Trip Requests, the Tasks extension, MCP Apps, progress, and cancellation handling beyond ignoring the notification. The server never emits log notifications, which is correct for requests without `io.modelcontextprotocol/logLevel`.
+The optional Streamable HTTP adapter (`rcoder_mcp_http.py`) serves the same modern entry point at `POST /mcp`. It binds only to `127.0.0.1`, requires a bearer token from `RCODER_MCP_TOKEN`, checks an exact Origin allowlist when Origin is present, and requires protocol/method/name headers to agree with the JSON-RPC body. It returns JSON; GET streams, SSE, sessions, and resumable streams are intentionally not supported. See [MCP Streamable HTTP](MCP.md#streamable-http-transport).
+
+Not implemented: `subscriptions/listen`, Multi Round-Trip Requests, the Tasks extension, MCP Apps, progress, resumable SSE, or session state. The server never emits log notifications, which is correct for requests without `io.modelcontextprotocol/logLevel`.
 
 ## Skills over MCP
 

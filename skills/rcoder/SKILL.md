@@ -16,6 +16,10 @@ All built-in instructions, expert references, templates, evaluation prompts, ins
 
 RCoder is a model-agnostic engineering workflow router. It does not grant tools, permissions, or authorization; use only capabilities and access exposed by the active agent.
 
+## Multilingual activation
+
+Keep repository-maintained instructions and reference files in English, but respond in the language the user predominantly uses unless they request another language. Classify a task by its requested deliverable, acceptance criteria, technical domain, and risk—not by English-only trigger words. This applies to Indonesian, mixed-language, paraphrased, and unfamiliar phrasing. Preserve API names, identifiers, file paths, command names, code symbols, standards, and product names exactly; do not translate or rewrite them to make a prompt appear monolingual. When a message mixes languages, interpret the whole request before choosing specialists; language mixing alone does not justify extra modules. If meaning remains ambiguous, restate the inferred deliverable in the user's language and verify it against repository evidence before proceeding.
+
 ## Operating contract
 
 1. **Evidence over assertion:** reproduce failures and run the narrowest relevant checks. State exactly what ran and did not run.
@@ -99,7 +103,8 @@ For unfamiliar models or hosts, choose an execution profile before routing; see 
 | Review, cleanup, behavior-preserving refactor | [review-refactor](references/review-refactor.md) |
 | README, API docs, ADR, runbook, changelog | [documentation](references/documentation.md) |
 | SSR/hydration, service workers, browser storage, edge or browser-runtime boundaries | [web platform engineering](references/web-platform-engineering.md) |
-| MCP servers, Agent Skills, plugins, slash commands, hooks, subagents (build, review, package, debug discovery) | [agent extensions engineering](references/agent-extensions-engineering.md) |
+| MCP protocol transports, lifecycle, JSON-RPC, pagination, structured results, local HTTP security | [MCP transport engineering](references/mcp-transport-engineering.md); add [agent extensions engineering](references/agent-extensions-engineering.md) for host plugins and skills |
+| Agent Skills, host plugins, marketplaces, slash commands, hooks, subagents (build, review, package, debug discovery) | [agent extensions engineering](references/agent-extensions-engineering.md) |
 | Production telemetry, SLOs, alerting, dashboards, rollout/rollback safety | [observability and SRE](references/observability-sre.md) |
 | Terraform/OpenTofu, Pulumi, CloudFormation, Ansible, Kubernetes manifests, Helm, plans, state, drift | [infrastructure as code and Kubernetes](references/iac-platform-engineering.md) |
 | Version uncertainty, external claims, unsupported tools | [verification](references/verification.md) |

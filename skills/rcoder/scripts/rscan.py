@@ -67,8 +67,10 @@ def git_summary(root: Path) -> dict:
     }
 
 
-def collect_paths(root: Path, max_paths: int) -> tuple[list[str], bool]:
-    paths: list[str] = []
+def collect_paths(root: Path, max_paths: int) -> tuple[list[str], bool, int]:
+    """Build a bounded inventory, pin high-signal paths, then sample fairly by directory."""
+    discovery_limit = max(2000, max_paths * 20)
+    candidates: list[str] = []
     truncated = False
     stack = [(root, 0)]
     while stack:
@@ -86,13 +88,59 @@ def collect_paths(root: Path, max_paths: int) -> tuple[list[str], bool]:
                 if entry.name not in SKIP and depth < 4:
                     children.append(Path(entry.path))
             elif entry.is_file(follow_symlinks=False):
-                paths.append(relative)
-                if len(paths) >= max_paths:
+                candidates.append(relative)
+                if len(candidates) >= discovery_limit:
                     truncated = True
-                    return sorted(paths), truncated
+                    break
+        if truncated:
+            break
         for child in reversed(children):
             stack.append((child, depth + 1))
-    return sorted(paths), truncated
+
+    candidates = sorted(set(candidates))
+
+    def priority(item: str) -> tuple[int, str]:
+        name = Path(item).name
+        if item in {"README.md", "AGENTS.md", "CLAUDE.md", "CONTRIBUTING.md"}:
+            return (0, item)
+        if item.startswith(".github/workflows/") or item in {".gitlab-ci.yml", ".circleci/config.yml"}:
+            return (1, item)
+        if name in STACK_MARKERS:
+            return (2, item)
+        if name in LOCKFILES:
+            return (3, item)
+        if "test" in name.lower() or any(part.lower() in {"test", "tests", "__tests__"} for part in Path(item).parts):
+            return (4, item)
+        return (5, item)
+
+    selected: list[str] = []
+    selected_set: set[str] = set()
+    for item in sorted(candidates, key=priority):
+        if len(selected) >= max_paths:
+            break
+        selected.append(item)
+        selected_set.add(item)
+
+    buckets: dict[str, list[str]] = {}
+    for item in candidates:
+        if item in selected_set:
+            continue
+        parts = Path(item).parts
+        key = parts[0] if len(parts) > 1 else "."
+        buckets.setdefault(key, []).append(item)
+    for bucket in buckets.values():
+        bucket.sort()
+    names = sorted(buckets)
+    while len(selected) < max_paths and names:
+        remaining = []
+        for name in names:
+            values = buckets[name]
+            if values and len(selected) < max_paths:
+                selected.append(values.pop(0))
+            if values:
+                remaining.append(name)
+        names = remaining
+    return sorted(selected), truncated or len(candidates) > len(selected), len(candidates)
 
 
 def build_options(root: Path, paths: list[str], stacks: list[str], key_files: list[str],
@@ -166,7 +214,7 @@ def build_options(root: Path, paths: list[str], stacks: list[str], key_files: li
 
 def scan_project(root: Path, max_paths: int) -> dict:
     git = git_summary(root)
-    paths, truncated = collect_paths(root, max_paths)
+    paths, truncated, candidate_paths_seen = collect_paths(root, max_paths)
     by_name = {Path(path).name: path for path in paths}
     stacks = sorted({label for name, label in STACK_MARKERS.items() if name in by_name})
     key_files = sorted(name for name in KEY_FILES if name in by_name)
@@ -187,23 +235,24 @@ def scan_project(root: Path, max_paths: int) -> dict:
                   or "profil" in Path(path).name.lower()]
 
     risks = []
-    if not by_name.get("README.md"):
-        risks.append({"id": "no_readme", "severity": "medium", "detail": "README.md not found in sample"})
-    if not (by_name.get("AGENTS.md") or by_name.get("CLAUDE.md")):
+    if not by_name.get("README.md") and not truncated:
+        risks.append({"id": "no_readme", "severity": "medium", "detail": "README.md not found in the complete bounded inventory"})
+    if not (by_name.get("AGENTS.md") or by_name.get("CLAUDE.md")) and not truncated:
         risks.append({"id": "no_agent_instructions", "severity": "low",
-                      "detail": "No AGENTS.md or CLAUDE.md in sample"})
+                      "detail": "No AGENTS.md or CLAUDE.md in the complete bounded inventory"})
     if not git["is_repository"]:
         risks.append({"id": "not_a_git_repository", "severity": "medium", "detail": "Git metadata unavailable"})
     if git["changed_files"]:
         risks.append({"id": "uncommitted_changes", "severity": "low",
                       "detail": f"{len(git['changed_files'])} changed file(s)"})
-    if not ci:
-        risks.append({"id": "no_ci", "severity": "high", "detail": "No CI workflow detected in sample"})
-    if not tests:
-        risks.append({"id": "no_test_entry_point", "severity": "high", "detail": "No test file detected in sample"})
-    if any(name in by_name for name in STACK_MARKERS if name != "Makefile") and not has_lock:
+    if not ci and not truncated:
+        risks.append({"id": "no_ci", "severity": "high", "detail": "No CI workflow detected in the complete bounded inventory"})
+    if not tests and not truncated:
+        risks.append({"id": "no_test_entry_point", "severity": "high", "detail": "No test file detected in the complete bounded inventory"})
+    has_stack_marker = any(name in by_name for name in STACK_MARKERS if name != "Makefile")
+    if has_stack_marker and not has_lock and not truncated:
         risks.append({"id": "dependency_without_lock", "severity": "medium",
-                      "detail": "Manifest without a detected lockfile"})
+                      "detail": "Manifest without a detected lockfile in the complete bounded inventory"})
     if large:
         risks.append({"id": "large_source_files", "severity": "low",
                       "detail": f"{len(large)} file(s) over 300 lines (sample: {large[:5]})"})
@@ -216,15 +265,22 @@ def scan_project(root: Path, max_paths: int) -> dict:
     risks.append({"id": "unfamiliar_repository", "severity": "info",
                   "detail": "First scan in this session; treat findings as bounded evidence"})
 
-    quality = {"ci": ci, "tests": tests, "agent_instructions": bool(by_name.get("AGENTS.md") or by_name.get("CLAUDE.md")),
-               "readme": bool(by_name.get("README.md")), "lockfile": has_lock}
+    has_agent_instructions = bool(by_name.get("AGENTS.md") or by_name.get("CLAUDE.md"))
+    has_readme = bool(by_name.get("README.md"))
+    quality = {"ci": ci, "ci_confidence": "observed" if ci else ("unknown-truncated" if truncated else "complete-absent"),
+               "tests": tests, "tests_confidence": "observed" if tests else ("unknown-truncated" if truncated else "complete-absent"),
+               "agent_instructions": has_agent_instructions,
+               "agent_instructions_confidence": "observed" if has_agent_instructions else ("unknown-truncated" if truncated else "complete-absent"),
+               "readme": has_readme, "readme_confidence": "observed" if has_readme else ("unknown-truncated" if truncated else "complete-absent"),
+               "lockfile": has_lock, "lockfile_confidence": "observed" if has_lock else ("unknown-truncated" if truncated else "complete-absent")}
     options = build_options(root, paths, stacks, key_files, quality, risks, git)
     return {
         "tool": "RScan", "version": VERSION,
         "root": str(root.resolve()), "git": git,
-        "scan": {"max_paths": max_paths, "paths_sampled": len(paths),
-                 "truncated": truncated, "source_contents_read_for_line_counts_only": True},
-        "stacks": stacks, "key_files": key_files, "quality": quality,
+        "scan": {"max_paths": max_paths, "paths_sampled": len(paths), "candidate_paths_seen": candidate_paths_seen,
+                 "sampling_method": "deterministic-stratified-v1", "truncated": truncated,
+                 "source_contents_read_for_line_counts_only": True},
+        "stacks": stacks, "key_files": key_files, "sampled_paths": paths, "quality": quality,
         "risk_signals": risks, "development_options": options[:6],
         "limits": ["Heuristic detection; verify commands and versions in project files.",
                    "No files are modified by scan.",

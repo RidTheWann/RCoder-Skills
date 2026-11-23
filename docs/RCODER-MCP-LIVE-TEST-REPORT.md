@@ -780,3 +780,18 @@ The main caveat affecting a reported tool result is the bounded-scan behavior of
 8. **Document drift window behavior.** Explain that `recent_window` controls which signals are visible: narrow windows catch lost objectives, wider windows catch repetition.
 
 Report path: `docs/RCODER-MCP-LIVE-TEST-REPORT.md`.
+
+
+## Follow-up scope boundary (2026-11-23)
+
+The 21-tool results above are preserved as the historical live stdio run (2026-11-22). They do not cover the subsequently added `rsaver_redact` and `rsaver_ledger` tools, the stateless modern protocol, the shared pagination contract, or the optional Streamable HTTP adapter. Those changes have deterministic local conformance tests; they are not a replacement for a fresh native-host live run.
+
+Required follow-up evidence before a 2.0 release:
+
+1. Connect a real supported client to the HTTP adapter on loopback using an ephemeral token and the exact Origin allowlist; verify `server/discover`, paginated list calls, structured tool results, inline Skills manifest and a tool call.
+2. Invoke all 24 tools in a live MCP connection, including both new RSaver tools, and retain raw request/response evidence with secrets removed.
+3. Repeat the stdio tests against the same commit, recording host/client version and MCP protocol revision.
+4. Run the with/without-RCoder ablation on the frozen English control and a separate multilingual dataset; retain both arms and scorer output. Do not merge multilingual results into the English control.
+5. Update `docs/COMPATIBILITY.md` only for host tiers directly observed. CI and scripted clients prove protocol conformance, not native host discovery or behavioral improvement.
+
+Status: local protocol tests can be VERIFIED by CI; native-host HTTP activation, the fresh all-24-tools live run, and post-change ablation remain NOT VERIFIED until executed in the target host runtime.

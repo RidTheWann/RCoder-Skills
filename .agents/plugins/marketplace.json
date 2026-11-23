@@ -1,0 +1,22 @@
+{
+  "name": "rcoder-skills",
+  "interface": {
+    "displayName": "RCoder Skills",
+    "shortDescription": "Evidence-led engineering and security workflow"
+  },
+  "plugins": [
+    {
+      "name": "rcoder",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/RidTheWann/RCoder-Skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools",
+      "description": "Portable engineering skill, MCP tools, and focused specialists for coding agents."
+    }
+  ]
+}

@@ -76,8 +76,35 @@ try {
   assert.ok(existsSync(command), 'Global RCoder command was not installed');
   assert.ok(existsSync(path.join(appRoot, 'launcher', 'RCoder.ps1')), 'PowerShell manager was not bundled');
   assert.ok(existsSync(path.join(appRoot, 'launcher', 'McpSetup.ps1')), 'MCP setup helper was not bundled');
+  assert.ok(existsSync(path.join(appRoot, 'scripts', 'package')), 'Release package builder was not bundled');
+
   assert.ok(existsSync(path.join(appRoot, 'targets.json')), 'Target catalog was not bundled');
   assert.ok(existsSync(path.join(appRoot, 'skills', 'rcoder', 'SKILL.md')), 'Canonical skill was not bundled');
+  assert.ok(existsSync(path.join(appRoot, 'launcher', 'rcoder-mcp.mjs')), 'Cross-platform MCP launcher was not bundled');
+  assert.ok(existsSync(path.join(appRoot, '.opencode', 'plugins', 'rcoder.js')), 'OpenCode integration adapter was not bundled');
+  assert.ok(existsSync(path.join(appRoot, 'gemini-extension.json')), 'Gemini extension manifest was not bundled');
+  assert.ok(existsSync(path.join(appRoot, '.agents', 'plugins', 'marketplace.json')), 'Codex marketplace catalog was not bundled');
+  assert.ok(existsSync(path.join(appRoot, 'skills', 'rcoder', 'scripts', 'skill_authoring.py')),
+    'Skill authoring toolkit was not bundled');
+
+  // The global launcher must forward new CLI subcommands rather than forcing the interactive menu.
+  const globalSkillHelp = spawnSync(command, ['skill', '--help'], {
+    encoding: 'utf8', timeout: 30000, shell: process.platform === 'win32',
+    env: { ...process.env, HOME: launcherHome, USERPROFILE: launcherHome }
+  });
+  assert.equal(globalSkillHelp.status, 0, globalSkillHelp.stderr || globalSkillHelp.stdout);
+  assert.match(globalSkillHelp.stdout, /new/);
+  assert.match(globalSkillHelp.stdout, /lint/);
+  assert.match(globalSkillHelp.stdout, /package/);
+
+  const globalDoctor = spawnSync(command, ['doctor', '--json'], {
+    encoding: 'utf8', timeout: 30000, shell: process.platform === 'win32',
+    env: { ...process.env, HOME: launcherHome, USERPROFILE: launcherHome }
+  });
+  assert.equal(globalDoctor.status, 0, globalDoctor.stderr || globalDoctor.stdout);
+  const doctorReport = JSON.parse(globalDoctor.stdout);
+  assert.equal(doctorReport.ok, true, JSON.stringify(doctorReport.checks.filter((item) => item.status === 'FAIL')));
+
 
   const backupRoot = path.join(launcherRoot, 'backups');
   const before = existsSync(backupRoot) ? readdirSync(backupRoot).length : 0;

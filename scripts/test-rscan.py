@@ -72,6 +72,46 @@ def main():
         full_risks = {item["id"] for item in full["risk_signals"]}
         assert "no_ci" not in full_risks and "no_readme" not in full_risks
 
+        # A large alphabetically early source tree must not hide CI and repository metadata.
+        spread = root / "spread"
+        spread.mkdir()
+        (spread / "README.md").write_text("# Spread\\n", encoding="utf-8")
+        (spread / "package.json").write_text('{"name":"spread"}\\n', encoding="utf-8")
+        (spread / "package-lock.json").write_text("{}\\n", encoding="utf-8")
+        deep = spread / ".a-source"
+        deep.mkdir()
+        for index in range(120):
+            (deep / f"module-{index:03}.js").write_text("export const value = 1;\\n", encoding="utf-8")
+        workflows = spread / ".github" / "workflows"
+        workflows.mkdir(parents=True)
+        (workflows / "ci.yml").write_text("name: ci\\n", encoding="utf-8")
+        tests_dir = spread / "tests"
+        tests_dir.mkdir()
+        (tests_dir / "main.test.js").write_text("test('ok', () => {});\\n", encoding="utf-8")
+        stratified = run_json("scan", "--root", str(spread), "--max-paths", "10", "--format", "json")
+        assert stratified["scan"]["sampling_method"] == "deterministic-stratified-v1"
+        assert stratified["scan"]["truncated"] is True
+        assert stratified["quality"]["ci"] is True and stratified["quality"]["ci_confidence"] == "observed"
+        assert stratified["quality"]["tests"] is True and stratified["quality"]["tests_confidence"] == "observed"
+        assert ".github/workflows/ci.yml" in stratified["sampled_paths"]
+
+        # Missing README/lockfile is not a verified absence when the bounded inventory is truncated.
+        sparse = root / "sparse-truncated"
+        sparse.mkdir()
+        (sparse / "package.json").write_text('{"name":"sparse"}\n', encoding="utf-8")
+        source_tree = sparse / ".a-source"
+        source_tree.mkdir()
+        for index in range(2100):
+            (source_tree / f"module-{index:04}.js").write_text("export const value = 1;\n", encoding="utf-8")
+        uncertain = run_json("scan", "--root", str(sparse), "--max-paths", "10", "--format", "json")
+        uncertain_risks = {item["id"] for item in uncertain["risk_signals"]}
+        assert uncertain["scan"]["truncated"] is True
+        assert uncertain["quality"]["readme_confidence"] == "unknown-truncated"
+        assert uncertain["quality"]["lockfile_confidence"] == "unknown-truncated"
+        assert "no_readme" not in uncertain_risks
+        assert "dependency_without_lock" not in uncertain_risks
+
+
         text = run("scan", "--root", str(minimal))
         assert text.returncode == 0 and "Development options:" in text.stdout
         markdown = run("scan", "--root", str(minimal), "--format", "markdown")

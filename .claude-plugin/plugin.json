@@ -17,14 +17,5 @@
     "agent-skills",
     "token-efficiency"
   ],
-  "mcpServers": {
-    "rcoder": {
-      "command": "python3",
-      "args": [
-        "${CLAUDE_PLUGIN_ROOT}/skills/rcoder/scripts/rcoder_mcp_modern.py",
-        "--root",
-        "."
-      ]
-    }
-  }
+  "mcpServers": "./.mcp.json"
 }

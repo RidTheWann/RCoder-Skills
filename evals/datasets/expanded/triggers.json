@@ -1,32 +1,233 @@
 [
-  {"id": "ex-01", "prompt": "Investigate a data race in this Rust async runtime under high concurrency and isolate the root cause.", "should_trigger": true, "category": "systems/debugging", "language": "EN"},
-  {"id": "ex-02", "prompt": "Profile and reduce cold-start latency of this Node.js serverless function; establish a baseline before changing code.", "should_trigger": true, "category": "performance/Node", "language": "EN"},
-  {"id": "ex-03", "prompt": "Plan a zero-downtime schema migration for a sharded PostgreSQL cluster and define the rollout checks.", "should_trigger": true, "category": "database/distributed", "language": "EN"},
-  {"id": "ex-04", "prompt": "Review this Kubernetes NetworkPolicy and Helm chart for privilege escalation and container escape risks.", "should_trigger": true, "category": "security/cloud", "language": "EN"},
-  {"id": "ex-05", "prompt": "Reconstruct the undocumented binary packet format from these captured frames using differential tests.", "should_trigger": true, "category": "RE/protocol", "language": "EN"},
-  {"id": "ex-06", "prompt": "Reduce token usage for a large-repository audit while preserving every verification artifact and recovery pointer.", "should_trigger": true, "category": "context/efficiency", "language": "EN"},
-  {"id": "ex-07", "prompt": "Fix a hydration mismatch in this Next.js app that also breaks keyboard navigation for the search dialog.", "should_trigger": true, "category": "web/accessibility", "language": "EN"},
-  {"id": "ex-08", "prompt": "Evaluate this ML training pipeline for data leakage and reproduce the reported metric discrepancy.", "should_trigger": true, "category": "ML/debugging", "language": "EN"},
-  {"id": "ex-09", "prompt": "Diagnose intermittent DeadlineExceeded errors in this Go gRPC service under load.", "should_trigger": true, "category": "Go/API", "language": "EN"},
-  {"id": "ex-10", "prompt": "An ARM Cortex-M firmware resets at the watchdog after a power cycle; isolate the cause without changing the original image.", "should_trigger": true, "category": "embedded/systems", "language": "EN"},
-  {"id": "ex-11", "prompt": "Find reentrancy in this Solidity contract and add foundry regression tests for the exploit path.", "should_trigger": true, "category": "security/smart-contract", "language": "EN"},
-  {"id": "ex-12", "prompt": "A game engine shows a frame-time spike on the render thread only on one GPU; investigate and verify the fix.", "should_trigger": true, "category": "game/performance", "language": "EN"},
-  {"id": "ex-13", "prompt": "Write a short marketing email announcing our new product launch.", "should_trigger": false, "category": "standalone writing", "language": "EN"},
-  {"id": "ex-14", "prompt": "Summarize this news article about the election in three bullet points.", "should_trigger": false, "category": "news summary", "language": "EN"},
-  {"id": "ex-15", "prompt": "Translate this recipe into French.", "should_trigger": false, "category": "translation", "language": "EN"},
-  {"id": "ex-16", "prompt": "Create a four-day travel itinerary for Kyoto.", "should_trigger": false, "category": "travel", "language": "EN"},
-  {"id": "ex-17", "prompt": "Generate a logo image for a coffee shop.", "should_trigger": false, "category": "image creation", "language": "EN"},
-  {"id": "ex-18", "prompt": "What is the weather forecast in Berlin tomorrow?", "should_trigger": false, "category": "weather", "language": "EN"},
-  {"id": "ex-19", "prompt": "Build a stdio MCP server that exposes read-only repository search to coding agents and harden it against path traversal and prompt injection through tool output.", "should_trigger": true, "category": "agent-extensions/security", "language": "EN"},
-  {"id": "ex-20", "prompt": "Package our skill, slash commands, and review subagents as a plugin with a marketplace manifest, then find out why the host never discovers the skill.", "should_trigger": true, "category": "agent-extensions/packaging", "language": "EN"},
-  {"id": "ex-21", "prompt": "Our coding agent reads GitHub issues and can run shell commands and open pull requests. Threat-model prompt injection and decide which permissions and approval gates it needs.", "should_trigger": true, "category": "security/llm-agents", "language": "EN"},
-  {"id": "ex-22", "prompt": "Our checkout API pages the on-call team constantly but users still report failures nobody was alerted about. Define SLOs and redesign the alerting around them.", "should_trigger": true, "category": "reliability/observability", "language": "EN"},
-  {"id": "ex-23", "prompt": "Our LineageOS-based ROM bootloops after the vendor image update. SELinux denials fill the log and a camera HAL service dies right after it starts. Find the root cause without making the device permissive.", "should_trigger": true, "category": "platform/android-aosp", "language": "EN"},
-  {"id": "ex-24", "prompt": "We merged the latest upstream security patches into our Android device tree and the build now fails in Soong with a missing dependency in a vendor module. Fix the Android.bp and rebuild only what is needed.", "should_trigger": true, "category": "platform/android-aosp", "language": "EN"},
-  {"id": "ex-25", "prompt": "Our Windows installer script works in PowerShell 7 but fails in Windows PowerShell 5.1 with an encoding error and a TLS error when downloading the release, and it breaks for users whose profile path has non-ASCII characters.", "should_trigger": true, "category": "platform/windows", "language": "EN"},
-  {"id": "ex-26", "prompt": "Our Windows service starts fine from a console but exits immediately when run as a service, and the signed installer is flagged by SmartScreen. Diagnose both problems.", "should_trigger": true, "category": "platform/windows", "language": "EN"},
-  {"id": "ex-27", "prompt": "terraform plan wants to replace our production database instance after a module upgrade. Explain why, find a way to avoid recreating it, and make the change safe to apply.", "should_trigger": true, "category": "infrastructure/iac", "language": "EN"},
-  {"id": "ex-28", "prompt": "Pods in our Kubernetes deployment restart in a loop during rollouts and traffic drops. Review the manifests for probes, resource limits, and disruption settings and fix the rollout.", "should_trigger": true, "category": "infrastructure/iac", "language": "EN"},
-  {"id": "ex-29", "prompt": "Our Vulkan renderer shows flickering textures only on one GPU vendor and sometimes reports device lost. Find the synchronization or resource-lifetime bug and verify it with validation layers.", "should_trigger": true, "category": "graphics/gpu", "language": "EN"},
-  {"id": "ex-30", "prompt": "Write a short, friendly announcement for our school newsletter explaining what an Android phone is for parents.", "should_trigger": false, "category": "negative/non-engineering", "language": "EN"}
+  {
+    "id": "ex-01",
+    "prompt": "Investigate a data race in this Rust async runtime under high concurrency and isolate the root cause.",
+    "should_trigger": true,
+    "category": "systems/debugging",
+    "language": "EN"
+  },
+  {
+    "id": "ex-02",
+    "prompt": "Profile and reduce cold-start latency of this Node.js serverless function; establish a baseline before changing code.",
+    "should_trigger": true,
+    "category": "performance/Node",
+    "language": "EN"
+  },
+  {
+    "id": "ex-03",
+    "prompt": "Plan a zero-downtime schema migration for a sharded PostgreSQL cluster and define the rollout checks.",
+    "should_trigger": true,
+    "category": "database/distributed",
+    "language": "EN"
+  },
+  {
+    "id": "ex-04",
+    "prompt": "Review this Kubernetes NetworkPolicy and Helm chart for privilege escalation and container escape risks.",
+    "should_trigger": true,
+    "category": "security/cloud",
+    "language": "EN"
+  },
+  {
+    "id": "ex-05",
+    "prompt": "Reconstruct the undocumented binary packet format from these captured frames using differential tests.",
+    "should_trigger": true,
+    "category": "RE/protocol",
+    "language": "EN"
+  },
+  {
+    "id": "ex-06",
+    "prompt": "Reduce token usage for a large-repository audit while preserving every verification artifact and recovery pointer.",
+    "should_trigger": true,
+    "category": "context/efficiency",
+    "language": "EN"
+  },
+  {
+    "id": "ex-07",
+    "prompt": "Fix a hydration mismatch in this Next.js app that also breaks keyboard navigation for the search dialog.",
+    "should_trigger": true,
+    "category": "web/accessibility",
+    "language": "EN"
+  },
+  {
+    "id": "ex-08",
+    "prompt": "Evaluate this ML training pipeline for data leakage and reproduce the reported metric discrepancy.",
+    "should_trigger": true,
+    "category": "ML/debugging",
+    "language": "EN"
+  },
+  {
+    "id": "ex-09",
+    "prompt": "Diagnose intermittent DeadlineExceeded errors in this Go gRPC service under load.",
+    "should_trigger": true,
+    "category": "Go/API",
+    "language": "EN"
+  },
+  {
+    "id": "ex-10",
+    "prompt": "An ARM Cortex-M firmware resets at the watchdog after a power cycle; isolate the cause without changing the original image.",
+    "should_trigger": true,
+    "category": "embedded/systems",
+    "language": "EN"
+  },
+  {
+    "id": "ex-11",
+    "prompt": "Find reentrancy in this Solidity contract and add foundry regression tests for the exploit path.",
+    "should_trigger": true,
+    "category": "security/smart-contract",
+    "language": "EN"
+  },
+  {
+    "id": "ex-12",
+    "prompt": "A game engine shows a frame-time spike on the render thread only on one GPU; investigate and verify the fix.",
+    "should_trigger": true,
+    "category": "game/performance",
+    "language": "EN"
+  },
+  {
+    "id": "ex-13",
+    "prompt": "Write a short marketing email announcing our new product launch.",
+    "should_trigger": false,
+    "category": "standalone writing",
+    "language": "EN"
+  },
+  {
+    "id": "ex-14",
+    "prompt": "Summarize this news article about the election in three bullet points.",
+    "should_trigger": false,
+    "category": "news summary",
+    "language": "EN"
+  },
+  {
+    "id": "ex-15",
+    "prompt": "Translate this recipe into French.",
+    "should_trigger": false,
+    "category": "translation",
+    "language": "EN"
+  },
+  {
+    "id": "ex-16",
+    "prompt": "Create a four-day travel itinerary for Kyoto.",
+    "should_trigger": false,
+    "category": "travel",
+    "language": "EN"
+  },
+  {
+    "id": "ex-17",
+    "prompt": "Generate a logo image for a coffee shop.",
+    "should_trigger": false,
+    "category": "image creation",
+    "language": "EN"
+  },
+  {
+    "id": "ex-18",
+    "prompt": "What is the weather forecast in Berlin tomorrow?",
+    "should_trigger": false,
+    "category": "weather",
+    "language": "EN"
+  },
+  {
+    "id": "ex-19",
+    "prompt": "Build a stdio MCP server that exposes read-only repository search to coding agents and harden it against path traversal and prompt injection through tool output.",
+    "should_trigger": true,
+    "category": "agent-extensions/security",
+    "language": "EN"
+  },
+  {
+    "id": "ex-20",
+    "prompt": "Package our skill, slash commands, and review subagents as a plugin with a marketplace manifest, then find out why the host never discovers the skill.",
+    "should_trigger": true,
+    "category": "agent-extensions/packaging",
+    "language": "EN"
+  },
+  {
+    "id": "ex-21",
+    "prompt": "Our coding agent reads GitHub issues and can run shell commands and open pull requests. Threat-model prompt injection and decide which permissions and approval gates it needs.",
+    "should_trigger": true,
+    "category": "security/llm-agents",
+    "language": "EN"
+  },
+  {
+    "id": "ex-22",
+    "prompt": "Our checkout API pages the on-call team constantly but users still report failures nobody was alerted about. Define SLOs and redesign the alerting around them.",
+    "should_trigger": true,
+    "category": "reliability/observability",
+    "language": "EN"
+  },
+  {
+    "id": "ex-23",
+    "prompt": "Our LineageOS-based ROM bootloops after the vendor image update. SELinux denials fill the log and a camera HAL service dies right after it starts. Find the root cause without making the device permissive.",
+    "should_trigger": true,
+    "category": "platform/android-aosp",
+    "language": "EN"
+  },
+  {
+    "id": "ex-24",
+    "prompt": "We merged the latest upstream security patches into our Android device tree and the build now fails in Soong with a missing dependency in a vendor module. Fix the Android.bp and rebuild only what is needed.",
+    "should_trigger": true,
+    "category": "platform/android-aosp",
+    "language": "EN"
+  },
+  {
+    "id": "ex-25",
+    "prompt": "Our Windows installer script works in PowerShell 7 but fails in Windows PowerShell 5.1 with an encoding error and a TLS error when downloading the release, and it breaks for users whose profile path has non-ASCII characters.",
+    "should_trigger": true,
+    "category": "platform/windows",
+    "language": "EN"
+  },
+  {
+    "id": "ex-26",
+    "prompt": "Our Windows service starts fine from a console but exits immediately when run as a service, and the signed installer is flagged by SmartScreen. Diagnose both problems.",
+    "should_trigger": true,
+    "category": "platform/windows",
+    "language": "EN"
+  },
+  {
+    "id": "ex-27",
+    "prompt": "terraform plan wants to replace our production database instance after a module upgrade. Explain why, find a way to avoid recreating it, and make the change safe to apply.",
+    "should_trigger": true,
+    "category": "infrastructure/iac",
+    "language": "EN"
+  },
+  {
+    "id": "ex-28",
+    "prompt": "Pods in our Kubernetes deployment restart in a loop during rollouts and traffic drops. Review the manifests for probes, resource limits, and disruption settings and fix the rollout.",
+    "should_trigger": true,
+    "category": "infrastructure/iac",
+    "language": "EN"
+  },
+  {
+    "id": "ex-29",
+    "prompt": "Our Vulkan renderer shows flickering textures only on one GPU vendor and sometimes reports device lost. Find the synchronization or resource-lifetime bug and verify it with validation layers.",
+    "should_trigger": true,
+    "category": "graphics/gpu",
+    "language": "EN"
+  },
+  {
+    "id": "ex-30",
+    "prompt": "Write a short, friendly announcement for our school newsletter explaining what an Android phone is for parents.",
+    "should_trigger": false,
+    "category": "negative/non-engineering",
+    "language": "EN"
+  },
+  {
+    "id": "ex-31",
+    "prompt": "Implement a stateless Streamable HTTP MCP adapter with loopback-only binding, bearer authentication, exact Origin validation, pagination, and protocol conformance tests.",
+    "should_trigger": true,
+    "category": "MCP transport/security",
+    "language": "EN"
+  },
+  {
+    "id": "ex-32",
+    "prompt": "Create an Agent Skill authoring CLI with new, lint, and reproducible package commands; reject symlinks, secret files, and broken references.",
+    "should_trigger": true,
+    "category": "Agent Skills/tooling",
+    "language": "EN"
+  },
+  {
+    "id": "ex-33",
+    "prompt": "Write a weekend travel itinerary for a quiet coastal town, with restaurants and hotel suggestions.",
+    "should_trigger": false,
+    "category": "travel planning",
+    "language": "EN"
+  }
 ]

@@ -1,0 +1,103 @@
+{
+  "contract_id": "rcoder.v2",
+  "contract_schema_version": 1,
+  "product": {
+    "name": "RCoder",
+    "version": "1.14.0",
+    "release_channel": "development"
+  },
+  "mcp": {
+    "modern_protocol": "2026-07-28",
+    "legacy_protocols": [
+      "2025-06-18",
+      "2025-03-26",
+      "2024-11-05"
+    ],
+    "transports": {
+      "stdio": {
+        "enabled": true,
+        "framing": "one UTF-8 JSON-RPC message per line",
+        "stdout": "protocol-only",
+        "logs": "stderr"
+      },
+      "streamable_http": {
+        "enabled": true,
+        "endpoint": "/mcp",
+        "methods": [
+          "POST"
+        ],
+        "bind_host": "127.0.0.1",
+        "authentication": "Bearer token",
+        "token_environment_variable": "RCODER_MCP_TOKEN",
+        "origin_policy": "exact allowlist when Origin is present",
+        "protocol_version_header": "MCP-Protocol-Version",
+        "method_header": "Mcp-Method",
+        "name_header": "Mcp-Name",
+        "response_content_type": "application/json",
+        "server_sent_events": false,
+        "sessions": false
+      }
+    },
+    "pagination": {
+      "enabled": true,
+      "page_size": 10,
+      "cursor_format": "base64url(rcoder-v1:<offset>)",
+      "collections": {
+        "tools/list": "tools",
+        "resources/list": "resources",
+        "resources/templates/list": "resourceTemplates",
+        "prompts/list": "prompts",
+        "skills/list": "skills"
+      }
+    },
+    "structured_output": {
+      "enabled": true,
+      "field": "structuredContent",
+      "limit": "bounded tool results"
+    },
+    "skills_manifest": {
+      "inline": true,
+      "entrypoint": "skills/list",
+      "detail": "skill.get",
+      "max_files": 512,
+      "max_bytes": 16777216,
+      "subtrees": [
+        "references",
+        "assets"
+      ]
+    }
+  },
+  "adapters": {
+    "opencode": {
+      "api": "v1",
+      "tested_version": "1.19.6",
+      "project_root": ".opencode/plugins"
+    },
+    "gemini_cli": {
+      "type": "extension",
+      "manifest": "extensions/gemini/gemini-extension.json"
+    },
+    "claude_code": {
+      "type": "plugin",
+      "manifest": ".claude-plugin/plugin.json",
+      "marketplace": ".claude-plugin/marketplace.json"
+    },
+    "codex": {
+      "type": "plugin",
+      "manifest": ".codex-plugin/plugin.json"
+    },
+    "agent_skills": {
+      "entrypoint": "skills/rcoder/SKILL.md"
+    }
+  },
+  "invariants": [
+    "User and repository policy outrank RCoder defaults.",
+    "stdio remains the default transport and existing clients are not silently migrated.",
+    "HTTP binds to loopback and requires a bearer token.",
+    "An invalid present Origin is rejected; absent Origin is accepted for native clients.",
+    "HTTP requests are stateless and do not create MCP sessions.",
+    "Tool output is structured when a bounded structured result is available.",
+    "Skill manifest digests are computed from the exact bytes served.",
+    "Version declarations across package, manifests, skill metadata, package builder, and contract match."
+  ]
+}

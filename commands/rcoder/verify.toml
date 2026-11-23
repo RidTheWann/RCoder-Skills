@@ -1,0 +1,5 @@
+description = "Verify a completion claim against repository evidence."
+prompt = """
+Use rsaver_crosscheck and the RCoder verification workflow to check the completion claim against actual repository artifacts, test output, and commit state. Separate VERIFIED, INFERRED, and NOT VERIFIED evidence. Do not promote an unexecuted test or native-host assumption to VERIFIED.
+Claim and expected evidence: {{args}}
+"""

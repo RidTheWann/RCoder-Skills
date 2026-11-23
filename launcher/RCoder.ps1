@@ -17,6 +17,33 @@ if (-not (Test-Path -LiteralPath $CatalogPath -PathType Leaf)) {
     throw "The RCoder target catalog is missing: $CatalogPath"
 }
 
+# The standalone PowerShell route keeps Skill authoring available without Node.js.
+# Plugin/host integrations and doctor use the Node CLI when it is installed.
+if ($args.Count -gt 0) {
+    $CommandArgs = @($args)
+    if ([string]$CommandArgs[0] -eq 'skill') {
+        $SkillTool = Join-Path $SkillSource 'scripts/skill_authoring.py'
+        $Python = Get-Command python3 -ErrorAction SilentlyContinue
+        if (-not $Python) { $Python = Get-Command python -ErrorAction SilentlyContinue }
+        if (-not $Python) { throw 'RCoder skill commands require Python 3. Install Python 3 and retry.' }
+        if (-not (Test-Path -LiteralPath $SkillTool -PathType Leaf)) {
+            throw "The bundled skill authoring toolkit is missing: $SkillTool"
+        }
+        $SkillArgs = @()
+        if ($CommandArgs.Count -gt 1) { $SkillArgs = @($CommandArgs[1..($CommandArgs.Count - 1)]) }
+        & $Python.Source $SkillTool @SkillArgs
+        exit $LASTEXITCODE
+    }
+
+    $Node = Get-Command node -ErrorAction SilentlyContinue
+    $NodeCli = Join-Path (Join-Path $AppRoot 'scripts') 'rcoder.mjs'
+    if ($Node -and (Test-Path -LiteralPath $NodeCli -PathType Leaf)) {
+        & $Node.Source $NodeCli @CommandArgs
+        exit $LASTEXITCODE
+    }
+    throw "RCoder command '$($CommandArgs[0])' requires the Node CLI. Install RCoder through Node/npm or install Node.js and update the global RCoder app."
+}
+
 $Catalog = Get-Content -LiteralPath $CatalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $Version = 'unknown'
 if (Test-Path -LiteralPath $PackagePath -PathType Leaf) {

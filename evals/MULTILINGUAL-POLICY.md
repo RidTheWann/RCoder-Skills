@@ -53,3 +53,22 @@ instructions now classify by deliverable and acceptance criteria rather than
 English keywords, which is an INFERRED improvement for these prompts only; it is
 not a measured multilingual result. The separate dataset and policy remain
 unchanged and must be evaluated as their own experiment.
+
+
+## RCoder 2.0 authoring and multilingual activation
+
+The runtime routing contract is now explicit in the top-level skill and specialist-routing reference:
+
+- Respond in the user's predominant language while repository-maintained skill instructions remain English.
+- Classify by requested deliverable, acceptance criteria, domain, and risk—not English-only keyword matching.
+- Preserve API names, commands, file paths, code identifiers, standards, and product names exactly.
+- A mixed-language prompt remains one semantic request; language switching alone does not justify additional specialists.
+- MCP transport changes route to mcp-transport-engineering; add agent-extensions-engineering only when host plugins, Agent Skills, marketplaces, or installers are also in scope.
+
+The separate multilingual dataset now contains 12 verbatim prompts across Indonesian, English, and mixed Indonesian-English, with explicit specialist expectations, identifier-integrity terms, and negative controls. Run:
+
+```sh
+python3 scripts/test-multilingual-data.py
+```
+
+This is a static dataset/integrity test only. It does not run an agent model and does not measure routing accuracy. Native multilingual behavior remains NOT VERIFIED until a pinned live run records the raw prompts and observed selected specialist set in a separate multilingual run directory. The English control suite remains English-only and is not translated or relabeled.

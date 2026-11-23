@@ -98,3 +98,39 @@ Build v1.12.0 as a safe extension of the verified v1.11.0 product baseline (`06e
 ## Evidence boundary
 
 CI validates static structure, packaging, and simulated file-system behavior. It does not prove that a host model autonomously selects RCoder; native discovery, live activation, and with/without-skill model evaluation remain separate verification tasks.
+
+
+## RCoder 2.0 development branch — 2026-11-23
+
+**Branch:** `feat/rcoder-2.0-contract-adapters`  
+**Product version:** 1.14.0 (development compatibility version; not a 2.0 release)
+
+### Implemented in this branch
+- [x] Shared `rcoder.v2` contract for protocol revisions, transports, pagination, structured results, inline Skills manifest, host adapters, and cross-file version parity.
+- [x] `RCoder doctor [--json]` CLI checks for runtime, manifest parity, contract loading, and required helper/adapter files.
+- [x] Shared modern MCP pagination for tools, resources, resource templates, prompts, and Skills list methods.
+- [x] Optional stateless Streamable HTTP adapter: loopback-only binding, bearer token, exact Origin allowlist, request/header validation, bounded request body, and isolated worker process per call.
+- [x] RScan deterministic stratified inventory and explicit uncertainty when a truncated sample does not contain CI metadata.
+- [x] OpenCode V1 adapter, Gemini CLI extension package, Codex marketplace/plugin compatibility manifests, Claude Code plugin MCP configuration, and native CLI integration commands.
+- [x] Global launcher now bundles plugin/marketplace assets and forwards `skill`, `integration`, and `doctor` commands. The PowerShell-only launcher can invoke Skill authoring with Python 3.
+- [x] Skill authoring toolkit: `rcoder skill new`, `lint`, and reproducible `package` with SHA-256 sidecar; secret/symlink and reference/link validation.
+- [x] New `mcp-transport-engineering` specialist; deliverable-based MCP routing; language-aware activation that preserves technical identifiers.
+- [x] Separate multilingual research dataset expanded to 12 verbatim prompts (EN/ID/MIXED_ID_EN); static identifier and specialist-reference checks.
+- [x] README, MCP docs, compatibility/integration evidence updates, and unreleased changelog entries.
+
+### Verification still required before release
+- [ ] Run all new and existing checks in hosted Ubuntu/Windows CI on this branch; static authoring/test definitions are committed, but no passing CI run is claimed here.
+- [ ] Run the new HTTP transport against a real native MCP host, and repeat the live MCP run for all 24 tools on the same commit.
+- [ ] Observe the new OpenCode adapter in OpenCode 1.19.6, the Gemini extension in Gemini CLI, the plugin in Codex, and the plugin in Claude Code; file/manifest tests do not prove invocation.
+- [ ] Execute a pinned multilingual live routing run and a fresh with/without ablation. Keep multilingual results separate from the English control.
+- [ ] Confirm package ZIP contents and checksums from the CI artifacts, then issue a release only after evidence and compatibility matrix are updated.
+
+This branch is implementation work, not a 2.0 release. No host-native activation, new MCP HTTP live run, multilingual accuracy number, or post-change ablation is claimed.
+
+
+### CI iteration record — 2026-11-23
+
+- Run `45131137590` tested commit `64868e8` on Ubuntu and Windows. Static validation, MCP contract checks, HTTP transport conformance, RScan, and `rcoder doctor` passed on the completed Ubuntu steps; the run stopped at the Skill authoring test.
+- The remaining failure was an incorrect test expectation for secret refusal: `skill lint` intentionally returns exit code 2 when it refuses a credential-shaped file. The fixture was corrected to expect 2 in the current branch. Broken local-reference and incomplete-specialist findings continue to expect exit code 1.
+- The current branch head includes the fixture correction. A fresh hosted CI result for that head is required before calling the baseline green.
+- The separate Actions run `45131167725` belongs to the merged specialist PR commit and is not evidence for this RCoder 2.0 branch.
