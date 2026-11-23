@@ -203,7 +203,7 @@ function doctorReport() {
     'skills/rcoder/scripts/skill_authoring.py',
     'skills/rcoder/contracts/rcoder-v2.json', 'skills/rcoder/scripts/rcoder_contract.py',
     'launcher/rcoder-mcp.mjs', '.opencode/plugins/rcoder.js', 'gemini-extension.json',
-    'GEMINI.md', '.mcp.json', 'mcp.json', '.claude-plugin/plugin.json', '.codex-plugin/plugin.json',
+    'GEMINI.md', 'claude-mcp.json', 'codex-mcp.json', 'mcp.json', '.claude-plugin/plugin.json', '.codex-plugin/plugin.json',
     '.agents/plugins/marketplace.json', '.claude-plugin/marketplace.json',
     'skills/rcoder/references/mcp-transport-engineering.md'
   ];
@@ -516,7 +516,8 @@ function sameLauncherApp(appRoot) {
     ['launcher/McpSetup.ps1', 'launcher/McpSetup.ps1'],
     ['launcher/rcoder-mcp.mjs', 'launcher/rcoder-mcp.mjs'],
     ['plugin.json', 'plugin.json'],
-    ['.mcp.json', '.mcp.json'],
+    ['claude-mcp.json', 'claude-mcp.json'],
+    ['codex-mcp.json', 'codex-mcp.json'],
     ['mcp.json', 'mcp.json'],
     ['.claude-plugin/plugin.json', '.claude-plugin/plugin.json'],
     ['.claude-plugin/marketplace.json', '.claude-plugin/marketplace.json'],
@@ -684,7 +685,8 @@ function installLauncher(homeDir) {
     path.join(PACKAGE_ROOT, 'launcher', 'McpSetup.ps1'),
     path.join(PACKAGE_ROOT, 'launcher', 'rcoder-mcp.mjs'),
     path.join(PACKAGE_ROOT, 'plugin.json'),
-    path.join(PACKAGE_ROOT, '.mcp.json'),
+    path.join(PACKAGE_ROOT, 'claude-mcp.json'),
+    path.join(PACKAGE_ROOT, 'codex-mcp.json'),
     path.join(PACKAGE_ROOT, 'mcp.json'),
     path.join(PACKAGE_ROOT, '.claude-plugin', 'plugin.json'),
     path.join(PACKAGE_ROOT, '.claude-plugin', 'marketplace.json'),
@@ -716,7 +718,7 @@ function installLauncher(homeDir) {
       cpSync(path.join(PACKAGE_ROOT, 'launcher', 'RCoder.ps1'), path.join(stage, 'launcher', 'RCoder.ps1'));
       cpSync(path.join(PACKAGE_ROOT, 'launcher', 'McpSetup.ps1'), path.join(stage, 'launcher', 'McpSetup.ps1'));
       for (const relative of [
-        'launcher/rcoder-mcp.mjs', 'plugin.json', '.mcp.json', 'mcp.json',
+        'launcher/rcoder-mcp.mjs', 'plugin.json', 'claude-mcp.json', 'codex-mcp.json', 'mcp.json',
         '.claude-plugin/plugin.json', '.claude-plugin/marketplace.json',
         '.codex-plugin/plugin.json', '.agents/plugins/marketplace.json',
         '.opencode/plugins/rcoder.js', 'gemini-extension.json', 'GEMINI.md'

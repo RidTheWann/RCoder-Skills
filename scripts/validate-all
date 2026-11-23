@@ -231,7 +231,8 @@ def main():
     catalog = load_json(ROOT / "targets.json")
     portable = manifests["plugin.json"]
     codex_marketplace = load_json(ROOT / ".agents" / "plugins" / "marketplace.json")
-    claude_mcp = load_json(ROOT / ".mcp.json")
+    claude_mcp = load_json(ROOT / "claude-mcp.json")
+    codex_mcp = load_json(ROOT / "codex-mcp.json")
     portable_mcp = load_json(ROOT / "mcp.json")
 
     check(package.get("name") == "rcoder", "G1: npm package name must be rcoder")
@@ -244,10 +245,12 @@ def main():
           "G7: Gemini extension version mismatch")
     check(manifests["gemini-extension.json"].get("name") == "rcoder",
           "G8: Gemini extension name mismatch")
-    check(manifests[".claude-plugin/plugin.json"].get("mcpServers") == "./.mcp.json",
-          "G8: Claude plugin must reference its bundled compatibility MCP config")
-    check(manifests[".codex-plugin/plugin.json"].get("mcpServers") == "./.mcp.json",
-          "G8: Codex compatibility plugin must reference its bundled MCP config")
+    check(manifests[".claude-plugin/plugin.json"].get("mcpServers") == "./claude-mcp.json",
+          "G8: Claude plugin must reference its bundled wrapper MCP config")
+    check(manifests[".codex-plugin/plugin.json"].get("mcpServers") == "./codex-mcp.json",
+          "G8: Codex plugin must reference its direct-map MCP config")
+    check("rcoder" in codex_mcp and "mcpServers" not in codex_mcp,
+          "G8: Codex MCP config must be a direct server map, not a Claude wrapper")
     check(manifests[".codex-plugin/plugin.json"].get("skills") == "./skills/",
           "G8: Codex compatibility plugin must expose the bundled skills directory")
     check(codex_marketplace.get("plugins", [{}])[0].get("source", {}).get("url") ==
@@ -265,7 +268,9 @@ def main():
     check(portable_mcp.get("mcpServers", {}).get("rcoder", {}).get("command") == "node",
           "G8: portable plugin must use the cross-platform Node MCP launcher")
     check(claude_mcp.get("mcpServers", {}).get("rcoder", {}).get("command") == "node",
-          "G8: Claude/Codex compatibility MCP config must use Node launcher")
+          "G8: Claude MCP wrapper must use Node launcher")
+    check(codex_mcp.get("rcoder", {}).get("command") == "node",
+          "G8: Codex direct-map MCP config must use Node launcher")
     check((ROOT / ".opencode" / "plugins" / "rcoder.js").is_file(),
           "G8: OpenCode V1 adapter missing")
     opencode_plugin = read(ROOT / ".opencode" / "plugins" / "rcoder.js")
@@ -300,7 +305,7 @@ def main():
         "scripts/test-multilingual-data.py",
         "skills/rcoder/scripts/skill_authoring.py", "skills/rcoder/references/mcp-transport-engineering.md",
         "launcher/rcoder-mcp.mjs", ".opencode/plugins/rcoder.js", "gemini-extension.json",
-        "GEMINI.md", ".mcp.json", "mcp.json", ".agents/plugins/marketplace.json"
+        "GEMINI.md", "claude-mcp.json", "codex-mcp.json", "mcp.json", ".agents/plugins/marketplace.json"
     ):
         check((ROOT / required).is_file(), f"G1: required installer/test file missing: {required}")
 

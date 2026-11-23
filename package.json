@@ -23,7 +23,6 @@
     ".claude-plugin/**",
     ".codex-plugin/**",
     ".agents/plugins/**",
-    ".mcp.json",
     "mcp.json",
     "gemini-extension.json",
     "GEMINI.md",
@@ -31,7 +30,9 @@
     "commands/**",
     "agents/**",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "claude-mcp.json",
+    "codex-mcp.json"
   ],
   "engines": {
     "node": ">=18.18.0"
