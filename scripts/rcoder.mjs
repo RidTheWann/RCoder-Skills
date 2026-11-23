@@ -509,6 +509,7 @@ function sameLauncherApp(appRoot) {
     ['scripts/rcoder.mjs', 'scripts/rcoder.mjs'],
     ['targets.json', 'targets.json'],
     ['package.json', 'package.json'],
+    ['scripts/package', 'scripts/package'],
     ['launcher/RCoder.ps1', 'launcher/RCoder.ps1'],
     ['launcher/McpSetup.ps1', 'launcher/McpSetup.ps1'],
     ['launcher/rcoder-mcp.mjs', 'launcher/rcoder-mcp.mjs'],
@@ -676,6 +677,7 @@ function installLauncher(homeDir) {
     path.join(PACKAGE_ROOT, 'scripts', 'rcoder.mjs'),
     path.join(PACKAGE_ROOT, 'targets.json'),
     path.join(PACKAGE_ROOT, 'package.json'),
+    path.join(PACKAGE_ROOT, 'scripts', 'package'),
     path.join(PACKAGE_ROOT, 'launcher', 'RCoder.ps1'),
     path.join(PACKAGE_ROOT, 'launcher', 'McpSetup.ps1'),
     path.join(PACKAGE_ROOT, 'launcher', 'rcoder-mcp.mjs'),
@@ -708,6 +710,7 @@ function installLauncher(homeDir) {
       cpSync(path.join(PACKAGE_ROOT, 'scripts', 'rcoder.mjs'), path.join(stage, 'scripts', 'rcoder.mjs'));
       cpSync(path.join(PACKAGE_ROOT, 'targets.json'), path.join(stage, 'targets.json'));
       cpSync(path.join(PACKAGE_ROOT, 'package.json'), path.join(stage, 'package.json'));
+      cpSync(path.join(PACKAGE_ROOT, 'scripts', 'package'), path.join(stage, 'scripts', 'package'));
       cpSync(path.join(PACKAGE_ROOT, 'launcher', 'RCoder.ps1'), path.join(stage, 'launcher', 'RCoder.ps1'));
       cpSync(path.join(PACKAGE_ROOT, 'launcher', 'McpSetup.ps1'), path.join(stage, 'launcher', 'McpSetup.ps1'));
       for (const relative of [
