@@ -110,7 +110,9 @@ def main():
         "token-efficiency.md", "web-platform-engineering.md", "model-adaptation.md",
         "rsaver.md", "rsaver-gate.md", "rsaver-anchor.md", "rsaver-crosscheck.md",
         "rscan.md", "agent-extensions-engineering.md", "llm-agent-security.md",
-        "observability-sre.md"
+        "observability-sre.md", "android-platform-engineering.md",
+        "windows-platform-engineering.md", "iac-platform-engineering.md",
+        "graphics-gpu-engineering.md"
     ):
         check((SKILL / "references" / required).is_file(), f"G1: required specialist missing: {required}")
 

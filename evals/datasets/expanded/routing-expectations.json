@@ -23,6 +23,14 @@
     "ex-19": ["agent-extensions-engineering", "security"],
     "ex-20": ["agent-extensions-engineering", "verification"],
     "ex-21": ["security", "llm-agent-security", "threat-modeling"],
-    "ex-22": ["observability-sre", "backend-api-engineering"]
+    "ex-22": ["observability-sre", "backend-api-engineering"],
+    "ex-23": ["android-platform-engineering", "security"],
+    "ex-24": ["android-platform-engineering", "build-toolchain-engineering"],
+    "ex-25": ["windows-platform-engineering", "devops-ci-cd"],
+    "ex-26": ["windows-platform-engineering", "security"],
+    "ex-27": ["iac-platform-engineering", "cloud-container-security"],
+    "ex-28": ["iac-platform-engineering", "observability-sre"],
+    "ex-29": ["graphics-gpu-engineering", "debugging"],
+    "ex-30": []
   }
 }

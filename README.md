@@ -139,6 +139,7 @@ The router selects focused specialists on demand. Coverage includes:
 
 - **Languages and runtimes:** C, C++, Rust, Python, JavaScript/TypeScript, Node.js, C#, .NET, Java/JVM, Go, Swift, Kotlin, PHP, Ruby, Dart/Flutter, Scala, Elixir/Erlang, Haskell, Lua, R/Julia, plus functional and reactive programming.
 - **Product and platform engineering:** frontend, browser/SSR, backend/API, database, protocol contracts, mobile, game engines and emulators, embedded firmware, ML/AI systems, distributed systems, build systems, compilers, and toolchains.
+- **Platform engineering:** Android platform/AOSP and custom ROMs, Windows platform (Win32, services, installers, PowerShell), infrastructure as code and Kubernetes, and graphics/GPU programming.
 - **Core disciplines:** architecture, accessibility/UI, debugging, test engineering, performance, DevOps/CI/CD, review/refactoring, verification, and technical documentation.
 - **Agent extensions:** MCP servers, Agent Skills, plugins and marketplaces, slash commands, hooks, and subagents.
 

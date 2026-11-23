@@ -545,6 +545,27 @@ def tool_rsaver_unpack(args):
     return helper_result(*run_helper("rsaver.py", arguments))
 
 
+def tool_rsaver_redact(args):
+    arguments = ["redact"]
+    stdin_text = None
+    if "text" in args:
+        arguments.append("-")
+        stdin_text = args["text"]
+    elif "path" in args:
+        arguments.append(str(resolve_in_root(args["path"])))
+    else:
+        raise ToolError("provide text or path")
+    if args.get("fail_on_found"):
+        arguments.append("--fail-on-found")
+    arguments.append("--json")
+    return helper_result(*run_helper("rsaver.py", arguments, stdin_text=stdin_text))
+
+
+def tool_rsaver_ledger(args):
+    ledger_path = str(resolve_in_root(args["ledger"]))
+    return helper_result(*run_helper("rsaver.py", ["ledger", "report", f"--ledger={ledger_path}", "--json"]))
+
+
 # ------------------------------------------------------------------------- tools
 
 def schema(properties, required=None):
@@ -662,6 +683,13 @@ TOOLS = [
     ("rsaver_unpack", "Restore packed text",
      "Restore exact original text from a pack manifest with SHA-256 verification.",
      schema({"manifest": PATH_PROP}, ["manifest"]), tool_rsaver_unpack),
+    ("rsaver_redact", "Mask credential-shaped values",
+     "Replace keys, tokens, private keys, and URL credentials with placeholders. Lossy, not recoverable.",
+     schema({"text": {"type": "string", "maxLength": 200000}, "path": PATH_PROP,
+             "fail_on_found": {"type": "boolean"}}), tool_rsaver_redact),
+    ("rsaver_ledger", "Report cumulative savings",
+     "Read-only summary of a savings ledger written by the CLI (`rsaver ledger record`).",
+     schema({"ledger": PATH_PROP}, ["ledger"]), tool_rsaver_ledger),
 ]
 TOOL_INDEX = {item[0]: item for item in TOOLS}
 

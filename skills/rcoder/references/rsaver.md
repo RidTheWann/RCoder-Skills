@@ -39,9 +39,11 @@ Calibration note: on a seven-sample in-repository research fixture, an oracle bu
 5. Inspect the reported saved estimate and saved percent. If savings are zero, keep the original context; reduction must not add text.
 6. Recover anything needed later with `rsaver recover --file FILE --range START:END` or `rsaver unpack --manifest manifest.json`, then re-read the original with the agent's bounded read tool.
 7. Verify integrity before trusting a compacted artifact: `rsaver verify --manifest manifest.json`.
-8. Record original estimate, reduced estimate, critical lines preserved, omitted ranges, and the verification status in the working ledger.
+8. Before pasting logs, configs, or transcripts into a shared context, issue, or report, mask credentials: `rsaver redact FILE --fail-on-found --json`. Redaction is lossy by design, so keep the original private and never treat a clean result as proof that no secret remains.
+9. Record original estimate, reduced estimate, critical lines preserved, omitted ranges, and the verification status in the working ledger; `rsaver ledger report --ledger PATH` (or the read-only MCP tool `rsaver_ledger`) shows cumulative savings.
 
 ## Decision tree
+- Text may contain credentials and will leave the machine or enter a shared context → `redact` first (MCP: `rsaver_redact`); never compact or pack unredacted secrets into a shared artifact.
 - Need one symbol or error → `select`, not `compact`.
 - Repeating command executions (PS/CMD/Terminal) → `dedupe --blocks` (first run verbatim, repeats collapsed).
 - Repeating phrases, conversational terms, or frequent words → `dedupe --words` or `pack --method dict`.

@@ -23,7 +23,7 @@ INIT = {"jsonrpc": "2.0", "id": 0, "method": "initialize",
                    "clientInfo": {"name": "test", "version": "0"}}}
 NOTIFIED = {"jsonrpc": "2.0", "method": "notifications/initialized"}
 # Regression guards on context cost (characters of the serialized tools/list result).
-FULL_TOOLS_CHAR_BUDGET = 12500
+FULL_TOOLS_CHAR_BUDGET = 13300
 MINIMAL_TOOLS_CHAR_BUDGET = 2800
 
 
@@ -116,7 +116,7 @@ def main():
         by_id, _, _ = session([INIT, {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}], root)
         tools = by_id[1]["result"]["tools"]
         names = [item["name"] for item in tools]
-        assert len(names) == len(set(names)) == 22
+        assert len(names) == len(set(names)) == 24
         for tool in tools:
             assert re.fullmatch(r"[a-z][a-z0-9_]*", tool["name"]), tool["name"]
             spec = tool["inputSchema"]
@@ -266,6 +266,28 @@ def main():
         assert "SUPERSECRETVALUE" not in json.dumps(audit), "audit must not expose secret contents"
         assert "outside the server root" in error_text(call(root, "rsaver_audit", {"root": "../"}))
         assert "top must be >= 1" in error_text(call(root, "rsaver_audit", {"top": 0}))
+        # --- redact (lossy masking) and ledger (read-only report) ---
+        fake_secret = "ghp_" + "A1b2C3d4E5" * 4
+        masked = payload_of(call(root, "rsaver_redact", {"text": f"token={fake_secret}\nplain line\n"}))
+        assert masked["ok"] is True and masked["result"]["redaction_count"] >= 1
+        assert fake_secret not in json.dumps(masked), "redact must never echo the secret back"
+        assert masked["result"]["recoverable"] is False
+        (root / "leaky.txt").write_text(f"api_key = {fake_secret}\n", encoding="utf-8")
+        flagged = payload_of(call(root, "rsaver_redact", {"path": "leaky.txt", "fail_on_found": True}))
+        assert flagged["ok"] is False and flagged["exit_code"] == 1
+        assert fake_secret not in json.dumps(flagged)
+        assert "provide text or path" in error_text(call(root, "rsaver_redact", {}))
+        assert "credential" in error_text(call(root, "rsaver_redact", {"path": ".env"}))
+        saved_ledger = root / "savings.json"
+        subprocess.run([sys.executable, str(SERVER.parent / "rsaver.py"), "ledger", "record",
+                        "--ledger", str(saved_ledger), "--original", "1000", "--reduced", "250"],
+                       check=True, capture_output=True, text=True, timeout=60)
+        report = payload_of(call(root, "rsaver_ledger", {"ledger": "savings.json"}))
+        assert report["ok"] is True and report["result"]["saved_estimate"] == 750
+        before = saved_ledger.read_text(encoding="utf-8")
+        payload_of(call(root, "rsaver_ledger", {"ledger": "savings.json"}))
+        assert saved_ledger.read_text(encoding="utf-8") == before, "the MCP ledger tool must stay read-only"
+        assert "outside the server root" in error_text(call(root, "rsaver_ledger", {"ledger": "../x.json"}))
         budget = payload_of(call(root, "rsaver_budget", {"window": 100000, "output_reserve": 8000}))
         figures = budget["result"]
         assert budget["ok"] is True and figures["output_reserve"] == 8000
