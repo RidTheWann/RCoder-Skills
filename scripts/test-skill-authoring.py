@@ -84,7 +84,7 @@ Run a reproducible test.
 Findings and evidence.
 """, encoding="utf-8")
         assert json.loads(run("lint", skill, "--json"))["ok"] is True
-        module.write_text("# Domain specialist\\n\\n## Activate when\\nOnly one section.\\n", encoding="utf-8")
+        module.write_text("# Domain specialist\n\n## Activate when\nOnly one section.\n", encoding="utf-8")
         bad = json.loads(run("lint", skill, "--json"))
         assert bad["ok"] is False and any("missing" in item for item in bad["errors"])
         module.unlink()
@@ -93,12 +93,12 @@ Findings and evidence.
         readme = skill / "references" / "notes.md"
         references.rmdir()
         (skill / "references").mkdir()
-        readme.write_text("# Notes\\n\\n[Missing](../outside.md)\\n", encoding="utf-8")
+        readme.write_text("# Notes\n\n[Missing](../outside.md)\n", encoding="utf-8")
         bad = json.loads(run("lint", skill, "--json"))
         assert bad["ok"] is False and any("escapes skill root" in item for item in bad["errors"])
 
         # Rebuild with a safe in-root link and check reproducibility and package contents.
-        readme.write_text("# Notes\\n\\n[Skill](../SKILL.md)\\n", encoding="utf-8")
+        readme.write_text("# Notes\n\n[Skill](../SKILL.md)\n", encoding="utf-8")
         first = json.loads(run("package", skill, "--out", temp / "first.zip", "--json"))
         second = json.loads(run("package", skill, "--out", temp / "second.zip", "--json"))
         assert first["sha256"] == second["sha256"]
@@ -116,7 +116,7 @@ Findings and evidence.
             "--description", "A focused domain skill for a test.", expect=2)
 
         # Credential-shaped files and symlinks are refused.
-        (skill / ".env").write_text("TOKEN=never-package-this\\n", encoding="utf-8")
+        (skill / ".env").write_text("TOKEN=never-package-this\n", encoding="utf-8")
         result = run("lint", skill, expect=1)
         assert "potential secret" in result or "potential secret" in result.lower()
     print("PASS skill authoring: scaffold, specialist lint, local-link safety, reproducible package")

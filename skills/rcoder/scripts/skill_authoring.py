@@ -29,7 +29,7 @@ SPECIALIST_HEADINGS = (
     "## Quality checklist", "## Anti-patterns", "## Verification", "## Output format",
 )
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-LINK_RE = re.compile(r"(?<!!)\\[[^\\]]+\\]\\(([^)]+)\\)")
+LINK_RE = re.compile(r"(?<!)\[[^\]]+\]\(([^)]+)\)")
 
 
 def fail(message: str, code: int = 2) -> int:
@@ -63,7 +63,7 @@ def parse_frontmatter(text: str) -> tuple[dict[str, str], list[str]]:
     for line_no, raw in enumerate(lines[1:end], 2):
         if not raw.strip() or raw.lstrip().startswith("#"):
             continue
-        if raw.startswith((" ", "\\t")):
+        if raw.startswith((" ", "\t")):
             if nested is None or ":" not in raw:
                 raise ValueError(f"unsupported nested frontmatter at line {line_no}")
             key, value = raw.strip().split(":", 1)
@@ -145,11 +145,11 @@ def lint_skill(source: Path) -> dict:
         errors.append("frontmatter name must be lowercase-hyphen and contain only a-z, 0-9, hyphen")
     if not description or len(description) > 1024:
         errors.append("frontmatter description must contain 1..1024 characters")
-    if not version or not re.fullmatch(r"\\d+\\.\\d+\\.\\d+", version):
+    if not version or not re.fullmatch(r"\d+\.\d+\.\d+", version):
         errors.append("metadata.version must be a semantic version such as 1.0.0")
     if len(text.splitlines()) > MAX_SKILL_LINES:
         errors.append(f"SKILL.md exceeds {MAX_SKILL_LINES} lines")
-    if not "\\n".join(body).strip():
+    if not "\n".join(body).strip():
         errors.append("SKILL.md instruction body is empty")
 
     files = list_skill_files(root)
@@ -348,7 +348,7 @@ def package_skill(source: Path, output: Path) -> dict:
         raise
     digest = hashlib.sha256(target.read_bytes()).hexdigest()
     checksum = target.with_name(target.name + ".sha256")
-    checksum.write_text(f"{digest}  {target.name}\\n", encoding="utf-8")
+    checksum.write_text(f"{digest}  {target.name}\n", encoding="utf-8")
     return {"path": str(target), "sha256": digest, "files": len(files), "bytes": target.stat().st_size,
             "checksum_file": str(checksum)}
 
