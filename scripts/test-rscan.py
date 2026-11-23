@@ -110,7 +110,9 @@ def main():
         assert uncertain["quality"]["lockfile_confidence"] == "unknown-truncated"
         assert "no_readme" not in uncertain_risks
         assert "dependency_without_lock" not in uncertain_risks
-\n        text = run("scan", "--root", str(minimal))
+
+
+        text = run("scan", "--root", str(minimal))
         assert text.returncode == 0 and "Development options:" in text.stdout
         markdown = run("scan", "--root", str(minimal), "--format", "markdown")
         assert markdown.returncode == 0 and "## Development options" in markdown.stdout
