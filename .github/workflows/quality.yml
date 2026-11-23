@@ -103,7 +103,7 @@ jobs:
         run: ./scripts/test-installers.ps1
       - name: PowerShell 7 parser and installer simulations
         if: runner.os == 'Windows'
-        shell: powershell
+        shell: pwsh
         run: ./scripts/test-installers.ps1
       - name: Build reproducible packages
         run: python scripts/package
