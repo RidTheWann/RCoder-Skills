@@ -101,6 +101,7 @@ For unfamiliar models or hosts, choose an execution profile before routing; see 
 | SSR/hydration, service workers, browser storage, edge or browser-runtime boundaries | [web platform engineering](references/web-platform-engineering.md) |
 | MCP servers, Agent Skills, plugins, slash commands, hooks, subagents (build, review, package, debug discovery) | [agent extensions engineering](references/agent-extensions-engineering.md) |
 | Production telemetry, SLOs, alerting, dashboards, rollout/rollback safety | [observability and SRE](references/observability-sre.md) |
+| Terraform/OpenTofu, Pulumi, CloudFormation, Ansible, Kubernetes manifests, Helm, plans, state, drift | [infrastructure as code and Kubernetes](references/iac-platform-engineering.md) |
 | Version uncertainty, external claims, unsupported tools | [verification](references/verification.md) |
 
 ### Programming languages and systems
@@ -115,6 +116,9 @@ Start with [programming language routing](references/programming-languages.md), 
 - [Frontend and browser engineering](references/frontend-engineering.md)
 - [Backend and service engineering](references/backend-api-engineering.md)
 - [Mobile engineering](references/mobile-engineering.md)
+- [Android platform engineering](references/android-platform-engineering.md): AOSP, custom ROMs, device trees, SELinux policy, HALs, boot and OTA
+- [Windows platform engineering](references/windows-platform-engineering.md): Win32/COM/ETW, services, installers, signing, PowerShell 5.1 vs 7
+- [Graphics and GPU engineering](references/graphics-gpu-engineering.md): Vulkan/D3D/Metal/WebGPU, shaders, compute, device-lost, frame pacing
 - [Game, emulator, and real-time engines](references/game-engineering.md)
 - [Embedded and firmware](references/embedded-engineering.md)
 - [Machine learning and AI systems](references/ml-ai-engineering.md)
