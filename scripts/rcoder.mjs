@@ -48,6 +48,8 @@ Options:
   --mcp <mode>        MCP server setup after install: none (default) | show (print config) | install (set up automatically)
   --help              Show this help
   --version           Show version
+  doctor [--json]     Check runtime, manifest parity, shared contract, and MCP files
+  integration <action> <host>  Manage OpenCode, Gemini CLI, Codex, and Claude Code adapters
 
 After installation, open a new terminal and type RCoder.`);
 }
@@ -57,6 +59,32 @@ function parseArgs(args) {
     const unknown = args.slice(1).filter((item) => item !== '--json');
     if (unknown.length) throw new Error(`Unknown doctor option: ${unknown.join(' ')}`);
     return { command: 'doctor', json: args.includes('--json') };
+  }
+  if (args[0] === 'integration') {
+    const action = args[1] || 'instructions';
+    const host = args[2] || 'claude-code';
+    if (!['install', 'update', 'uninstall', 'verify', 'instructions'].includes(action)) {
+      throw new Error('integration action must be install, update, uninstall, verify, or instructions');
+    }
+    if (!['opencode', 'gemini-cli', 'codex', 'claude-code'].includes(host)) {
+      throw new Error('integration host must be opencode, gemini-cli, codex, or claude-code');
+    }
+    const options = { command: 'integration', action, host, scope: 'project', root: process.cwd(), homeDir: HOME, dryRun: false };
+    for (let i = 3; i < args.length; i += 1) {
+      const arg = args[i];
+      if (arg === '--dry-run') { options.dryRun = true; continue; }
+      if (['--scope', '--root', '--home-dir'].includes(arg)) {
+        if (!args[i + 1] || args[i + 1].startsWith('--')) throw new Error(`Missing value for ${arg}`);
+        const value = args[++i];
+        if (arg === '--scope') options.scope = value;
+        if (arg === '--root') options.root = value;
+        if (arg === '--home-dir') options.homeDir = value;
+        continue;
+      }
+      throw new Error(`Unknown integration option: ${arg}`);
+    }
+    if (!SCOPES.has(options.scope)) throw new Error('Integration scope must be project or user');
+    return options;
   }
   const options = {
     target: 'agents', scope: 'project', projectDir: process.cwd(),
@@ -193,6 +221,142 @@ function runDoctor(jsonMode) {
     console.log(`\n${report.ok ? 'Environment checks passed.' : 'Environment checks found failures.'}`);
   }
   return report.ok ? 0 : 1;
+}
+
+
+function integrationCommand(executable, args) {
+  const result = spawnSync(executable, args, { encoding: 'utf8', stdio: 'inherit', windowsHide: true });
+  if (result.error?.code === 'ENOENT') {
+    console.error(`Required host CLI not found: ${executable}. Install the host CLI, then run the command shown below.`);
+    return 127;
+  }
+  if (result.error) {
+    console.error(`Could not start ${executable}: ${result.error.message}`);
+    return 1;
+  }
+  return result.status ?? 1;
+}
+
+function printCommand(executable, args) {
+  console.log([executable, ...args].map((value) => /\\s/.test(value) ? JSON.stringify(value) : value).join(' '));
+}
+
+function runIntegration(options) {
+  const { action, host, scope, root, homeDir, dryRun } = options;
+  if (host === 'opencode') {
+    const projectRoot = path.resolve(root);
+    const destination = scope === 'project'
+      ? path.join(projectRoot, '.opencode', 'plugins', 'rcoder.js')
+      : path.join(path.resolve(homeDir), '.config', 'opencode', 'plugins', 'rcoder.js');
+    const source = path.join(PACKAGE_ROOT, '.opencode', 'plugins', 'rcoder.js');
+    if (!existsSync(source)) throw new Error('Bundled OpenCode adapter is missing from this RCoder package');
+    if (action === 'instructions') {
+      console.log('OpenCode V1 adapter: rcoder integration install opencode --scope project|user');
+      return 0;
+    }
+    if (action === 'verify') {
+      const exists = existsSync(destination) && statSync(destination).isFile();
+      const content = exists ? readFileSync(destination, 'utf8') : '';
+      const valid = content.includes('export const RCoderPlugin') && content.includes('RCoder:');
+      const skillPath = scope === 'project'
+        ? path.join(projectRoot, '.opencode', 'skills', 'rcoder', 'SKILL.md')
+        : path.join(path.resolve(homeDir), '.config', 'opencode', 'skills', 'rcoder', 'SKILL.md');
+      console.log(`OpenCode adapter: ${valid ? 'PRESENT' : 'MISSING'} — ${destination}`);
+      console.log(`RCoder skill: ${existsSync(skillPath) ? 'PRESENT' : 'NOT FOUND'} — ${skillPath}`);
+      return valid ? 0 : 1;
+    }
+    if (action === 'uninstall') {
+      if (!existsSync(destination)) { console.log('OpenCode adapter is not installed.'); return 0; }
+      const content = readFileSync(destination, 'utf8');
+      if (!content.includes('export const RCoderPlugin')) {
+        throw new Error(`Refusing to remove a file that is not a recognized RCoder adapter: ${destination}`);
+      }
+      if (!dryRun) rmSync(destination);
+      console.log(`${dryRun ? 'DRY RUN: would remove' : 'Removed'} ${destination}`);
+      return 0;
+    }
+    if (dryRun) { console.log(`DRY RUN: would install OpenCode V1 adapter to ${destination}`); return 0; }
+    mkdirSync(path.dirname(destination), { recursive: true });
+    if (existsSync(destination)) {
+      const existing = readFileSync(destination, 'utf8');
+      const sourceText = readFileSync(source, 'utf8');
+      if (existing === sourceText) {
+        console.log(`OpenCode adapter already current: ${destination}`);
+        return 0;
+      }
+      const backup = `${destination}.rcoder-backup-${Date.now()}`;
+      cpSync(destination, backup);
+      console.log(`Backed up existing plugin: ${backup}`);
+    }
+    cpSync(source, destination);
+    console.log(`Installed OpenCode V1 adapter: ${destination}`);
+    console.log('Start a new OpenCode session. Native plugin loading still needs to be verified in that host.');
+    return 0;
+  }
+
+  if (host === 'gemini-cli') {
+    const executable = process.env.RCODER_GEMINI_BIN || 'gemini';
+    const commands = {
+      install: ['extensions', 'install', 'https://github.com/RidTheWann/RCoder-Skills'],
+      update: ['extensions', 'update', 'rcoder'],
+      uninstall: ['extensions', 'uninstall', 'rcoder'],
+      verify: ['--list-extensions']
+    };
+    if (action === 'instructions') {
+      console.log('Install: gemini extensions install https://github.com/RidTheWann/RCoder-Skills');
+      console.log('Update:  gemini extensions update rcoder');
+      console.log('Remove:  gemini extensions uninstall rcoder');
+      console.log('Verify:  gemini --list-extensions');
+      return 0;
+    }
+    const args = commands[action];
+    if (dryRun) { console.log('DRY RUN:'); printCommand(executable, args); return 0; }
+    const code = integrationCommand(executable, args);
+    if (code === 0 && action !== 'uninstall') {
+      console.log('Restart Gemini CLI. Extension installation does not by itself prove native model invocation.');
+    }
+    return code;
+  }
+
+  if (host === 'codex') {
+    const executable = process.env.RCODER_CODEX_BIN || 'codex';
+    const commands = {
+      install: ['plugin', 'marketplace', 'add', 'RidTheWann/RCoder-Skills'],
+      update: ['plugin', 'marketplace', 'upgrade', 'rcoder-skills'],
+      uninstall: ['plugin', 'marketplace', 'remove', 'rcoder-skills'],
+      verify: ['plugin', 'marketplace', 'list']
+    };
+    if (action === 'instructions') {
+      console.log('Add marketplace: codex plugin marketplace add RidTheWann/RCoder-Skills');
+      console.log('Then open Codex and use /plugins to install the rcoder plugin from rcoder-skills.');
+      console.log('The marketplace being present does not itself prove plugin installation or activation.');
+      return 0;
+    }
+    const args = commands[action];
+    if (dryRun) { console.log('DRY RUN:'); printCommand(executable, args); return 0; }
+    const code = integrationCommand(executable, args);
+    if (code === 0 && action === 'install') {
+      console.log('Marketplace source added. Open Codex, run /plugins, select rcoder from rcoder-skills, then choose Install.');
+    }
+    if (code === 0 && action === 'verify') {
+      console.log('Marketplace source list read. Confirm rcoder is installed and active in /plugins separately.');
+    }
+    return code;
+  }
+
+  if (host === 'claude-code') {
+    if (action === 'uninstall') {
+      console.log('Remove RCoder from Claude Code with /plugin and the installed-plugins interface; no local plugin files are deleted by this command.');
+      return 0;
+    }
+    console.log('Run these commands inside a Claude Code session:');
+    console.log('/plugin marketplace add RidTheWann/RCoder-Skills');
+    console.log('/plugin install rcoder@rcoder-skills');
+    if (action === 'verify') console.log('Start a new session and verify the rcoder MCP tools and namespaced commands are available.');
+    if (action === 'update') console.log('Use /plugin marketplace update rcoder-skills, then update the installed rcoder plugin.');
+    return 0;
+  }
+  throw new Error(`Unsupported integration host: ${host}`);
 }
 
 function findPython() {
@@ -610,12 +774,19 @@ async function runInteractive(options) {
 
 try {
   const options = parseArgs(process.argv.slice(2));
-  if (options.help) { usage(); process.exit(0); }
-  if (options.command === 'doctor') { process.exitCode = runDoctor(options.json); }
-  else if (options.version) { console.log(VERSION); process.exit(0); }
-  if (options.listTargets) { showTargets(); process.exit(0); }
-  if (options.listFeatures) { showFeatures(); process.exit(0); }
-  if (options.interactive) {
+  if (options.command === 'doctor') {
+    process.exitCode = runDoctor(options.json);
+  } else if (options.command === 'integration') {
+    process.exitCode = runIntegration(options);
+  } else if (options.help) {
+    usage();
+  } else if (options.version) {
+    console.log(VERSION);
+  } else if (options.listTargets) {
+    showTargets();
+  } else if (options.listFeatures) {
+    showFeatures();
+  } else if (options.interactive) {
     await runInteractive(options);
   } else {
     const target = TARGET_BY_ID.get(options.target);
@@ -626,7 +797,7 @@ try {
     if (options.dryRun && options.mcp !== 'none') console.log(`DRY RUN: MCP mode '${options.mcp}' would run after the skill is installed.`);
     else if (!options.uninstall) runMcpSetup(options.mcp, target, options.scope, mcpBase);
     if (!options.uninstall && !options.dryRun && options.mcp === 'none') {
-      console.log('Optional MCP server: type RCoder and choose "Set up MCP server", or re-run with --mcp show (print config) or --mcp install (set it up).');
+      console.log('Optional MCP server: type RCoder and choose "Set up MCP server", or re-run with --mcp show or --mcp install.');
     }
   }
 } catch (error) {
