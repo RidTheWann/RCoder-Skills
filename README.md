@@ -81,6 +81,29 @@ The MCP server is optional and is not started by installing the skill; the host 
 
 Automatic setup needs Python 3 (the server is a Python script) and supports Claude Code, Cursor, Gemini CLI, GitHub Copilot (VS Code, project scope), OpenCode, and Codex (user scope). It only adds the `rcoder` entry, backs up the file first, never overwrites a different entry, leaves files with comments untouched (printing the snippet instead), and finishes with a live self-test. Other hosts print the generic `mcpServers` snippet. Project scope uses a relative script path, so the config is safe to commit; user scope uses an absolute path. For the optional HTTP transport, see [MCP Streamable HTTP](docs/MCP.md#streamable-http-transport); it is not configured automatically.
 
+## Plugin and extension integrations
+
+The regular skill installer copies only the canonical skill. When a host-specific plugin or extension is also needed, use the integration manager:
+
+```sh
+RCoder integration install opencode --scope project
+RCoder integration install gemini-cli
+RCoder integration install codex
+RCoder integration install claude-code
+RCoder integration verify opencode --scope project
+```
+
+The equivalent Node/npm entry point is `npx -y github:RidTheWann/RCoder-Skills integration <action> <host>`. The global `RCoder` command forwards `integration`, `skill`, and `doctor` subcommands; typing `RCoder` without arguments still opens the interactive manager.
+
+- **OpenCode:** installs the canonical skill under `.opencode/skills/rcoder/` and the V1 plugin adapter under `.opencode/plugins/rcoder.js`. Existing MCP configuration is not changed by this action. The adapter uses the V1 `experimental.chat.system.transform` hook and adds bounded RCoder guidance plus the read-only RScan summary. The `verify` action checks file presence only, not native plugin loading.
+- **Gemini CLI:** runs `gemini extensions install https://github.com/RidTheWann/RCoder-Skills`. The extension contains `gemini-extension.json`, `GEMINI.md`, three namespaced commands, and the portable MCP launcher. Start a new Gemini CLI session after installation.
+- **Codex:** adds the repository marketplace with `codex plugin marketplace add RidTheWann/RCoder-Skills`. Then open Codex `/plugins`, select the `rcoder` plugin from `rcoder-skills`, and install it. Adding the marketplace does not install or activate the plugin by itself.
+- **Claude Code:** prints the commands `/plugin marketplace add RidTheWann/RCoder-Skills` and `/plugin install rcoder@rcoder-skills` for execution inside Claude Code. The local manager does not claim to have installed the plugin when it only prints these instructions.
+
+Use `update`, `uninstall`, `verify`, or `instructions` in place of `install`. Gemini and Codex actions invoke their native CLIs; set `RCODER_GEMINI_BIN` or `RCODER_CODEX_BIN` when the executable is not named `gemini` or `codex`. Claude Code integration commands are intentionally printed for the host session.
+
+See [Plugin integration matrix](docs/PLUGIN-INTEGRATION-MATRIX.md) for manifests, exact paths, version constraints, and evidence status. Installation simulations verify file operations and command construction; native host discovery and invocation remain separate gates.
+
 ## Supported Agentic AI and CLI hosts
 
 `targets.json` is the catalog used by the Node CLI, PowerShell bootstrap, and terminal manager. The same canonical `skills/rcoder/` folder is installed in the following native roots:
@@ -176,6 +199,20 @@ RCoder uses progressive disclosure to reduce unnecessary context. The token-effi
 
 **RSaver** (`skills/rcoder/scripts/rsaver.py`, with a repository-root wrapper at `scripts/rsaver.py`) is a dependency-free tool that measures relative context size, ranks a whole project's files by estimated context cost with `rsaver audit` (read-only; flags lockfiles, minified or generated files, logs, and data files and never prints contents), masks credential-shaped values with `rsaver redact`, tracks cumulative savings with `rsaver ledger`, extracts bounded symbol windows, prunes non-critical lines from verbose output, collapses exact duplicates only when the marker costs less than the repetition, and records a hash-checked manifest so every omitted range can be recovered exactly. Token figures are deterministic relative estimates, not model-specific counts. Usage and limits are documented in `skills/rcoder/references/rsaver.md`. The **RSaver Gate** (`rsaver gate` / `rsaver budget`) runs before routing and again at each model boundary: it reserves output and reasoning budget, keeps required context, defers optional history with recovery pointers, and checks that the stable cache prefix is contiguous and large enough. Provider mechanics are documented in `docs/TOKEN-ECONOMICS.md`; the gate is a planning layer, not a runtime interceptor. For long sessions that drift, `rsaver drift` reports text signals and `rsaver anchor`/`rsaver reanchor` restate the objective and hard constraints at both ends of the next request using explicit IDs, with observed facts separated from decisions and unknowns (`docs/CONTEXT-DRIFT.md`).
 
+## Agent Skill authoring toolkit
+
+The Node/npm CLI and global `RCoder` command expose three authoring operations:
+
+```sh
+RCoder skill new mcp-observability --description "Use when designing and verifying MCP observability workflows."
+RCoder skill lint ./mcp-observability
+RCoder skill package ./mcp-observability --out ./dist/mcp-observability.zip
+```
+
+`skill new` creates a non-overwriting Agent Skill scaffold with a specialist-module template. `skill lint` checks frontmatter, semantic version metadata, the 300-line instruction/reference limit, local Markdown links, one-level reference layout, file/byte limits, symlinks, and credential/private-key filenames. Specialist references that declare `Activate when` must follow the full 13-section module structure. `skill package` lints first, builds a deterministic ZIP, and writes a SHA-256 sidecar. The package is reproducible for identical source bytes and normalized executable modes. The PowerShell-only global launcher can run these three commands with Python 3 even when Node.js is not installed.
+
+`RCoder doctor --json` checks the runtime, package/manifest version parity, shared MCP contract, required adapters, and bundled helper files. It is an environment/static check—not proof of host discovery or model invocation.
+
 ## Repository structure
 
 - `skills/rcoder/SKILL.md` — portable router and operating protocol with a layered execution map.
@@ -185,7 +222,7 @@ RCoder uses progressive disclosure to reduce unnecessary context. The token-effi
 - `skills/rcoder/scripts/detect_stack.py` — read-only stack reconnaissance.
 - `skills/rcoder/scripts/context_snapshot.py` — bounded metadata-only repository snapshot.
 - `skills/rcoder/scripts/rsaver.py` — RSaver measurement, budgeting, gating, pruning, deduplication, and recovery CLI (bundled); `scripts/rsaver.py` is a repository-root wrapper.
-- `skills/rcoder/scripts/rcoder_mcp.py` — read-only stdio MCP server (tools, resources, prompts); `scripts/rcoder-mcp.py` is a repository-root wrapper; `docs/MCP.md` documents it.
+- `skills/rcoder/scripts/rcoder_mcp.py` — legacy stdio MCP server; `rcoder_mcp_modern.py` is the stateless modern dispatcher; `rcoder_mcp_http.py` is the optional loopback/token/Origin-protected HTTP adapter; `rcoder_contract.py` is the shared protocol and pagination contract.
 - `commands/` and `agents/` — Claude Code plugin slash commands and least-privilege subagents.
 - `skills/rcoder/scripts/rscan.py` — RScan bounded project scanner and session-start hook installer (bundled); `scripts/rscan.py` is a repository-root wrapper.
 - `docs/RSCAN-HOOKS.md` — evidenced host hook matrix.
@@ -194,7 +231,9 @@ RCoder uses progressive disclosure to reduce unnecessary context. The token-effi
 - `skills/rcoder/assets/templates/` — ADR, issue, specialist-module, context-capsule, test, and UX templates.
 - `targets.json` — supported host labels and Project/User discovery roots.
 - `launcher/RCoder.ps1` — PowerShell terminal manager.
-- `scripts/rcoder.mjs` — Node/npm installer and launcher bootstrap.
+- `scripts/rcoder.mjs` — Node/npm installer, integration manager, doctor command, and skill-authoring CLI.
+- `launcher/rcoder-mcp.mjs` — portable Node-to-Python stdio launcher used by plugin manifests.
+- `skills/rcoder/scripts/skill_authoring.py` — Agent Skill scaffold, linter, and reproducible packager.
 - `.rcoder/` — optional project-local specialist guidance.
 
 ## Development checks
@@ -206,7 +245,13 @@ python3 scripts/test-score-eval.py
 python3 scripts/test-rsaver.py
 python3 scripts/test-rscan.py
 python3 scripts/test-mcp.py
+python3 scripts/test-mcp-contract.py
+python3 scripts/test-mcp-http.py
+python3 scripts/test-skill-authoring.py
+python3 scripts/test-multilingual-data.py
 node --check scripts/rcoder.mjs
+node scripts/test-cli-skill.mjs
+node scripts/test-integrations.mjs
 node scripts/test-node-installer.mjs
 npm pack --dry-run --json
 bash scripts/test-installers.sh

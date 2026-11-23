@@ -69,3 +69,17 @@ Verified runtimes in the development shell: Linux aarch64 (kernel `6.1.164-JetKe
 | P1 — Claude Code loads `commands/`, `agents/`, and the manifest `mcpServers` entry (including `${CLAUDE_PLUGIN_ROOT}` expansion and the server working directory) | NOT VERIFIED |
 
 Do not advertise MCP or plugin compatibility on M0 evidence alone.
+
+
+## RCoder 2.0 plugin/extension evidence (2026-11-23)
+
+The existing host table describes skill-folder discovery. The following matrix records the *new host-specific plugin components* separately; it must not be used to upgrade the existing T2/T3 rows by inference.
+
+| Host | New component | Static/config evidence | Native discovery (new component) | Native invocation |
+|---|---|---|---|---|
+| OpenCode | V1 plugin adapter in `.opencode/plugins/rcoder.js` plus canonical skill | Installer fixture and V1 hook-source checks; adapter targets the previously observed 1.19.6 V1 API | NOT VERIFIED for this adapter | NOT VERIFIED for this adapter |
+| Gemini CLI | `gemini-extension.json`, `GEMINI.md`, custom commands, MCP launcher | Manifest and package checks; official extension install command is generated | NOT VERIFIED | NOT VERIFIED |
+| Codex | Root portable plugin/`mcp.json`, `.codex-plugin` compatibility manifest/`.mcp.json`, repository marketplace | Manifest, path, and CLI command tests | NOT VERIFIED | NOT VERIFIED |
+| Claude Code | `.claude-plugin/plugin.json` with `.mcp.json`, commands and agents | Manifest and plugin package checks; install commands are printed for the host session | NOT VERIFIED | NOT VERIFIED |
+
+The OpenCode T2/T3 result earlier in this document refers to the canonical Agent Skill and the previously tested RScan V1 hook on OpenCode 1.19.6. It is not evidence that the new full RCoder adapter loaded or that its new system guidance was followed. Likewise, the Gemini and Codex installer dry-runs do not prove that a marketplace or extension was installed. Update this table only after direct observation on the exact host build.

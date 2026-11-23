@@ -159,3 +159,10 @@ This is an optional local transport, not a public server. Do not weaken loopback
 Modern list methods use the common stateless cursor contract (10 items per page); clients must treat `nextCursor` as opaque. Tool calls return the existing text content plus `structuredContent` when a bounded JSON object is available. Skills-over-MCP continues to return the eligible file manifest inline with exact-byte SHA-256 digests and sizes.
 
 Run `python3 scripts/test-mcp-contract.py` and `python3 scripts/test-mcp-http.py` for local conformance coverage. The live report covers the earlier stdio run and is not evidence that the new HTTP transport or newly added RSaver tools have been exercised in a native host.
+
+
+## MCP transport specialist and authoring toolkit
+
+The new `mcp-transport-engineering` specialist owns MCP wire behavior: protocol lifecycle, stdio and Streamable HTTP adapter boundaries, request/header binding, token and Origin policy, pagination, structured tool results, and transport conformance. Use `agent-extensions-engineering` as an additional specialist when a host plugin, Agent Skill, marketplace, or installer is also in scope.
+
+For portable Agent Skill authoring, use `RCoder skill new`, `RCoder skill lint`, and `RCoder skill package`; the linter enforces a bounded, secret-safe skill tree before a reproducible ZIP is emitted. See the README's Agent Skill authoring toolkit section.
