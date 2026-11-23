@@ -117,7 +117,7 @@ Findings and evidence.
 
         # Credential-shaped files and symlinks are refused.
         (skill / ".env").write_text("TOKEN=never-package-this\n", encoding="utf-8")
-        result = run("lint", skill, expect=1)
+        result = run("lint", skill, expect=2)
         assert "potential secret" in result or "potential secret" in result.lower()
     print("PASS skill authoring: scaffold, specialist lint, local-link safety, reproducible package")
 
