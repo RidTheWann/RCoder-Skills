@@ -143,13 +143,15 @@ function doctorReport() {
   }
   try {
     const skill = readFileSync(path.join(SOURCE, 'SKILL.md'), 'utf8');
-    const match = skill.match(/^metadata:\\s*\\n(?:[^\\n]*\\n)*?\\s+version:\\s*[\"']?([^\"'\\n]+)[\"']?/m);
+    const metadataStart = skill.indexOf("\nmetadata:");
+    const metadata = metadataStart >= 0 ? skill.slice(metadataStart, skill.indexOf("\n---", metadataStart)) : "";
+    const match = metadata.match(/^\s+version:\s*["\x27]?([^"\x27\n]+)["\x27]?\s*$/m);
     versions['skills/rcoder/SKILL.md'] = match?.[1]?.trim() || null;
     if (!versions['skills/rcoder/SKILL.md']) add('skill:metadata-version', 'FAIL', 'SKILL.md metadata version is missing');
   } catch (error) { add('skill:metadata-version', 'FAIL', error.message); }
   try {
     const builder = readFileSync(path.join(PACKAGE_ROOT, 'scripts', 'package'), 'utf8');
-    versions['scripts/package'] = builder.match(/^VERSION\\s*=\\s*['\"]([^'\"]+)['\"]/m)?.[1] || null;
+    versions['scripts/package'] = builder.split("\n").find((item) => item.startsWith("VERSION = "))?.match(/^VERSION = ['"]([^'"]+)['"]$/)?.[1] || null;
     if (!versions['scripts/package']) add('package-builder:version', 'FAIL', 'Package builder VERSION is missing');
   } catch (error) { add('package-builder:version', 'FAIL', error.message); }
   let contract = null;
@@ -188,7 +190,7 @@ function runDoctor(jsonMode) {
   else {
     console.log(`RCoder doctor — ${report.version}`);
     for (const item of report.checks) console.log(`${item.status.padEnd(4)} ${item.id}: ${item.detail}`);
-    console.log(`\\n${report.ok ? 'Environment checks passed.' : 'Environment checks found failures.'}`);
+    console.log(`\n${report.ok ? 'Environment checks passed.' : 'Environment checks found failures.'}`);
   }
   return report.ok ? 0 : 1;
 }
