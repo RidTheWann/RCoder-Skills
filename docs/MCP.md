@@ -166,3 +166,11 @@ Run `python3 scripts/test-mcp-contract.py` and `python3 scripts/test-mcp-http.py
 The new `mcp-transport-engineering` specialist owns MCP wire behavior: protocol lifecycle, stdio and Streamable HTTP adapter boundaries, request/header binding, token and Origin policy, pagination, structured tool results, and transport conformance. Use `agent-extensions-engineering` as an additional specialist when a host plugin, Agent Skill, marketplace, or installer is also in scope.
 
 For portable Agent Skill authoring, use `RCoder skill new`, `RCoder skill lint`, and `RCoder skill package`; the linter enforces a bounded, secret-safe skill tree before a reproducible ZIP is emitted. See the README's Agent Skill authoring toolkit section.
+
+
+## Specification references for Streamable HTTP
+
+The adapter targets MCP protocol `2026-07-28`: POST-only request framing, removal of GET streams and protocol sessions, required `MCP-Protocol-Version` and `Mcp-Method` headers, and `Mcp-Name` for tool/resource/prompt calls. Header mismatches use protocol error `-32020`. The adapter responds with a single JSON response for supported operations; it does not implement per-request SSE streams or `subscriptions/listen`.
+
+- [MCP 2026-07-28 Streamable HTTP specification](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/basic/transports/streamable-http.mdx)
+- [MCP 2026-07-28 discovery](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/server/discover.mdx)

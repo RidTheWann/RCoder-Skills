@@ -203,7 +203,9 @@ function doctorReport() {
     'skills/rcoder/scripts/skill_authoring.py',
     'skills/rcoder/contracts/rcoder-v2.json', 'skills/rcoder/scripts/rcoder_contract.py',
     'launcher/rcoder-mcp.mjs', '.opencode/plugins/rcoder.js', 'gemini-extension.json',
-    'GEMINI.md', '.mcp.json', 'mcp.json', '.claude-plugin/plugin.json', '.codex-plugin/plugin.json'
+    'GEMINI.md', '.mcp.json', 'mcp.json', '.claude-plugin/plugin.json', '.codex-plugin/plugin.json',
+    '.agents/plugins/marketplace.json', '.claude-plugin/marketplace.json',
+    'skills/rcoder/references/mcp-transport-engineering.md'
   ];
   for (const relative of required) {
     const present = existsSync(path.join(PACKAGE_ROOT, relative));

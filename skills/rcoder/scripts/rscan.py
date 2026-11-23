@@ -237,9 +237,9 @@ def scan_project(root: Path, max_paths: int) -> dict:
     risks = []
     if not by_name.get("README.md"):
         risks.append({"id": "no_readme", "severity": "medium", "detail": "README.md not found in sample"})
-    if not (by_name.get("AGENTS.md") or by_name.get("CLAUDE.md")):
+    if not (by_name.get("AGENTS.md") or by_name.get("CLAUDE.md")) and not truncated:
         risks.append({"id": "no_agent_instructions", "severity": "low",
-                      "detail": "No AGENTS.md or CLAUDE.md in sample"})
+                      "detail": "No AGENTS.md or CLAUDE.md in the complete bounded inventory"})
     if not git["is_repository"]:
         risks.append({"id": "not_a_git_repository", "severity": "medium", "detail": "Git metadata unavailable"})
     if git["changed_files"]:
@@ -247,8 +247,8 @@ def scan_project(root: Path, max_paths: int) -> dict:
                       "detail": f"{len(git['changed_files'])} changed file(s)"})
     if not ci and not truncated:
         risks.append({"id": "no_ci", "severity": "high", "detail": "No CI workflow detected in the complete bounded inventory"})
-    if not tests:
-        risks.append({"id": "no_test_entry_point", "severity": "high", "detail": "No test file detected in sample"})
+    if not tests and not truncated:
+        risks.append({"id": "no_test_entry_point", "severity": "high", "detail": "No test file detected in the complete bounded inventory"})
     if any(name in by_name for name in STACK_MARKERS if name != "Makefile") and not has_lock:
         risks.append({"id": "dependency_without_lock", "severity": "medium",
                       "detail": "Manifest without a detected lockfile"})
@@ -265,7 +265,9 @@ def scan_project(root: Path, max_paths: int) -> dict:
                   "detail": "First scan in this session; treat findings as bounded evidence"})
 
     quality = {"ci": ci, "ci_confidence": "observed" if ci else ("unknown-truncated" if truncated else "complete-absent"),
-               "tests": tests, "agent_instructions": bool(by_name.get("AGENTS.md") or by_name.get("CLAUDE.md")),
+               "tests": tests, "tests_confidence": "observed" if tests else ("unknown-truncated" if truncated else "complete-absent"),
+               "agent_instructions": bool(by_name.get("AGENTS.md") or by_name.get("CLAUDE.md")),
+               "agent_instructions_confidence": "observed" if by_name.get("AGENTS.md") or by_name.get("CLAUDE.md") else ("unknown-truncated" if truncated else "complete-absent"),
                "readme": bool(by_name.get("README.md")), "lockfile": has_lock}
     options = build_options(root, paths, stacks, key_files, quality, risks, git)
     return {

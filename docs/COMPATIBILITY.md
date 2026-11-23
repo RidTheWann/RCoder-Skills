@@ -12,7 +12,7 @@ Do not read this table as a compatibility guarantee. It records the specific kin
 | T3 — Invocation verified | The host was observed loading and following the skill on a task. | "This host invoked the skill." |
 | T4 — Behavioral evaluation | A pinned ablation meets the `evals/rubric.md` pass rule. | "RCoder measurably changed outcomes on this task." |
 
-T0 and T1 are the only tiers supported by repository evidence at this version. T2-T4 are `NOT VERIFIED` for every host. Do not advertise compatibility using T0 evidence alone.
+T0 and T1 are supported by repository evidence for the general host matrix. OpenCode has specific historical T2/T3 evidence for Agent Skill discovery and the earlier RScan V1 hook on version 1.19.6. That evidence does not extend to the new RCoder V1 plugin adapter documented below. New adapter discovery/invocation tiers and all other hosts remain `NOT VERIFIED` unless directly observed. Do not advertise compatibility using T0 evidence alone.
 
 ## Catalog
 

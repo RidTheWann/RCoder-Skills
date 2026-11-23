@@ -92,6 +92,7 @@ def main():
         assert stratified["scan"]["sampling_method"] == "deterministic-stratified-v1"
         assert stratified["scan"]["truncated"] is True
         assert stratified["quality"]["ci"] is True and stratified["quality"]["ci_confidence"] == "observed"
+        assert stratified["quality"]["tests"] is True and stratified["quality"]["tests_confidence"] == "observed"
         assert ".github/workflows/ci.yml" in stratified["sampled_paths"]
 
         text = run("scan", "--root", str(minimal))
