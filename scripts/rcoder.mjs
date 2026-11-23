@@ -510,7 +510,18 @@ function sameLauncherApp(appRoot) {
     ['targets.json', 'targets.json'],
     ['package.json', 'package.json'],
     ['launcher/RCoder.ps1', 'launcher/RCoder.ps1'],
-    ['launcher/McpSetup.ps1', 'launcher/McpSetup.ps1']
+    ['launcher/McpSetup.ps1', 'launcher/McpSetup.ps1'],
+    ['launcher/rcoder-mcp.mjs', 'launcher/rcoder-mcp.mjs'],
+    ['plugin.json', 'plugin.json'],
+    ['.mcp.json', '.mcp.json'],
+    ['mcp.json', 'mcp.json'],
+    ['.claude-plugin/plugin.json', '.claude-plugin/plugin.json'],
+    ['.claude-plugin/marketplace.json', '.claude-plugin/marketplace.json'],
+    ['.codex-plugin/plugin.json', '.codex-plugin/plugin.json'],
+    ['.agents/plugins/marketplace.json', '.agents/plugins/marketplace.json'],
+    ['.opencode/plugins/rcoder.js', '.opencode/plugins/rcoder.js'],
+    ['gemini-extension.json', 'gemini-extension.json'],
+    ['GEMINI.md', 'GEMINI.md']
   ];
   for (const [source, installed] of files) {
     const from = path.join(PACKAGE_ROOT, source);
@@ -667,6 +678,17 @@ function installLauncher(homeDir) {
     path.join(PACKAGE_ROOT, 'package.json'),
     path.join(PACKAGE_ROOT, 'launcher', 'RCoder.ps1'),
     path.join(PACKAGE_ROOT, 'launcher', 'McpSetup.ps1'),
+    path.join(PACKAGE_ROOT, 'launcher', 'rcoder-mcp.mjs'),
+    path.join(PACKAGE_ROOT, 'plugin.json'),
+    path.join(PACKAGE_ROOT, '.mcp.json'),
+    path.join(PACKAGE_ROOT, 'mcp.json'),
+    path.join(PACKAGE_ROOT, '.claude-plugin', 'plugin.json'),
+    path.join(PACKAGE_ROOT, '.claude-plugin', 'marketplace.json'),
+    path.join(PACKAGE_ROOT, '.codex-plugin', 'plugin.json'),
+    path.join(PACKAGE_ROOT, '.agents', 'plugins', 'marketplace.json'),
+    path.join(PACKAGE_ROOT, '.opencode', 'plugins', 'rcoder.js'),
+    path.join(PACKAGE_ROOT, 'gemini-extension.json'),
+    path.join(PACKAGE_ROOT, 'GEMINI.md'),
     path.join(SOURCE, 'SKILL.md')
   ];
   for (const file of required) if (!existsSync(file)) throw new Error(`Launcher source missing: ${file}`);
@@ -679,11 +701,23 @@ function installLauncher(homeDir) {
       mkdirSync(path.join(stage, 'scripts'), { recursive: true });
       mkdirSync(path.join(stage, 'launcher'), { recursive: true });
       mkdirSync(path.join(stage, 'skills'), { recursive: true });
+      mkdirSync(path.join(stage, '.claude-plugin'), { recursive: true });
+      mkdirSync(path.join(stage, '.codex-plugin'), { recursive: true });
+      mkdirSync(path.join(stage, '.agents', 'plugins'), { recursive: true });
+      mkdirSync(path.join(stage, '.opencode', 'plugins'), { recursive: true });
       cpSync(path.join(PACKAGE_ROOT, 'scripts', 'rcoder.mjs'), path.join(stage, 'scripts', 'rcoder.mjs'));
       cpSync(path.join(PACKAGE_ROOT, 'targets.json'), path.join(stage, 'targets.json'));
       cpSync(path.join(PACKAGE_ROOT, 'package.json'), path.join(stage, 'package.json'));
       cpSync(path.join(PACKAGE_ROOT, 'launcher', 'RCoder.ps1'), path.join(stage, 'launcher', 'RCoder.ps1'));
       cpSync(path.join(PACKAGE_ROOT, 'launcher', 'McpSetup.ps1'), path.join(stage, 'launcher', 'McpSetup.ps1'));
+      for (const relative of [
+        'launcher/rcoder-mcp.mjs', 'plugin.json', '.mcp.json', 'mcp.json',
+        '.claude-plugin/plugin.json', '.claude-plugin/marketplace.json',
+        '.codex-plugin/plugin.json', '.agents/plugins/marketplace.json',
+        '.opencode/plugins/rcoder.js', 'gemini-extension.json', 'GEMINI.md'
+      ]) {
+        cpSync(path.join(PACKAGE_ROOT, relative), path.join(stage, relative));
+      }
       cpSync(SOURCE, path.join(stage, 'skills', 'rcoder'), { recursive: true });
       mkdirSync(backupRoot, { recursive: true });
       if (existsSync(appRoot)) {
