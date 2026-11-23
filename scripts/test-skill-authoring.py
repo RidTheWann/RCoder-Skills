@@ -94,7 +94,7 @@ Findings and evidence.
         references.rmdir()
         (skill / "references").mkdir()
         readme.write_text("# Notes\n\n[Missing](../../outside.md)\n", encoding="utf-8")
-        bad = json.loads(run("lint", skill, "--json"))
+        bad = json.loads(run("lint", skill, "--json", expect=1))
         assert bad["ok"] is False and any("escapes skill root" in item for item in bad["errors"])
 
         # Rebuild with a safe in-root link and check reproducibility and package contents.
