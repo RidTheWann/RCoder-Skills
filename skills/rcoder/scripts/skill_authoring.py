@@ -29,7 +29,7 @@ SPECIALIST_HEADINGS = (
     "## Quality checklist", "## Anti-patterns", "## Verification", "## Output format",
 )
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-LINK_RE = re.compile(r"(?<!)\[[^\]]+\]\(([^)]+)\)")
+LINK_RE = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 
 
 def fail(message: str, code: int = 2) -> int:
