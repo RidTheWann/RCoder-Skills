@@ -29,6 +29,10 @@ jobs:
         run: python scripts/test-score-eval.py
       - name: Deterministic objective verifier self-test
         run: python scripts/test-objective.py
+      - name: Deterministic specialist-routing proposal tests
+        run: python scripts/test-route-predict.py
+      - name: Repository structural map tests
+        run: python scripts/test-repo-map.py
       - name: CI registration meta-check
         shell: bash
         run: python -c "from pathlib import Path; wf=Path('.github/workflows/quality.yml').read_text(); missing=[p.name for p in Path('scripts').glob('test-*') if p.name not in wf]; assert not missing, missing"
