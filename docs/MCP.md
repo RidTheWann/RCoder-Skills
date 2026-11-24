@@ -52,6 +52,9 @@ All tools are read-only (`readOnlyHint: true`, `destructiveHint: false`) and use
 | `rcoder_list_specialists` | Valid specialist names with category, helper flag, source, and activation summary. An optional `query` ranks candidate names by their name, title, and "Activate when" text (top 15, with a score); it locates names and never chooses a primary |
 | `rcoder_get_specialist` | One specialist module, optionally only named sections such as `Procedure` and `Verification` |
 | `rcoder_validate_selection` | Checks a routing selection: names exist, one non-helper primary, no helper-only set, security framing base present |
+| `rcoder_skill_lint` | Validate a portable Agent Skill folder: frontmatter, file safety, reference depth, and local links. Scaffolding and packaging stay in the CLI (`skill new`, `skill package`) so every MCP tool remains read-only |
+| `rcoder_hooks_config` | Render the Claude Code `PreToolUse`/`Stop` hook entries that `rcoder_hooks.py install` would merge. Enabling hooks stays an explicit CLI action; see `docs/HOOKS.md` |
+| `rcoder_contract` | Read the shared RCoder 2.0 contract: product version, transports, pagination, structured output, or invariants |
 | `rcoder_doctor` | Server version, skill files, helpers, enabled tools, project-local extension count |
 | `rsaver_measure` | Relative token estimate for inline text or files |
 | `rsaver_audit` | Rank project files by estimated token cost, group them by category (lockfile, minified, generated, log, data, source, docs), and suggest exclusions; skips dependency trees, symlinks, binaries, and credential files, and never returns file contents |
@@ -156,7 +159,7 @@ This is an optional local transport, not a public server. Do not weaken loopback
 
 ### Pagination and structured output
 
-Modern list methods use the common stateless cursor contract (10 items per page); clients must treat `nextCursor` as opaque. Tool calls return the existing text content plus `structuredContent` when a bounded JSON object is available. Skills-over-MCP continues to return the eligible file manifest inline with exact-byte SHA-256 digests and sizes.
+Both transports paginate list methods with the common stateless cursor contract: `tools/list`, `resources/list`, `resources/templates/list`, and `prompts/list` return 10 items per page, and an invalid or out-of-range cursor returns Invalid params (`-32602`), not an internal error. Clients must treat `nextCursor` as opaque. Because a client sees one page at a time, the context cost that matters is the first `tools/list` page, not the whole registry; `scripts/test-mcp.py` enforces that bound. Tool calls return the existing text content plus `structuredContent` when a bounded JSON object is available. Skills-over-MCP continues to return the eligible file manifest inline with exact-byte SHA-256 digests and sizes.
 
 Run `python3 scripts/test-mcp-contract.py` and `python3 scripts/test-mcp-http.py` for local conformance coverage. The live report covers the earlier stdio run and is not evidence that the new HTTP transport or newly added RSaver tools have been exercised in a native host.
 

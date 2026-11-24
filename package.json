@@ -30,6 +30,7 @@
     ".opencode/plugins/**",
     "commands/**",
     "agents/**",
+    "hooks/**",
     "README.md",
     "LICENSE"
   ],

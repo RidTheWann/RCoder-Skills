@@ -30,7 +30,29 @@ def main() -> int:
     names = [entry[0] for entry in core.TOOLS]
     assert len(names) == len(set(names))
     assert "rcoder_doctor" in names and "rsaver_redact" in names and "rsaver_ledger" in names
+    assert {"rcoder_skill_lint", "rcoder_hooks_config", "rcoder_contract"} <= set(names)
     assert all(entry[3].get("additionalProperties") is False for entry in core.TOOLS)
+
+    # D-022: the legacy stdio core must paginate exactly the collections the contract declares.
+    for method, collection in contract.PAGINATED_METHODS.items():
+        if method == "skills/list":
+            continue  # no skills extension in this core; modern owns it
+        page = core.handle(method, {})
+        assert len(page[collection]) <= contract.PAGE_SIZE, (method, len(page[collection]))
+        collected, cursor = list(page[collection]), page.get("nextCursor")
+        while cursor:
+            page = core.handle(method, {"cursor": cursor})
+            collected += page[collection]
+            cursor = page.get("nextCursor")
+        assert collected, f"{method} returned an empty collection"
+        assert len(collected) == len({repr(item) for item in collected}), \
+            f"{method} repeated an item across pages"
+    try:
+        core.handle("tools/list", {"cursor": "!"})
+    except ValueError as error:
+        assert "cursor" in str(error).lower()
+    else:
+        raise AssertionError("an invalid cursor must be rejected as Invalid params input")
 
     sample = {"tools": list(range(23)), "marker": "preserved"}
     first = contract.paginate_result("tools/list", sample, {})

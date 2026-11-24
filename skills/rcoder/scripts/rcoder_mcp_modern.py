@@ -229,6 +229,13 @@ def modern_result(method: str, params: dict) -> dict:
                 raise
             finally:
                 core.State.protocol = previous
+    # D-022: the shared core already paginates these collections; re-paginating here
+    # would page an already-truncated page and drop a valid nextCursor.
+    # The shared core paginates these for real; re-paginating would page an
+    # already-truncated page and drop a valid nextCursor. skills/* keep the
+    # modern path because the legacy core has no skills extension.
+    if method != "skills/list" and method in core.PAGINATED_METHODS:
+        return result
     return contract.paginate_result(method, result, params)
 
 

@@ -1,0 +1,51 @@
+name: Bug report
+description: Something in RCoder does not behave as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For a suspected security vulnerability, do not use this form. Follow `SECURITY.md` instead.
+  - type: input
+    id: version
+    attributes:
+      label: RCoder version or commit
+      placeholder: "1.14.0 or a commit hash"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Installer or launcher
+        - Skill routing or a specialist module
+        - MCP server
+        - Slash command or subagent
+        - Hooks (RScan or opt-in guard)
+        - RSaver or RScan helper
+        - Packaging or CI
+        - Documentation
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: Host, version, and operating system
+      placeholder: "Claude Code 2.x on Windows 11, PowerShell 7"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Exact command and observed output
+      description: Paste the command you ran and the full output. Remove any secrets first.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true

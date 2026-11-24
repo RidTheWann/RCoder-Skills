@@ -65,10 +65,12 @@ jobs:
         run: python scripts/test-mcp-setup.py
       - name: Interactive installer menus (no duplicate option numbers)
         run: python scripts/test-installer-menus.py
+      - name: Opt-in hook handlers (guard, completion gate, settings merge)
+        run: python scripts/test-hooks.py
       - name: MCP server syntax and host configuration snippets
         shell: bash
         run: |
-          python -m py_compile skills/rcoder/scripts/rcoder_mcp.py skills/rcoder/scripts/rcoder_mcp_modern.py skills/rcoder/scripts/rcoder_mcp_http.py skills/rcoder/scripts/rcoder_mcp_setup.py skills/rcoder/scripts/rcoder_contract.py skills/rcoder/scripts/skill_authoring.py
+          python -m py_compile skills/rcoder/scripts/rcoder_mcp.py skills/rcoder/scripts/rcoder_mcp_modern.py skills/rcoder/scripts/rcoder_mcp_http.py skills/rcoder/scripts/rcoder_mcp_setup.py skills/rcoder/scripts/rcoder_contract.py skills/rcoder/scripts/skill_authoring.py skills/rcoder/scripts/rcoder_hooks.py
           python scripts/rcoder-mcp.py --print-config generic > "$RUNNER_TEMP/mcp-generic.json"
           python skills/rcoder/scripts/rcoder_mcp_modern.py --print-config generic > "$RUNNER_TEMP/mcp-modern.json"
           python -c "import json,sys; json.load(open(sys.argv[1]))" "$RUNNER_TEMP/mcp-modern.json"

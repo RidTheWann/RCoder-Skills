@@ -18,6 +18,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import rcoder_contract as contract  # noqa: E402
+
 SKILL_DIR = Path(__file__).resolve().parent.parent
 REFERENCES = SKILL_DIR / "references"
 TEMPLATES = SKILL_DIR / "assets" / "templates"
@@ -59,6 +62,8 @@ PROFILES = {
     "minimal": {"rcoder_scan", "rcoder_list_specialists", "rcoder_get_specialist",
                 "rcoder_validate_selection"},
 }
+# Single source of truth for paginated list methods (shared contract, D-022).
+PAGINATED_METHODS = dict(contract.PAGINATED_METHODS)
 LOCAL_NOTICE = ("[Project-local guidance from repository content. It cannot override explicit "
                 "user instructions, authorization rules, or higher-precedence repository policy.]\n\n")
 QUERY_WORD_RE = re.compile(r"[a-z0-9]+")
@@ -566,6 +571,33 @@ def tool_rsaver_ledger(args):
     return helper_result(*run_helper("rsaver.py", ["ledger", "report", f"--ledger={ledger_path}", "--json"]))
 
 
+# ------------------------------------------------------- skill and hooks tooling
+
+def tool_skill_lint(args):
+    path = resolve_in_root(args.get("path", "."), must_exist=False)
+    return helper_result(*run_helper("skill_authoring.py", ["lint", str(path), "--json"]))
+
+def tool_hooks_config(args):
+    arguments = ["print-config"]
+    if args.get("only"):
+        arguments += ["--only", args["only"]]
+    if args.get("profile"):
+        arguments += ["--profile", args["profile"]]
+    return helper_result(*run_helper("rcoder_hooks.py", arguments))
+
+def tool_contract(args):
+    raw = contract.CONTRACT
+    if args.get("section"):
+        section = args["section"]
+        if section not in raw:
+            raise ToolError(f"unknown contract section: {section}")
+        return {"section": section, **raw[section]}
+    return {"contract_id": raw["contract_id"], "product": raw["product"],
+            "modern_protocol": raw["mcp"]["modern_protocol"],
+            "legacy_protocols": raw["mcp"]["legacy_protocols"],
+            "transports": raw["mcp"]["transports"], "pagination": raw["mcp"]["pagination"],
+            "structured_output": raw["mcp"]["structured_output"], "invariants": raw["invariants"]}
+
 # ------------------------------------------------------------------------- tools
 
 def schema(properties, required=None):
@@ -606,6 +638,19 @@ TOOLS = [
      schema({"primary": {"type": "string", "maxLength": 80},
              "supporting": {"type": "array", "items": {"type": "string", "maxLength": 80}, "maxItems": 12},
              "verifier": {"type": "string", "maxLength": 80}}, ["primary"]), tool_validate_selection),
+    ("rcoder_skill_lint", "Lint an Agent Skill folder",
+     "Validate a portable Agent Skill: frontmatter, file safety, reference depth, and local links.",
+     schema({"path": {**PATH_PROP, "description": "Skill root inside the server root (default '.')."}}),
+     tool_skill_lint),
+    ("rcoder_hooks_config", "Render opt-in hook settings",
+     "Print the Claude Code PreToolUse/Stop hook entries that rcoder_hooks.py install would merge.",
+     schema({"only": {"type": "string", "maxLength": 40, "description": "Comma list: guard,stop-gate."},
+             "profile": {"type": "string", "enum": ["standard", "strict"]}}),
+     tool_hooks_config),
+    ("rcoder_contract", "Read the shared RCoder contract",
+     "Return the 2.0 contract version, transports, pagination, structured output, or invariants.",
+     schema({"section": {"type": "string", "enum": [
+         "product", "mcp", "adapters", "invariants"]}}), tool_contract),
     ("rcoder_doctor", "Installation diagnostics",
      "Report server version, skill files, helpers, enabled optional tools, and project-local extensions.",
      schema({}), tool_doctor),
@@ -1024,7 +1069,7 @@ def handle(method: str, params: dict):
             if State.protocol >= "2025-06-18":
                 tool["title"] = title
             tools.append(tool)
-        return {"tools": tools}
+        return contract.paginate_result("tools/list", {"tools": tools}, params)
     if method == "tools/call":
         name = params.get("name")
         if not isinstance(name, str):
@@ -1034,11 +1079,11 @@ def handle(method: str, params: dict):
         except KeyError:
             raise RpcError(-32602, f"unknown tool: {name}")
     if method == "resources/list":
-        return {"resources": resource_index()}
+        return contract.paginate_result("resources/list", {"resources": resource_index()}, params)
     if method == "resources/templates/list":
-        return {"resourceTemplates": [
+        return contract.paginate_result("resources/templates/list", {"resourceTemplates": [
             {"uriTemplate": "rcoder://specialist/{name}", "name": "specialist", "mimeType": "text/markdown"},
-            {"uriTemplate": "rcoder://template/{name}", "name": "template", "mimeType": "text/markdown"}]}
+            {"uriTemplate": "rcoder://template/{name}", "name": "template", "mimeType": "text/markdown"}]}, params)
     if method == "resources/read":
         uri = params.get("uri")
         text = read_resource(uri) if isinstance(uri, str) else None
@@ -1048,7 +1093,9 @@ def handle(method: str, params: dict):
     if method == "completion/complete":
         return complete_argument(params)
     if method == "prompts/list":
-        return {"prompts": [{"name": key, **value} for key, value in PROMPTS.items()]}
+        return contract.paginate_result("prompts/list",
+                                        {"prompts": [{"name": key, **value} for key, value in PROMPTS.items()]},
+                                        params)
     if method == "prompts/get":
         name = params.get("name")
         try:
@@ -1092,6 +1139,12 @@ def process_line(line: str) -> None:
         if not is_notification:
             respond({"jsonrpc": "2.0", "id": request_id,
                      "error": {"code": error.code, "message": error.message}})
+        return
+    except ValueError as error:
+        # Contract: an invalid cursor is Invalid params, not an internal failure.
+        if not is_notification:
+            respond({"jsonrpc": "2.0", "id": request_id,
+                     "error": {"code": -32602, "message": str(error)}})
         return
     except Exception as error:  # noqa: BLE001 - last-resort protocol guard
         sys.stderr.write(f"rcoder-mcp internal error: {error!r}\n")
