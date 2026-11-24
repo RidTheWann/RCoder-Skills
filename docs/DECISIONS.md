@@ -67,7 +67,14 @@
 ## D-018 — Least-privilege subagents and unapproved commands
 - Decision: plugin subagents are never granted file-editing tools, the security reviewer has no shell, and slash commands do not pre-approve tools. `scripts/validate-all` enforces this.
 
-## D-019 — Extend an existing MCP tool instead of adding one
+## D-020 — Extend an existing MCP tool instead of adding one
 - Decision: module search is an optional `query` on `rcoder_list_specialists`, not a new tool, and it matches only name, title, and "Activate when" text.
 - Rationale: every tool schema is sent on every request, so a new tool costs tokens in all sessions; matching only the activation text keeps incidental body words from producing misleading candidates. The result states that a query locates names and does not choose a primary, which preserves the rule to select by deliverable.
 - Consequence: resources, tools, and prompts must apply project-local overrides identically; `scripts/test-mcp.py` asserts that parity.
+- Note: this entry was previously numbered D-019 a second time; it was renumbered because D-019 is the bundled SessionStart hook decision that other files cite.
+
+## D-021 — Opt-in guard and completion-gate hooks
+- Decision: ship `skills/rcoder/scripts/rcoder_hooks.py`, a standard-library handler for a `PreToolUse` guard and a `Stop` completion gate, that the user enables explicitly with `rcoder_hooks.py install` or by pasting `print-config` output. The bundled `hooks/hooks.json` stays SessionStart-only, so D-019 and its validator rule are unchanged.
+- Rationale: tool-event hooks can block work and run on every tool call, so they must be a deliberate user choice rather than a plugin default. Opt-in delivers the capability (refusing credential reads and staging, catastrophic commands, unreviewed force pushes and remote-script execution, and unevidenced completion claims) without changing any default session.
+- Safety properties, enforced by `scripts/test-hooks.py`: no subprocess, network, or dynamic-code use; fail open on any malformed event or internal error; `stop_hook_active` always allows, so a block cannot loop; `install` merges idempotently, backs up first, and refuses symbolic links and non-strict JSON.
+- Limits: a guard is a guardrail, not a sandbox. Interpreters, obfuscated names, and variables can still reach a credential file. Native host behavior is NOT VERIFIED; see `docs/HOOKS.md`.

@@ -482,6 +482,15 @@ def main():
                   "G8: the plugin hook may only run the bundled read-only rscan scan")
             check(not re.search(r"(?i)\b(curl|wget|rm|sudo|eval|install)\b", command),
                   "G8: the plugin hook command contains a forbidden program")
+    opt_in_hooks = ROOT / "skills" / "rcoder" / "scripts" / "rcoder_hooks.py"
+    check(opt_in_hooks.is_file(), "G8: opt-in hook handler rcoder_hooks.py missing (D-021)")
+    check("rcoder_hooks" not in read(hooks_file),
+          "G8: the bundled hooks.json must not enable the opt-in handlers; they are installed explicitly (D-021)")
+    check("hooks/**" in package.get("files", []), "G8: the npm package must ship the hooks directory")
+    check("D-021" in read(ROOT / "docs" / "DECISIONS.md") and (ROOT / "docs" / "HOOKS.md").is_file(),
+          "G8: D-021 and docs/HOOKS.md must document the opt-in hooks")
+    check("'hooks'" in read(ROOT / "scripts" / "package"),
+          "G8: the Claude plugin archive must include the hooks directory")
     check("mcp" in package.get("keywords", []), "G8: npm keywords should include mcp")
 
     check(CHECKS >= 3060, "G0: validation check count fell below the expected floor")

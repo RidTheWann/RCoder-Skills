@@ -1,0 +1,30 @@
+name: Feature or specialist request
+description: Propose a new capability, host integration, or specialist module
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What task is hard or unsafe today? Describe the deliverable and how you would check it.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: The smallest change that would solve it. Name any new specialist, command, tool, or hook.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and context cost
+      description: Existing modules that do not cover it, host documentation you relied on, and the expected context or token cost.
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Constraints
+      options:
+        - label: It needs no third-party runtime dependency.
+        - label: It keeps the bundled hook set SessionStart-only, or the change is an explicit opt-in.

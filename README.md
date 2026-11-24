@@ -154,7 +154,7 @@ python3 skills/rcoder/scripts/rcoder_mcp.py --print-config claude-code   # also:
 python3 skills/rcoder/scripts/rcoder_mcp.py --root . --profile minimal   # 4 tools, about 675 estimated tokens
 ```
 
-The Claude Code plugin additionally provides slash commands (`scan`, `route`, `review`, `verify`, `handoff`, `doctor`, `saver`) and five least-privilege subagents (`rcoder-explorer`, `rcoder-reviewer`, `rcoder-verifier`, `rcoder-security-reviewer`, `rcoder-saver`). A new `agent-extensions-engineering` specialist covers building, reviewing, packaging, and debugging MCP servers, Agent Skills, plugins, hooks, and subagents. No hook is installed automatically. See [docs/MCP.md](docs/MCP.md) for tools, security model, context cost, and the evidence status: protocol behavior is verified locally; native host connection and plugin loading are NOT VERIFIED.
+The Claude Code plugin additionally provides slash commands (`scan`, `route`, `plan`, `debug`, `test-plan`, `threat-model`, `review`, `verify`, `handoff`, `doctor`, `saver`, `agent-security`, `observe`) and seven least-privilege subagents (`rcoder-explorer`, `rcoder-planner`, `rcoder-debugger`, `rcoder-reviewer`, `rcoder-verifier`, `rcoder-security-reviewer`, `rcoder-saver`). A new `agent-extensions-engineering` specialist covers building, reviewing, packaging, and debugging MCP servers, Agent Skills, plugins, hooks, and subagents. The only hook that ships enabled is the read-only `SessionStart` RScan menu. A separate, **opt-in** guard (`PreToolUse`) and completion gate (`Stop`) can be enabled explicitly with `python3 skills/rcoder/scripts/rcoder_hooks.py install`; see [docs/HOOKS.md](docs/HOOKS.md) for rules, limits, and evidence status. See [docs/MCP.md](docs/MCP.md) for tools, security model, context cost, and the evidence status: protocol behavior is verified locally; native host connection and plugin loading are NOT VERIFIED.
 
 ## Engineering and programming coverage
 
@@ -224,12 +224,14 @@ RCoder skill package ./mcp-observability --out ./dist/mcp-observability.zip
 - `skills/rcoder/scripts/rsaver.py` — RSaver measurement, budgeting, gating, pruning, deduplication, and recovery CLI (bundled); `scripts/rsaver.py` is a repository-root wrapper.
 - `skills/rcoder/scripts/rcoder_mcp.py` — legacy stdio MCP server; `rcoder_mcp_modern.py` is the stateless modern dispatcher; `rcoder_mcp_http.py` is the optional loopback/token/Origin-protected HTTP adapter; `rcoder_contract.py` is the shared protocol and pagination contract.
 - `commands/` and `agents/` — Claude Code plugin slash commands and least-privilege subagents.
+- `skills/rcoder/scripts/rcoder_hooks.py` — opt-in `PreToolUse` guard and `Stop` completion-gate handlers with an idempotent settings installer (`scripts/rcoder-hooks.py` is the repository-root wrapper); see `docs/HOOKS.md`.
 - `skills/rcoder/scripts/rscan.py` — RScan bounded project scanner and session-start hook installer (bundled); `scripts/rscan.py` is a repository-root wrapper.
 - `docs/RSCAN-HOOKS.md` — evidenced host hook matrix.
 - `docs/TOKEN-ECONOMICS.md` — input, cached-input, output, and reasoning token mechanics.
 - `docs/CONTEXT-DRIFT.md` — long-context drift research and re-anchoring evidence.
 - `skills/rcoder/assets/templates/` — ADR, issue, specialist-module, context-capsule, test, and UX templates.
 - `targets.json` — supported host labels and Project/User discovery roots.
+- `CONTRIBUTING.md`, `SECURITY.md`, and `.github/` templates — contribution gates, vulnerability reporting, and issue and pull request templates.
 - `launcher/RCoder.ps1` — PowerShell terminal manager.
 - `scripts/rcoder.mjs` — Node/npm installer, integration manager, doctor command, and skill-authoring CLI.
 - `launcher/rcoder-mcp.mjs` — portable Node-to-Python stdio launcher used by plugin manifests.
@@ -247,6 +249,7 @@ python3 scripts/test-rscan.py
 python3 scripts/test-mcp.py
 python3 scripts/test-mcp-contract.py
 python3 scripts/test-mcp-http.py
+python3 scripts/test-hooks.py
 python3 scripts/test-skill-authoring.py
 python3 scripts/test-multilingual-data.py
 node --check scripts/rcoder.mjs

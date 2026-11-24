@@ -4,7 +4,14 @@ RCoder follows Semantic Versioning.
 
 ## [Unreleased]
 
+### Added
+- Opt-in Claude Code hook handlers in `skills/rcoder/scripts/rcoder_hooks.py` (wrapper `scripts/rcoder-hooks.py`, guide `docs/HOOKS.md`, decision D-021): a `PreToolUse` guard that denies credential-file reads, searches, and writes, `git add`/`diff`/`show` of credential files, catastrophic deletes and raw-disk writes, and asks before force pushes and piping a download into an interpreter (profile `strict` adds more prompts); and a `Stop` completion gate that blocks once when a turn edited code, claimed completion, ran no check, and gave no evidence labels. `install`, `uninstall`, and `print-config` merge idempotently with a backup and refuse symbolic links and non-strict JSON. Handlers use no subprocess, network, or dynamic code, fail open, and never loop. The bundled `hooks/hooks.json` is unchanged and still SessionStart-only (D-019). `scripts/test-hooks.py` is registered in CI and covered by new `validate-all` invariants. Native Claude Code loading is NOT VERIFIED.
+- Slash commands `plan`, `debug`, `test-plan`, and `threat-model`, and read-only subagents `rcoder-planner` and `rcoder-debugger` (no file-editing tools, per D-018).
+- `CONTRIBUTING.md`, `SECURITY.md`, issue and pull request templates, and a Dependabot configuration for the pinned workflow actions.
+
 ### Fixed
+- Packaging omitted `hooks/`: the Claude plugin ZIP built by `scripts/package` and the npm package (`package.json` `files`) did not include the SessionStart hook that D-019 ships, so plugins installed from those archives silently lacked it. Both now include it, and `validate-all` checks it.
+- `docs/DECISIONS.md` used D-019 for two different decisions; the MCP-tool decision is now D-020.
 - PowerShell bootstrap (`install.ps1`) failed on every PowerShell version: it assigned `$home`, which is the read-only automatic variable `$HOME` ("Cannot overwrite variable HOME"). Renamed; `scripts/test-installers.ps1` now fails if any script assigns `$HOME`.
 - Interactive installers (PowerShell launcher and Node manager) printed two numbered lists back to back, so the RSaver/RScan descriptions were numbered 1-2 and the choices were numbered 1-4 again. The description list now uses bullets. `scripts/test-installer-menus.py` drives both menus and fails on repeated or non-sequential option numbers.
 - PowerShell portability: scripts used Windows-only `\` path literals (now `Join-Path`, so `pwsh` on Linux/macOS works); the feature manifest was written with a UTF-8 BOM on Windows PowerShell 5.1 (now BOM-free, ordered keys); `exit` replaced by `return` for the `irm | iex` route; TLS 1.2 is added to, not substituted for, the existing protocols; download progress rendering no longer slows 5.1; the `RCoder.cmd` shim falls back to `pwsh.exe` when `powershell.exe` is missing.
