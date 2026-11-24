@@ -116,6 +116,7 @@ CI validates static structure, packaging, and simulated file-system behavior. It
 - [x] Skill authoring toolkit: `rcoder skill new`, `lint`, and reproducible `package` with SHA-256 sidecar; secret/symlink and reference/link validation.
 - [x] New `mcp-transport-engineering` specialist; deliverable-based MCP routing; language-aware activation that preserves technical identifiers.
 - [x] Separate multilingual research dataset expanded to 12 verbatim prompts (EN/ID/MIXED_ID_EN); static identifier and specialist-reference checks.
+- [x] Deterministic specialist-routing assistant (`skills/rcoder/scripts/route_predict.py`, MCP `rcoder_route_predict`) with held-out scoring; weak-model execution profile (`references/weak-model-profile.md`); compact repository structural map (`skills/rcoder/scripts/repo_map.py`, MCP `rcoder_repo_map`). Design cites published 2025-2026 harness research as labeled literature evidence, not measurements of this helper.
 - [x] README, MCP docs, compatibility/integration evidence updates, and unreleased changelog entries.
 
 ### Verification still required before release

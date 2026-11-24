@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "note": "Small, manually authored held-out routing cases. They are not part of any training or rule-derivation set; don't expand silently.",
+  "cases": [
+    {
+      "id": "ho-01",
+      "prompt": "Our payment API leaks stack traces in error responses. Find the root cause and add a regression test.",
+      "expected_specialists": ["debugging", "backend-api-engineering", "testing-qa"]
+    },
+    {
+      "id": "ho-02",
+      "prompt": "Review this Django view for SQL injection and prepare a threat model before publishing.",
+      "expected_specialists": ["security", "application-security", "threat-modeling"]
+    },
+    {
+      "id": "ho-03",
+      "prompt": "Reduce memory pressure in this Rust parser and verify it against the reference implementation.",
+      "expected_specialists": ["performance", "systems-programming", "verification"]
+    },
+    {
+      "id": "ho-04",
+      "prompt": "Write a short congratulatory note for a colleague's new job.",
+      "expected_specialists": []
+    },
+    {
+      "id": "ho-05",
+      "prompt": "Build an MCP server with stdio transport and pagination for tools/list.",
+      "expected_specialists": ["mcp-transport-engineering", "agent-extensions-engineering"]
+    },
+    {
+      "id": "ho-06",
+      "prompt": "Perbaiki kegagalan tes parser ini dan tambahkan regression test.",
+      "expected_specialists": ["debugging", "testing-qa"]
+    },
+    {
+      "id": "ho-07",
+      "prompt": "Deploy the new container image through GitHub Actions with least-privilege IAM.",
+      "expected_specialists": ["devops-ci-cd", "cloud-container-security", "security"]
+    },
+    {
+      "id": "ho-08",
+      "prompt": "What is the capital of France?",
+      "expected_specialists": []
+    }
+  ]
+}
