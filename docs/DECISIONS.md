@@ -78,3 +78,14 @@
 - Rationale: tool-event hooks can block work and run on every tool call, so they must be a deliberate user choice rather than a plugin default. Opt-in delivers the capability (refusing credential reads and staging, catastrophic commands, unreviewed force pushes and remote-script execution, and unevidenced completion claims) without changing any default session.
 - Safety properties, enforced by `scripts/test-hooks.py`: no subprocess, network, or dynamic-code use; fail open on any malformed event or internal error; `stop_hook_active` always allows, so a block cannot loop; `install` merges idempotently, backs up first, and refuses symbolic links and non-strict JSON.
 - Limits: a guard is a guardrail, not a sandbox. Interpreters, obfuscated names, and variables can still reach a credential file. Native host behavior is NOT VERIFIED; see `docs/HOOKS.md`.
+
+## D-022 — Legacy stdio honors the declared pagination contract
+- Decision: the legacy stdio core paginates `tools/list`, `resources/list`, `resources/templates/list`, and `prompts/list` with the shared `rcoder_contract.paginate_result` cursor, exactly as the modern transport already did. An invalid or out-of-range cursor maps to Invalid params (`-32602`) instead of an internal error.
+- Rationale: `contracts/rcoder-v2.json` and `docs/V2-CONTRACT.md` declared these collections paginated at 10 items per page, but only the modern transport implemented it. A stdio client therefore received all tools in one response, which is what made the serialized `tools/list` size the binding context-cost constraint and blocked any new tool.
+- Consequence: the enforced bound moves from "whole registry serialized" to "`tools/list` first page", because that is the payload a client reads before paging. Existing clients that never send a cursor are unaffected beyond receiving the first page and a `nextCursor`.
+- Note: legacy single-call results and the modern transport remain separate protocol paths; both now share the same cursor semantics.
+
+## D-023 — MCP exposes read-only skill/hook introspection; writes stay in the CLI
+- Decision: add `rcoder_skill_lint`, `rcoder_hooks_config`, and `rcoder_contract` to the MCP server. Skill scaffolding, skill packaging, and hook installation remain CLI-only (`skill new|package`, `hooks install|uninstall`).
+- Rationale: D-016 requires every MCP tool to be read-only and `scripts/test-mcp.py` asserts `readOnlyHint: true` and `destructiveHint: false`. Creating files, writing ZIPs, and merging host settings are not read-only operations.
+- Consequence: the plugin CLI gains a `hooks <install|uninstall|print-config>` command so the opt-in guard/completion-gate capability is reachable without hand-editing JSON, while the MCP server can render and validate configuration without ever applying it.

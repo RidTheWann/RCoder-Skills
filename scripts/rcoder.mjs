@@ -51,6 +51,8 @@ Options:
   doctor [--json]     Check runtime, manifest parity, shared contract, and MCP files
   integration <action> <host>  Manage OpenCode, Gemini CLI, Codex, and Claude Code adapters
   skill <new|lint|package>      Author, validate, and package Agent Skills
+  hooks <install|uninstall|print-config>
+                                Manage opt-in Claude Code guard and completion-gate hooks
 
 After installation, open a new terminal and type RCoder.`);
 }
@@ -63,6 +65,32 @@ function parseArgs(args) {
   }
   if (args[0] === 'skill') {
     return { command: 'skill', args: args.slice(1) };
+  }
+  if (args[0] === 'hooks') {
+    const action = args[1] || 'print-config';
+    if (!['install', 'uninstall', 'print-config'].includes(action)) {
+      throw new Error('hooks action must be install, uninstall, or print-config');
+    }
+    const options = { command: 'hooks', action, scope: 'project', root: process.cwd(),
+                      homeDir: HOME, dryRun: false };
+    for (let i = 2; i < args.length; i += 1) {
+      const arg = args[i];
+      if (arg === '--dry-run') { options.dryRun = true; continue; }
+      if (['--scope', '--root', '--home-dir', '--profile', '--only', '--host'].includes(arg)) {
+        if (!args[i + 1] || args[i + 1].startsWith('--')) throw new Error(`Missing value for ${arg}`);
+        const value = args[++i];
+        if (arg === '--scope') options.scope = value;
+        if (arg === '--root') options.root = value;
+        if (arg === '--home-dir') options.homeDir = value;
+        if (arg === '--profile') options.profile = value;
+        if (arg === '--only') options.only = value;
+        if (arg === '--host') options.host = value;
+        continue;
+      }
+      throw new Error(`Unknown hooks option: ${arg}`);
+    }
+    if (!SCOPES.has(options.scope)) throw new Error('Hooks scope must be project or user');
+    return options;
   }
   if (args[0] === 'integration') {
     const action = args[1] || 'instructions';
@@ -402,6 +430,32 @@ function runSkillCommand(arguments_) {
   });
   if (result.error) {
     console.error(`Could not start skill toolkit: ${result.error.message}`);
+    return 1;
+  }
+  return result.status ?? 1;
+}
+
+function runHooksCommand(action, arguments_) {
+  const python = findPython();
+  if (!python) {
+    console.error('RCoder hooks requires Python 3. Install Python 3 or set it on PATH.');
+    return 127;
+  }
+  const script = path.join(SOURCE, 'scripts', 'rcoder_hooks.py');
+  if (!existsSync(script)) throw new Error(`Bundled hook toolkit is missing: ${script}`);
+  const passthrough = [];
+  const settings_flags = [['--scope', arguments_.scope], ['--root', arguments_.root],
+                          ['--home', arguments_.homeDir], ['--profile', arguments_.profile],
+                          ['--only', arguments_.only]];
+  for (const [flag, value] of action === 'print-config' ? [['--host', arguments_.host]] : settings_flags) {
+    if (value) passthrough.push(flag, value);
+  }
+  if (arguments_.dryRun && action !== 'print-config') passthrough.push('--dry-run');
+  const result = spawnSync(python.exe, [...python.pre, script, action, ...passthrough], {
+    cwd: process.cwd(), stdio: 'inherit', windowsHide: true
+  });
+  if (result.error) {
+    console.error(`Could not start hook toolkit: ${result.error.message}`);
     return 1;
   }
   return result.status ?? 1;
@@ -872,6 +926,8 @@ try {
     process.exitCode = runIntegration(options);
   } else if (options.command === 'skill') {
     process.exitCode = runSkillCommand(options.args);
+  } else if (options.command === 'hooks') {
+    process.exitCode = runHooksCommand(options.action, options);
   } else if (options.help) {
     usage();
   } else if (options.version) {

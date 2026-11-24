@@ -211,6 +211,19 @@ RCoder skill package ./mcp-observability --out ./dist/mcp-observability.zip
 
 `skill new` creates a non-overwriting Agent Skill scaffold with a specialist-module template. `skill lint` checks frontmatter, semantic version metadata, the 300-line instruction/reference limit, local Markdown links, one-level reference layout, file/byte limits, symlinks, and credential/private-key filenames. Specialist references that declare `Activate when` must follow the full 13-section module structure. `skill package` lints first, builds a deterministic ZIP, and writes a SHA-256 sidecar. The package is reproducible for identical source bytes and normalized executable modes. The PowerShell-only global launcher can run these three commands with Python 3 even when Node.js is not installed.
 
+## Opt-in hook management
+
+The same CLI manages the opt-in Claude Code guard and completion-gate hooks (see `docs/HOOKS.md` and decision D-021):
+
+```sh
+RCoder hooks install --scope project --dry-run
+RCoder hooks install --scope user --profile strict
+RCoder hooks uninstall --scope project
+RCoder hooks print-config
+```
+
+`install` merges idempotently with a backup, refuses symbolic links and non-strict JSON, and only touches the RCoder entries. Hook handlers fail open and never use a subprocess, network, or dynamic code. The MCP tools `rcoder_hooks_config`, `rcoder_skill_lint`, and `rcoder_contract` expose read-only views of the same capabilities; they never write.
+
 `RCoder doctor --json` checks the runtime, package/manifest version parity, shared MCP contract, required adapters, and bundled helper files. It is an environment/static check—not proof of host discovery or model invocation.
 
 ## Repository structure

@@ -14,7 +14,11 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SERVER = ROOT / "skills" / "rcoder" / "scripts" / "rcoder_mcp.py"
+SCRIPTS = ROOT / "skills" / "rcoder" / "scripts"
+sys.path.insert(0, str(SCRIPTS))
+import rcoder_contract as contract  # noqa: E402
+
+SERVER = SCRIPTS / "rcoder_mcp.py"
 WRAPPER = ROOT / "scripts" / "rcoder-mcp.py"
 VERSION = re.search(r'version:\s*"(\d+\.\d+\.\d+)"', (ROOT / "skills" / "rcoder" / "SKILL.md").read_text(
     encoding="utf-8")).group(1)
@@ -23,7 +27,7 @@ INIT = {"jsonrpc": "2.0", "id": 0, "method": "initialize",
                    "clientInfo": {"name": "test", "version": "0"}}}
 NOTIFIED = {"jsonrpc": "2.0", "method": "notifications/initialized"}
 # Regression guards on context cost (characters of the serialized tools/list result).
-FULL_TOOLS_CHAR_BUDGET = 13300
+TOOLS_FIRST_PAGE_CHAR_BUDGET = 8000
 MINIMAL_TOOLS_CHAR_BUDGET = 2800
 
 
@@ -70,6 +74,17 @@ def build_fixture(root: Path):
     (root / ".git").mkdir()
     (root / ".git" / "config").write_text("[core]\n", encoding="utf-8")
     (root / "notes.pem").write_text("not a key\n", encoding="utf-8")
+    # A minimal valid Agent Skill so rcoder_skill_lint has real input.
+    skill = root / "myskill"
+    (skill / "references").mkdir(parents=True)
+    (skill / "SKILL.md").write_text(
+        "---\nname: myskill\nversion: 1.0.0\ndescription: Fixture skill for lint tests.\n---\n\n# My skill\n",
+        encoding="utf-8")
+    headings = ["Mission and expertise", "Mental model", "Prerequisites and reconnaissance", "Procedure",
+                "Decision tree", "Tool strategy", "Advanced techniques", "Failure modes",
+                "Quality checklist", "Anti-patterns", "Verification", "Output format"]
+    body = "## Activate when\nnever in this fixture\n" + "".join(f"\n## {title}\nx\n" for title in headings)
+    (skill / "references" / "extra.md").write_text(body, encoding="utf-8")
 
 
 def main():
@@ -112,11 +127,21 @@ def main():
         assert by_id[None]["error"]["code"] in (-32700, -32600)
         assert sum(1 for item in parsed if item.get("id") is None) == 2
 
-        # --- tools/list: schema shape, profiles, allowlist, context-cost guard ----------------
+        # --- tools/list: pagination, schema shape, profiles, allowlist, context-cost guard ---
         by_id, _, _ = session([INIT, {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}], root)
-        tools = by_id[1]["result"]["tools"]
+        first_page = by_id[1]["result"]
+        assert len(first_page["tools"]) <= contract.PAGE_SIZE
+        tools = list(first_page["tools"])
+        cursor = first_page.get("nextCursor")
+        while cursor:
+            by_id, _, _ = session([INIT, {"jsonrpc": "2.0", "id": 1, "method": "tools/list",
+                                          "params": {"cursor": cursor}}], root)
+            page = by_id[1]["result"]
+            tools += page["tools"]
+            cursor = page.get("nextCursor")
         names = [item["name"] for item in tools]
-        assert len(names) == len(set(names)) == 24
+        assert len(names) == len(set(names))
+        assert {"rcoder_skill_lint", "rcoder_hooks_config", "rcoder_contract"} <= set(names)
         for tool in tools:
             assert re.fullmatch(r"[a-z][a-z0-9_]*", tool["name"]), tool["name"]
             spec = tool["inputSchema"]
@@ -125,8 +150,30 @@ def main():
             assert tool["annotations"]["destructiveHint"] is False
             assert 10 <= len(tool["description"]) <= 220, tool["name"]
             assert tool["title"]
-        full_size = len(json.dumps(tools, separators=(",", ":")))
-        assert full_size <= FULL_TOOLS_CHAR_BUDGET, f"tool list grew to {full_size} chars"
+        # The cost that matters is the first page a client sees, not the whole registry.
+        page_size = len(json.dumps(first_page["tools"], separators=(",", ":")))
+        assert page_size <= TOOLS_FIRST_PAGE_CHAR_BUDGET, \
+            f"tools/list first page grew to {page_size} chars"
+        for bad in ("", "!", contract.encode_cursor(999)):
+            rejected = session([INIT, {"jsonrpc": "2.0", "id": 4,
+                                       "method": "tools/list", "params": {"cursor": bad}}], root)[0]
+            assert rejected[4]["error"]["code"] == -32602, bad
+        # --- D-023: skill/hook/contract introspection is read-only and usable --------------
+        lint_response = call(root, "rcoder_skill_lint", {"path": "myskill"})["result"]
+        assert lint_response.get("isError") is not True
+        lint = lint_response["structuredContent"]
+        assert lint["ok"] is True and lint["result"]["ok"] is True
+        assert lint["result"]["name"] == "myskill" and lint["result"]["errors"] == []
+        hooks = call(root, "rcoder_hooks_config", {})["result"]["structuredContent"]["result"]["hooks"]
+        assert "PreToolUse" in hooks and "Stop" in hooks
+        assert hooks["PreToolUse"][0]["matcher"] and hooks["Stop"][0]["hooks"][0]["type"] == "command"
+        documented = call(root, "rcoder_contract", {"section": "mcp"})["result"]["structuredContent"]
+        assert documented["section"] == "mcp"
+        assert documented["modern_protocol"] == contract.MODERN_PROTOCOL
+        # The schema enum rejects an unknown section before the tool body runs.
+        rejected = call(root, "rcoder_contract", {"section": "nope"})["result"]
+        assert rejected.get("isError") is True and "Invalid arguments" in rejected["content"][0]["text"]
+
         by_id, _, _ = session([INIT, {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}], root,
                               ["--profile", "minimal"])
         minimal = by_id[1]["result"]["tools"]
@@ -437,7 +484,16 @@ def main():
             {"jsonrpc": "2.0", "id": 22, "method": "prompts/get",
              "params": {"name": "rcoder_reanchor", "arguments": {"objective": "fix parser regression"}}},
         ], root)
-        uris = {item["uri"] for item in by_id[1]["result"]["resources"]}
+        resources = list(by_id[1]["result"]["resources"])
+        cursor = by_id[1]["result"].get("nextCursor")
+        while cursor:
+            by_id_page, _, _ = session([INIT, {"jsonrpc": "2.0", "id": 1,
+                                               "method": "resources/list",
+                                               "params": {"cursor": cursor}}], root)
+            page = by_id_page[1]["result"]
+            resources += page["resources"]
+            cursor = page.get("nextCursor")
+        uris = {item["uri"] for item in resources}
         assert "rcoder://skill" in uris and "rcoder://specialist/security" in uris
         assert "rcoder://template/context-capsule-template" in uris
         assert by_id[2]["result"]["contents"][0]["text"].startswith("---")
@@ -448,7 +504,7 @@ def main():
         assert {item["name"] for item in by_id[8]["result"]["prompts"]} == {
             "rcoder_intake", "rcoder_review", "rcoder_handoff", "rcoder_security_scope",
             "rcoder_route", "rcoder_verify", "rcoder_context_gate", "rcoder_reanchor"}
-        listed_resources = {item["uri"]: item for item in by_id[1]["result"]["resources"]}
+        listed_resources = {item["uri"]: item for item in resources}
         assert "rcoder://specialist/custom-module" in listed_resources, "project-local extensions must be listed"
         assert "untrusted" in listed_resources["rcoder://specialist/custom-module"]["description"]
         assert "override is active" in listed_resources["rcoder://specialist/coding"]["description"]
