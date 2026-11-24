@@ -48,8 +48,10 @@ These layers describe responsibilities, not extra steps to perform on every task
 | B — Specialist selection | Choose one or more directly relevant modules; resolve cross-discipline handoffs | Expert routing below |
 | C — Expert execution | Investigate, decide, implement, recover, and verify with domain procedures | `references/*.md` |
 | D — Runtime and tool adaptation | Use only capabilities observed in the active host; never treat skill files as installed tools | `references/model-adaptation.md` |
-| E — Verification and QA | Evidence, negative tests, independent checks, reproducibility | `references/verification.md` and each module's Verification section |
-| F — Context and long tasks | Bounded reads, working ledger, context capsule, explicit handoff | `references/token-efficiency.md`, capsule template |
+| E — Weak/small model execution | Deterministic budget-disciplined action policy for models < ~30B active or ≤32K context | `references/weak-model-profile.md` |
+| F — Verification and QA | Evidence, negative tests, independent checks, reproducibility | `references/verification.md` and each module's Verification section |
+| G — Context and long tasks | Bounded reads, working ledger, context capsule, explicit handoff | `references/token-efficiency.md`, capsule template |
+| H — Repository orientation | Compact structural map, PageRank-ranked, budget-bounded | `references/repo-map.md`, `scripts/repo_map.py` |
 
 ## Workflow: Intake → Recon → Plan → Implement → Verify → Report
 
@@ -158,6 +160,9 @@ Load [model adaptation](references/model-adaptation.md) when the host or model i
 ### Token and context efficiency
 
 For multi-step or large-repository work, load [token-efficient engineering](references/token-efficiency.md). Use the bounded [context snapshot helper](scripts/context_snapshot.py) and the [context capsule template](assets/templates/context-capsule-template.md). For oversized tool output or measured context reduction, load [RSaver](references/rsaver.md) and use `scripts/rsaver.py` (or the bundled `skills/rcoder/scripts/rsaver.py`) to measure, prune, and recover evidence; use the gate module above for the per-step budget decision. Optimize total engineering cost without weakening safety, verification, or evidence.
+
+For weak/small models (< ~30B active or ≤32K context), load [weak-model-profile](references/weak-model-profile.md) and generate the [repo map](references/repo-map.md) once per session:
+`python3 skills/rcoder/scripts/repo_map.py --root . --budget 2048 --format default`.
 
 ## Stack reconnaissance helper
 

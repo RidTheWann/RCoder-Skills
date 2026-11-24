@@ -112,7 +112,8 @@ def main():
         "rscan.md", "agent-extensions-engineering.md", "llm-agent-security.md",
         "observability-sre.md", "android-platform-engineering.md",
         "windows-platform-engineering.md", "iac-platform-engineering.md",
-        "graphics-gpu-engineering.md"
+        "graphics-gpu-engineering.md", "deterministic-routing.md",
+        "weak-model-profile.md", "repo-map.md"
     ):
         check((SKILL / "references" / required).is_file(), f"G1: required specialist missing: {required}")
 
@@ -164,7 +165,7 @@ def main():
         check(fixture.is_file(), f"G3: missing scenario fixture {scenario_id}")
         if fixture.is_file():
             check(len(read(fixture)) >= 80, f"G3: scenario fixture too short: {scenario_id}")
-    for required in ("score-eval.py", "test-score-eval.py"):
+    for required in ("score-eval.py", "test-score-eval.py", "test-route-predict.py", "test-repo-map.py"):
         check((ROOT / "scripts" / required).is_file(), f"G3: evaluation harness missing: {required}")
     check((ROOT / "evals" / "ABLATION-PROTOCOL.md").is_file(),
           "G3: ablation protocol missing")
@@ -298,6 +299,9 @@ def main():
         "scripts/test-installer-menus.py", "scripts/test-integrations.mjs",
         "scripts/test-skill-authoring.py", "scripts/test-cli-skill.mjs",
         "scripts/test-multilingual-data.py",
+        "skills/rcoder/scripts/route_predict.py", "scripts/test-route-predict.py",
+        "skills/rcoder/scripts/repo_map.py", "scripts/repo-map.py", "scripts/test-repo-map.py",
+        "evals/dataset-heldout.json", "skills/rcoder/references/deterministic-routing.md",
         "skills/rcoder/scripts/skill_authoring.py", "skills/rcoder/references/mcp-transport-engineering.md",
         "launcher/rcoder-mcp.mjs", ".opencode/plugins/rcoder.js", "gemini-extension.json",
         "GEMINI.md", ".mcp.json", "mcp.json", ".agents/plugins/marketplace.json"

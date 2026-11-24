@@ -598,6 +598,23 @@ def tool_contract(args):
             "transports": raw["mcp"]["transports"], "pagination": raw["mcp"]["pagination"],
             "structured_output": raw["mcp"]["structured_output"], "invariants": raw["invariants"]}
 
+def tool_route_predict(args):
+    text = args.get("text")
+    if not isinstance(text, str) or not text.strip():
+        raise ToolError("text is required: a bounded request to route")
+    code, stdout, stderr = run_helper("route_predict.py", ["--text", text, "--json",
+                                                           "--root", str(State.root)])
+    return helper_result(code, stdout, stderr)
+
+def tool_repo_map(args):
+    arguments = ["--root", resolve_in_root(args.get("root", ".")),
+                 "--budget", str(args.get("budget", 2048)),
+                 "--format", args.get("format", "default")]
+    if args.get("max_files"):
+        arguments += ["--max-files", str(args["max_files"])]
+    code, stdout, stderr = run_helper("repo_map.py", arguments)
+    return helper_result(code, stdout, stderr)
+
 # ------------------------------------------------------------------------- tools
 
 def schema(properties, required=None):
@@ -651,6 +668,21 @@ TOOLS = [
      "Return the 2.0 contract version, transports, pagination, structured output, or invariants.",
      schema({"section": {"type": "string", "enum": [
          "product", "mcp", "adapters", "invariants"]}}), tool_contract),
+    ("rcoder_route_predict", "Deterministic routing proposal",
+     "Propose specialist modules for a request using documented high-precision signals "
+     "and cross-domain composition. Read-only proposal with evidence and ordinal "
+     "confidence; never decides for the model.",
+     schema({"text": {"type": "string", "maxLength": 20000,
+                      "description": "The request text to route (bounded)."}}),
+     tool_route_predict),
+    ("rcoder_repo_map", "Repository structural map",
+     "Compact, token-budgeted map of repo symbols, imports, entry points, and "
+     "PageRank-ranked files; no source bodies. Read-only.",
+     schema({"root": ROOT_PROP,
+             "budget": {**INT, "minimum": 64, "maximum": 100000},
+             "format": {"type": "string", "enum": ["compact", "default", "detail"]},
+             "max_files": {**INT, "minimum": 10, "maximum": 5000}},
+            []), tool_repo_map),
     ("rcoder_doctor", "Installation diagnostics",
      "Report server version, skill files, helpers, enabled optional tools, and project-local extensions.",
      schema({}), tool_doctor),
