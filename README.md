@@ -90,6 +90,8 @@ Launcher locations:
 
 ### Verify the installation
 
+After installation, open a new terminal so the updated user `PATH` is loaded by the new shell. Then verify the launcher:
+
 ```sh
 rcoder doctor --json
 ```
@@ -196,7 +198,7 @@ rcoder hooks uninstall --scope project
 rcoder hooks print-config
 ```
 
-Hooks are opt-in. Review the relevant documentation and generated configuration before applying them.
+The CLI-managed `guard` and `stop-gate` handlers are opt-in; installing the skill or plugin does not enable them. The Claude Code plugin separately bundles a read-only RScan `SessionStart` hook in `hooks/hooks.json`, which runs when the plugin is active. See [docs/HOOKS.md](docs/HOOKS.md) and [docs/MCP.md](docs/MCP.md) for the distinction before enabling additional hooks.
 
 ---
 
