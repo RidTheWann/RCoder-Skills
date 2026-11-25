@@ -28,7 +28,7 @@ Calibration note: on a seven-sample in-repository research fixture, an oracle bu
 4. Decide the budget in lines and whether omitted ranges must remain retrievable.
 
 ## Procedure
-1. Measure first: `python3 scripts/rsaver.py measure <paths> --json`.
+1. Measure first: `python3 <skill-dir>/scripts/rsaver.py measure <absolute-file-paths> --json`.
 2. For a known symbol, extract a bounded window: `rsaver select FILE --match 'SYMBOL|ERROR' --context 2 --max-lines 120`.
 3. For verbose output, prune non-critical lines to 80%+ savings: `rsaver compact FILE --target-savings 80 --critical '<pattern>' --manifest manifest.json --verify`.
 4. For repetitive lines, words, or command blocks, collapse them:

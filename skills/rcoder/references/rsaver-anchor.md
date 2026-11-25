@@ -16,9 +16,9 @@ Attention is not uniform: early and late positions receive more attention than t
 4. Verify each "verified fact" has a source. Unsourced reasoning must be labeled as a decision or unresolved hypothesis.
 
 ## Procedure
-1. Run `python3 scripts/rsaver.py drift <transcript> --json` when a transcript file exists; review signal line numbers.
+1. Run `python3 <skill-dir>/scripts/rsaver.py drift <absolute-transcript-path> --json` when a transcript file exists; review signal line numbers.
 2. Build the state JSON with explicit, source-backed entries.
-3. Run `python3 scripts/rsaver.py anchor state.json --max-tokens 400 --json` to get an opening block, a closing block, and their explicit IDs.
+3. Run `python3 <skill-dir>/scripts/rsaver.py anchor <absolute-state-path> --max-tokens 400 --json` to get an opening block, a closing block, and their explicit IDs.
 4. Check warnings: `anchor_exceeds_budget` or `too_many_repeated_constraints` means reduce or merge entries.
 5. Use `reanchor --envelope envelope.json --state state.json` to insert both blocks and re-run the gate budget before the next request.
 6. In the next prompt, refer to items by ID (for example "apply [DECISION-1]") rather than by position.
