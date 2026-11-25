@@ -29,7 +29,7 @@ Every arrow back to the model is a new budget decision. A cache hit is a billing
 
 ## Procedure
 1. Build a context envelope: each item has `id`, `section` (`prefix`, `working`, `history`, `tail`), `tokens`, `stability` (`static` or `dynamic`), and `priority` (`required`, `useful`, `optional`).
-2. Run `python3 scripts/rsaver.py gate envelope.json --json` to get the budget split, cache eligibility, per-item decisions, and warnings.
+2. Run `python3 <skill-dir>/scripts/rsaver.py gate <absolute-envelope-path> --json` to get the budget split, cache eligibility, per-item decisions, and warnings.
 3. Keep every required item, including the user prompt and the last tool result needed for the current decision. Defer optional history first, then merely useful material.
 4. Place retained static items first and contiguously; never insert a volatile item into the planned cache prefix.
 5. Check `cache_prefix_below_minimum` and `cache_prefix_fragmented_by_dynamic_item` warnings. A prefix below the minimum earns no discount; a fragmented prefix must be re-planned.

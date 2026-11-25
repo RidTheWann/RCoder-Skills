@@ -95,7 +95,7 @@ Tool schemas are sent on every request, so they are a continuous token cost. Mea
 | `full` (default) | 24 | about 13,300 characters | about 3,880 |
 | `minimal` | 4 | about 2,300 characters | about 675 |
 
-The 24-tool figure was measured with `rsaver measure` on the serialized tool list. `scripts/test-mcp.py` fails if the serialized tool list grows past a fixed character budget. Use `--profile minimal` or `--tools` when you only need routing support; the RSaver and RScan command-line tools remain available without the server.
+The 24-tool figure was measured with `rsaver measure` on the serialized tool list. `scripts/test-mcp.py` fails if the serialized tool list grows past a fixed character budget. Use `--profile minimal` or `--tools` when you only need routing support. The `minimal` profile exposes `rcoder_scan`, `rcoder_list_specialists`, `rcoder_get_specialist`, and `rcoder_validate_selection`; it intentionally omits `rcoder_doctor`. In that profile, inspect the host's MCP launch configuration to establish the process `--root`; when it cannot be established or the target is outside it, use the installed CLI helper by absolute path. The RSaver and RScan command-line tools remain available without the server.
 
 ## Security model
 
