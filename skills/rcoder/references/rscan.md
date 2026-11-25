@@ -16,7 +16,7 @@ An IDE launch does not by itself run a skill file. Automatic scanning requires a
 4. Treat scan findings as bounded evidence: the path sample may be truncated.
 
 ## Procedure
-1. Run `python3 skills/rcoder/scripts/rscan.py scan --root . --format json` for machine-readable output, or `--format text` for a menu.
+1. Run `python3 <skill-dir>/scripts/rscan.py scan --root <project-root> --format json` for machine-readable output, or `--format text` for a menu.
 2. Review risk signals and stacks; open only the key files needed to confirm the top option.
 3. Present the ranked options with their IDs and first commands. Ask the user which option to pursue when the choice is consequential; otherwise choose the smallest sufficient one.
 4. Load only the specialists listed for the chosen option.
@@ -34,7 +34,7 @@ An IDE launch does not by itself run a skill file. Automatic scanning requires a
 - Security-sensitive paths present → defensive security review, never offensive action.
 
 ## Tool strategy
-The canonical CLI is `skills/rcoder/scripts/rscan.py` (bundled with the skill); `scripts/rscan.py` is a repository-root wrapper. It uses only the Python standard library and Git when available. `scan` supports `text`, `json`, `markdown`, and host payload modes. `hooks` supports `preview` and `install` for Claude Code and Gemini CLI only.
+The canonical CLI is `<skill-dir>/scripts/rscan.py` (bundled with the installed skill; prefer the `rcoder_scan` MCP tool when available); `scripts/rscan.py` is a repository-root wrapper. It uses only the Python standard library and Git when available. `scan` supports `text`, `json`, `markdown`, and host payload modes. `hooks` supports `preview` and `install` for Claude Code and Gemini CLI only.
 
 ## Advanced techniques
 - **Hook idempotence:** the installer detects an existing RScan command and leaves settings untouched on repeat runs.

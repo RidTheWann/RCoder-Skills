@@ -28,7 +28,7 @@ The policy addresses each with a hard constraint (deadline, detector, budget) ra
 
 1. **Generate repo map** (once per session, refresh on significant edits):
    ```
-   python3 skills/rcoder/scripts/repo_map.py --root . --budget 2048 --format default
+   python3 <skill-dir>/scripts/repo_map.py --root . --budget 2048 --format default
    ```
    Keep this map in context for every turn.
 

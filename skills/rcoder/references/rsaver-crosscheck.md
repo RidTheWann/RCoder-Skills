@@ -34,7 +34,7 @@ A completion claim is a hypothesis until artifacts confirm it. RSaver is local a
 - Human must read the text without unpacking → use `compact`/`dedupe`, not `pack`.
 
 ## Tool strategy
-`python3 skills/rcoder/scripts/rsaver.py` provides `crosscheck`, `pack`, and `unpack` with the standard library only. Usage JSON is copied from the provider response; RSaver does not contact the provider. `pack` uses zlib level 9 plus base64, records original SHA-256 and both estimates, and `unpack` refuses to emit content when the restored hash differs.
+`python3 <skill-dir>/scripts/rsaver.py` provides `crosscheck`, `pack`, and `unpack` with the standard library only. Usage JSON is copied from the provider response; RSaver does not contact the provider. `pack` uses zlib level 9 plus base64, records original SHA-256 and both estimates, and `unpack` refuses to emit content when the restored hash differs.
 
 ## Advanced techniques
 - **Evidence line numbers:** every check cites the exact line in the artifact, so a reviewer can reproduce the verdict.

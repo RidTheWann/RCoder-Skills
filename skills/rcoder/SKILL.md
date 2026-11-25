@@ -16,6 +16,15 @@ All built-in instructions, expert references, templates, evaluation prompts, ins
 
 RCoder is a model-agnostic engineering workflow router. It does not grant tools, permissions, or authorization; use only capabilities and access exposed by the active agent.
 
+## Tool execution and resolution priority
+
+Resolve RCoder capabilities in this order. `<skill-dir>` is the directory this `SKILL.md` was loaded from. Never conclude RCoder is missing because `skills/rcoder/` is absent from the current workspace: that path exists only inside the RCoder source repository, not in user projects or isolated Git worktrees.
+
+1. **MCP first, within the configured root.** If `mcp__rcoder__*` tools are available, call them directly (`rcoder_scan`, `rcoder_route_predict`, `rcoder_doctor`, `rsaver_*`). First use `rcoder_doctor` to inspect the server's configured root. A tool's `root` argument selects a target; it cannot widen the server process's `--root` (`State.root`). Pass an absolute project path only when it resolves inside that configured root. If the active project or worktree is outside it, do not send that path to MCP: use the installed helper in step 2, or explicitly reconfigure and restart the server with an appropriately scoped `--root` before using MCP.
+2. **Installed scripts by absolute path.** When MCP tools are unavailable or the target is outside the MCP server's configured root, run helpers from `<skill-dir>/scripts/` (fallbacks: `~/.claude/skills/rcoder`, `~/.agents/skills/rcoder`, `~/.rcoder/app/skills/rcoder`) with an explicit `--root <project-root>`, for example `python3 <skill-dir>/scripts/rscan.py scan --root <project-root> --format json`.
+3. **No cwd-relative script paths.** Do not run `python3 skills/rcoder/scripts/...` unless that path exists in the current workspace.
+4. **Fail visibly.** If neither route works, report which tools and paths were checked and mark RScan/RSaver `NOT VERIFIED`. Do not claim RCoder is not installed.
+
 ## Multilingual activation
 
 Keep repository-maintained instructions and reference files in English, but respond in the language the user predominantly uses unless they request another language. Classify a task by its requested deliverable, acceptance criteria, technical domain, and risk—not by English-only trigger words. This applies to Indonesian, mixed-language, paraphrased, and unfamiliar phrasing. Preserve API names, identifiers, file paths, command names, code symbols, standards, and product names exactly; do not translate or rewrite them to make a prompt appear monolingual. When a message mixes languages, interpret the whole request before choosing specialists; language mixing alone does not justify extra modules. If meaning remains ambiguous, restate the inferred deliverable in the user's language and verify it against repository evidence before proceeding.
@@ -64,7 +73,7 @@ These layers describe responsibilities, not extra steps to perform on every task
 
 ## RScan (session start)
 
-On a new session or in an unfamiliar repository, load [RScan](references/rscan.md) and run `python3 skills/rcoder/scripts/rscan.py scan --root . --format json` (or `--format text` for a menu). Present the ranked development options with their first commands and specialist references before choosing work. Automatic launch scanning requires a verified host session-start hook; install it only for supported hosts with `rscan hooks install` and see `docs/RSCAN-HOOKS.md`. Never claim automatic invocation from file installation alone. Check `<target-root>/.rcoder-features.json` to see whether RScan and RSaver were enabled at install time.
+On a new session or in an unfamiliar repository, load [RScan](references/rscan.md) and call `rcoder_scan` when the MCP tools are available and the project root is inside the server's configured `--root`; otherwise run `python3 <skill-dir>/scripts/rscan.py scan --root <project-root> --format json` (or `--format text` for a menu); see [tool execution and resolution priority](#tool-execution-and-resolution-priority). Present the ranked development options with their first commands and specialist references before choosing work. Automatic launch scanning requires a verified host session-start hook; install it only for supported hosts with `rscan hooks install` and see `docs/RSCAN-HOOKS.md`. Never claim automatic invocation from file installation alone. Check `<target-root>/.rcoder-features.json` to see whether RScan and RSaver were enabled at install time.
 
 ## RSaver gate (before routing)
 
@@ -159,10 +168,10 @@ Load [model adaptation](references/model-adaptation.md) when the host or model i
 
 ### Token and context efficiency
 
-For multi-step or large-repository work, load [token-efficient engineering](references/token-efficiency.md). Use the bounded [context snapshot helper](scripts/context_snapshot.py) and the [context capsule template](assets/templates/context-capsule-template.md). For oversized tool output or measured context reduction, load [RSaver](references/rsaver.md) and use `scripts/rsaver.py` (or the bundled `skills/rcoder/scripts/rsaver.py`) to measure, prune, and recover evidence; use the gate module above for the per-step budget decision. Optimize total engineering cost without weakening safety, verification, or evidence.
+For multi-step or large-repository work, load [token-efficient engineering](references/token-efficiency.md). Use the bounded [context snapshot helper](scripts/context_snapshot.py) and the [context capsule template](assets/templates/context-capsule-template.md). For oversized tool output or measured context reduction, load [RSaver](references/rsaver.md) and use `scripts/rsaver.py` (or the bundled `<skill-dir>/scripts/rsaver.py`) to measure, prune, and recover evidence; use the gate module above for the per-step budget decision. Optimize total engineering cost without weakening safety, verification, or evidence.
 
 For weak/small models (< ~30B active or ≤32K context), load [weak-model-profile](references/weak-model-profile.md) and generate the [repo map](references/repo-map.md) once per session:
-`python3 skills/rcoder/scripts/repo_map.py --root . --budget 2048 --format default`.
+`python3 <skill-dir>/scripts/repo_map.py --root <project-root> --budget 2048 --format default`.
 
 ## Stack reconnaissance helper
 
@@ -170,7 +179,7 @@ For weak/small models (< ~30B active or ≤32K context), load [weak-model-profil
 
 ## MCP server (optional)
 
-`scripts/rcoder_mcp.py` is a read-only, dependency-free stdio MCP server that exposes RScan, RSaver, stack detection, the bounded snapshot, specialist lookup (with section-level loading), and a routing-selection validator. It is not started by installing the skill: a host must be configured to launch it (`python3 scripts/rcoder_mcp.py --print-config HOST` prints a snippet; see `docs/MCP.md`). When the host exposes these tools, call them natively as `mcp__rcoder__*` (for example `mcp__rcoder__rcoder_scan`); never run `python -m mcp__rcoder__*` or invoke the server module through Bash. The server is a stdio process, not a Python module to execute per call. When its tools are available, prefer `rcoder_validate_selection` before executing a routing decision and `rcoder_get_specialist` with `sections` to load only what the task needs. Never claim the server is connected without a successful `rcoder_doctor` call, and never treat server reachability as proof of native skill discovery.
+`scripts/rcoder_mcp.py` is a read-only, dependency-free stdio MCP server that exposes RScan, RSaver, stack detection, the bounded snapshot, specialist lookup (with section-level loading), and a routing-selection validator. It is not started by installing the skill: a host must be configured to launch it (`python3 scripts/rcoder_mcp.py --print-config HOST` prints a snippet; see `docs/MCP.md`). Pass an absolute tool-level `root` only when it remains inside the server process's configured `--root`; a tool argument cannot widen `State.root`. If the target is outside that boundary, use the installed helper by absolute path or reconfigure and restart the server with a suitable, narrowly scoped root. See `docs/MCP.md` for the distinction. When the host exposes these tools, call them natively as `mcp__rcoder__*` (for example `mcp__rcoder__rcoder_scan`); never run `python -m mcp__rcoder__*` or invoke the server module through Bash. The server is a stdio process, not a Python module to execute per call. When its tools are available, prefer `rcoder_validate_selection` before executing a routing decision and `rcoder_get_specialist` with `sections` to load only what the task needs. Never claim the server is connected without a successful `rcoder_doctor` call, and never treat server reachability as proof of native skill discovery.
 
 ## Project-local extensions
 

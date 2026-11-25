@@ -20,7 +20,7 @@ Two errors dominate routing: under-selection (drop a required base such as `secu
 
 ## Procedure
 
-1. Call `rcoder_route_predict` with the request text (bounded), or run `skills/rcoder/scripts/route_predict.py --text "<text>" --json`.
+1. Call `rcoder_route_predict` with the request text (bounded), or run `<skill-dir>/scripts/route_predict.py --text "<text>" --json`.
 2. Read the `proposed` list, `primary`, `confidence`, and per-module `evidence`.
 3. Apply composition rules: a security-family module implies `security`; a systems-language task implies `systems-programming`.
 4. A model may override with a stated reason; record the reason in the working ledger.
