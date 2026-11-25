@@ -20,7 +20,7 @@ Weak models waste context exploring an unfamiliar repo. A PageRank-ranked map ov
 
 ## Procedure
 
-1. Run `python3 skills/rcoder/scripts/repo_map.py --root . --budget 2048 --format default` once per session.
+1. Run `python3 <skill-dir>/scripts/repo_map.py --root . --budget 2048 --format default` once per session.
 2. Keep the map in context for every turn; do not re-run on every read.
 3. Use the ranked file list to pick the first file to open; grep inside that file for the exact symbol.
 4. After significant edits, rebuild the map (`--root .`) so stale structure does not mislead.
