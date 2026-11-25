@@ -35,7 +35,7 @@ Attention is not uniform: early and late positions receive more attention than t
 - Anchor exceeds budget → shorten by dropping low-value facts, never by dropping the objective, constraints, or security boundary.
 
 ## Tool strategy
-`python3 skills/rcoder/scripts/rsaver.py` provides `drift`, `anchor`, and `reanchor`. State and envelope files are JSON; `-` reads state from stdin. All output can be requested with `--json` for deterministic tests and ledger capture. The drift detector uses the standard library only; it counts line-based signals and never inspects model internals.
+`python3 <skill-dir>/scripts/rsaver.py` provides `drift`, `anchor`, and `reanchor`. State and envelope files are JSON; `-` reads state from stdin. All output can be requested with `--json` for deterministic tests and ledger capture. The drift detector uses the standard library only; it counts line-based signals and never inspects model internals.
 
 ## Advanced techniques
 - **Bilateral anchoring:** identical objective and constraint text at both ends; the closing block exploits recency while the opening block exploits primacy.
