@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 import zlib
@@ -1141,6 +1142,7 @@ AUDIT_SKIP_DIRS = {
     ".git", ".hg", ".svn", "node_modules", "vendor", "dist", "build", "target", ".venv", "venv",
     "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".next", ".nuxt", ".turbo",
     "coverage", "DerivedData", ".gradle", ".idea", ".ssh", ".aws", ".gnupg", ".kube", ".docker",
+    ".worktrees", "bin", "obj",
 }
 AUDIT_SECRET_RE = re.compile(
     r"(?i)(^\.env(\..*)?$|^id_(rsa|dsa|ecdsa|ed25519)(\.pub)?$|\.(pem|key|p12|pfx|jks|keystore|kdbx)$|"
@@ -1167,6 +1169,26 @@ AUDIT_IGNORE_PATTERNS = {
     "log": ["*.log"],
     "data": ["*.csv", "*.tsv", "*.jsonl", "*.ndjson"],
 }
+
+def git_tracked_files(root: Path) -> list[str] | None:
+    """Return git-tracked and untracked-but-not-ignored files relative to root.
+
+    ``git ls-files --cached --others --exclude-standard`` already applies every
+    applicable .gitignore, so build trees (obj/, bin/, target/, node_modules/),
+    .worktrees/, and host artifacts never reach the audit. Returns None when the
+    directory is not a git work tree or git is unavailable; callers then fall back
+    to the bounded directory walk with AUDIT_SKIP_DIRS.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+            cwd=str(root), text=False, capture_output=True, timeout=30, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    return [item for item in result.stdout.split(b"\0") if item]
 
 
 def audit_category(name: str, size: int, large_threshold_bytes: int) -> str:
@@ -1212,55 +1234,84 @@ def audit_project(root: Path, profile: str, top: int, max_files: int, max_read_b
     rows: list[dict] = []
     skipped = {"secret": 0, "binary": 0, "symlink": 0, "unreadable": 0}
     truncated = False
-    stack = [root]
     scanned = 0
-    while stack and not truncated:
-        folder = stack.pop()
-        try:
-            entries = sorted(os.scandir(folder), key=lambda entry: entry.name.lower())
-        except OSError:
-            skipped["unreadable"] += 1
-            continue
-        for entry in entries:
-            if entry.is_symlink():
+    git_files = git_tracked_files(root)
+    candidates: list[str] = []
+    if git_files is not None:
+        # Git already applied .gitignore: ignored build trees and .worktrees/ are absent.
+        for raw in git_files:
+            relative = os.fsdecode(raw).replace("\\", "/").strip()
+            if not relative or "\x00" in relative or Path(relative).is_absolute():
+                continue
+            parts = Path(relative).parts
+            if ".." in parts or any(part in AUDIT_SKIP_DIRS for part in parts[:-1]):
+                continue
+            candidate = root / relative
+            try:
+                candidate.resolve().relative_to(root)
+            except (ValueError, OSError):
                 skipped["symlink"] += 1
                 continue
-            if entry.is_dir(follow_symlinks=False):
-                if entry.name not in AUDIT_SKIP_DIRS:
-                    stack.append(Path(entry.path))
+            if candidate.is_symlink():
+                skipped["symlink"] += 1
                 continue
-            if not entry.is_file(follow_symlinks=False):
-                continue
-            if AUDIT_SECRET_RE.search(entry.name):
-                skipped["secret"] += 1
-                continue
-            if scanned >= max_files:
-                truncated = True
-                break
-            scanned += 1
+            candidates.append(relative)
+        candidates.sort()
+    else:
+        # Outside git: bounded walk with static skip list (no .gitignore parser needed).
+        stack = [root]
+        while stack:
+            folder = stack.pop()
             try:
-                size = entry.stat(follow_symlinks=False).st_size
-                with open(entry.path, "rb") as handle:
-                    head = handle.read(4096)
-                    if b"\x00" in head:
-                        skipped["binary"] += 1
-                        continue
-                    data = head + handle.read(max(0, max_read_bytes - len(head)))
+                entries = sorted(os.scandir(folder), key=lambda entry: entry.name.lower())
             except OSError:
                 skipped["unreadable"] += 1
                 continue
-            text = data.decode("utf-8", errors="replace")
-            sized_only = size > max_read_bytes
-            tokens = (size + 3) // 4 if sized_only else estimate_v2(text, profile)
-            category = audit_category(entry.name, size, large_threshold_bytes)
-            rows.append({
-                "path": Path(entry.path).relative_to(root).as_posix(),
-                "bytes": size,
-                "tokens": tokens,
-                "category": category,
-                "size_only_estimate": sized_only,
-                "_text": None if sized_only else text,
-            })
+            for entry in entries:
+                if entry.is_symlink():
+                    skipped["symlink"] += 1
+                    continue
+                if entry.is_dir(follow_symlinks=False):
+                    if entry.name not in AUDIT_SKIP_DIRS:
+                        stack.append(Path(entry.path))
+                    continue
+                if entry.is_file(follow_symlinks=False):
+                    candidates.append(Path(entry.path).relative_to(root).as_posix())
+        candidates.sort()
+
+    for relative in candidates:
+        if scanned >= max_files:
+            truncated = True
+            break
+        name = Path(relative).name
+        if AUDIT_SECRET_RE.search(name):
+            skipped["secret"] += 1
+            continue
+        scanned += 1
+        candidate = root / relative
+        try:
+            size = candidate.stat().st_size
+            with open(candidate, "rb") as handle:
+                head = handle.read(4096)
+                if b"\x00" in head:
+                    skipped["binary"] += 1
+                    continue
+                data = head + handle.read(max(0, max_read_bytes - len(head)))
+        except OSError:
+            skipped["unreadable"] += 1
+            continue
+        text = data.decode("utf-8", errors="replace")
+        sized_only = size > max_read_bytes
+        tokens = (size + 3) // 4 if sized_only else estimate_v2(text, profile)
+        category = audit_category(name, size, large_threshold_bytes)
+        rows.append({
+            "path": relative,
+            "bytes": size,
+            "tokens": tokens,
+            "category": category,
+            "size_only_estimate": sized_only,
+            "_text": None if sized_only else text,
+        })
     rows.sort(key=lambda row: (-row["tokens"], row["path"]))
     total = sum(row["tokens"] for row in rows)
     by_category: dict[str, dict] = {}

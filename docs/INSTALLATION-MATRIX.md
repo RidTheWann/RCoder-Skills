@@ -27,12 +27,12 @@ The lower-level offline installers in `scripts/` remain available for cross-plat
 
 These routes are distinct from copying a portable skill directory. The command manager validates file operations and invokes native CLIs where available; activation still requires a new host session and direct observation.
 
-| Host | RCoder command | Host-side action |
+| Host | rcoder command | Host-side action |
 |---|---|---|
-| OpenCode | `RCoder integration install opencode --scope project` | Copies the skill and the V1 plugin adapter to the project. Start a new OpenCode session. |
-| Gemini CLI | `RCoder integration install gemini-cli` | Runs `gemini extensions install https://github.com/RidTheWann/RCoder-Skills`; restart Gemini CLI. |
-| Codex | `RCoder integration install codex` | Adds the Git marketplace; open `/plugins` and install the RCoder plugin explicitly. |
-| Claude Code | `RCoder integration install claude-code` | Prints `/plugin marketplace add` and `/plugin install` commands to run inside Claude Code. |
+| OpenCode | `rcoder integration install opencode --scope project` | Copies the skill and the V1 plugin adapter to the project. Start a new OpenCode session. |
+| Gemini CLI | `rcoder integration install gemini-cli` | Runs `gemini extensions install https://github.com/RidTheWann/RCoder-Skills`; restart Gemini CLI. |
+| Codex | `rcoder integration install codex` | Adds the Git marketplace; open `/plugins` and install the RCoder plugin explicitly. |
+| Claude Code | `rcoder integration install claude-code` | Prints `/plugin marketplace add` and `/plugin install` commands to run inside Claude Code. |
 
 - [Gemini CLI extensions](https://google-gemini.github.io/gemini-cli/docs/extensions/index.html)
 - [OpenAI Codex plugins](https://developers.openai.com/codex/plugins/)

@@ -34,8 +34,8 @@
 ## D-010 — Preserve both official installation methods
 - Decision: keep Windows PowerShell `irm` and Node.js/npm as first-class installation methods. Neither replaces the other.
 
-## D-011 — Global launcher command is exactly RCoder
-- Decision: install a global `RCoder` command. Windows `irm` provisions a `RCoder.cmd` shim invoking the bundled PowerShell manager; the Node installer provisions a POSIX wrapper or Windows shim.
+## D-011 — Global launcher command is exactly rcoder
+- Decision: install a global `rcoder` command. Windows `irm` provisions a `rcoder.cmd` shim invoking the bundled PowerShell manager; the Node installer provisions a POSIX wrapper or Windows shim.
 - Criteria: no Node dependency for the Windows `irm` route, no third-party runtime, idempotent update, and clear PATH guidance.
 
 ## D-012 — Registry-driven host selection

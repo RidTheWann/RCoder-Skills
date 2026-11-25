@@ -23,7 +23,7 @@ Thank you for improving RCoder. This repository is a portable engineering skill,
 | Evaluation data and runs | `evals/` |
 | Tests and validators | `scripts/` |
 
-New specialists follow `skills/rcoder/references/domain-extension-guide.md`. Scaffold and lint a skill with `RCoder skill new`, `RCoder skill lint`, and `RCoder skill package`.
+New specialists follow `skills/rcoder/references/domain-extension-guide.md`. Scaffold and lint a skill with `rcoder skill new`, `rcoder skill lint`, and `rcoder skill package`.
 
 ## Before you open a pull request
 

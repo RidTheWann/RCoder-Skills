@@ -17,7 +17,7 @@ Updated: 2026-11-23. Product version remains 1.14.0 during this development bran
 - Project skill: `.opencode/skills/rcoder/`
 - Project plugin: `.opencode/plugins/rcoder.js`
 - Hook: `experimental.chat.system.transform`, aligned with the repository's observed OpenCode 1.19.6 V1 hook types.
-- Installer: `RCoder integration install opencode --scope project`
+- Installer: `rcoder integration install opencode --scope project`
 - User scope uses `~/.config/opencode/skills/rcoder/` and `~/.config/opencode/plugins/rcoder.js`.
 - `verify` checks that the plugin and skill files exist; it does not start OpenCode or prove the plugin loaded.
 - Existing MCP configuration is untouched. Configure MCP separately with the MCP setup action.

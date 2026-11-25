@@ -54,7 +54,7 @@ Build v1.12.0 as a safe extension of the verified v1.11.0 product baseline (`06e
 - [x] Add RScan bounded scanner, development-option menu, and evidenced session-start hook installers.
 - [x] Add RSaver crosscheck and economy-checked exact-recovery compression with a documented billing boundary.
 - [x] Add the live benchmark protocol, OpenCode V1/V2 adapter generator, and 13-heading specialist enforcement.
-- [x] Add a global terminal manager invoked by typing `RCoder`.
+- [x] Add a global terminal manager invoked by typing `rcoder`.
 - [x] Add multi-target and Project/User selection, shared-root deduplication, install/update, uninstall, backup, and restore.
 - [x] Add a Windows-native PowerShell launcher independent of Node.js.
 - [x] Add a Node/npm global launcher and include its runtime files in package metadata.

@@ -20,6 +20,7 @@ SKIP = {
     ".git", ".hg", ".svn", "node_modules", "vendor", "dist", "build", "target",
     ".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache", ".next",
     ".nuxt", ".turbo", "coverage", "DerivedData", ".gradle", ".idea", ".cache",
+    ".worktrees", "bin", "obj",
 }
 STACK_MARKERS = {
     "package.json": "Node.js / JavaScript / TypeScript",
@@ -48,6 +49,38 @@ BINARY_SUFFIXES = {".so", ".dll", ".dylib", ".exe", ".o", ".a", ".wasm", ".bin",
 SECURITY_MARKERS = ("auth", "crypto", "secret", "token", "login", "permission", "session")
 
 
+def _python_command() -> str:
+    """OS-aware Python executable: ``python`` on Windows, ``python3`` on POSIX."""
+    return "python" if os.name == "nt" else "python3"
+
+def _script_rel(script_name: str, root: Path) -> str:
+    """Resolve a bundled script path relative to root when possible, else absolute."""
+    script = Path(__file__).resolve().parent / script_name
+    try:
+        return script.relative_to(root).as_posix()
+    except ValueError:
+        return str(script)
+
+def git_tracked_files(root: Path) -> list[str] | None:
+    """Return git-tracked and untracked-but-not-ignored files relative to root.
+
+    ``git ls-files --cached --others --exclude-standard`` already applies every
+    applicable .gitignore, so ignored build trees (obj/, bin/, target/,
+    node_modules/) and .worktrees/ never reach the scan. Returns None when the
+    directory is not a git work tree or git is unavailable; callers then fall back
+    to the bounded directory walk with SKIP.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+            cwd=str(root), text=False, capture_output=True, timeout=30, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    return [item for item in result.stdout.split(b"\0") if item]
+
 def git_summary(root: Path) -> dict:
     def run(*args: str) -> str:
         try:
@@ -72,30 +105,52 @@ def collect_paths(root: Path, max_paths: int) -> tuple[list[str], bool, int]:
     discovery_limit = max(2000, max_paths * 20)
     candidates: list[str] = []
     truncated = False
-    stack = [(root, 0)]
-    while stack:
-        folder, depth = stack.pop()
-        try:
-            entries = sorted(os.scandir(folder), key=lambda entry: entry.name.lower())
-        except OSError:
-            continue
-        children: list[Path] = []
-        for entry in entries:
-            if entry.is_symlink():
+    git_files = git_tracked_files(root)
+    if git_files is not None:
+        # Git already applied .gitignore: ignored build trees and .worktrees/ are absent.
+        for raw in git_files:
+            relative = os.fsdecode(raw).replace("\\", "/").strip()
+            if not relative or "\x00" in relative or Path(relative).is_absolute():
                 continue
-            relative = Path(entry.path).relative_to(root).as_posix()
-            if entry.is_dir(follow_symlinks=False):
-                if entry.name not in SKIP and depth < 4:
-                    children.append(Path(entry.path))
-            elif entry.is_file(follow_symlinks=False):
-                candidates.append(relative)
-                if len(candidates) >= discovery_limit:
-                    truncated = True
-                    break
-        if truncated:
-            break
-        for child in reversed(children):
-            stack.append((child, depth + 1))
+            parts = Path(relative).parts
+            if ".." in parts or any(part in SKIP for part in parts[:-1]):
+                continue
+            candidate = root / relative
+            try:
+                candidate.resolve().relative_to(root)
+            except (ValueError, OSError):
+                continue
+            if candidate.is_symlink():
+                continue
+            candidates.append(relative)
+            if len(candidates) >= discovery_limit:
+                truncated = True
+                break
+    else:
+        stack = [(root, 0)]
+        while stack:
+            folder, depth = stack.pop()
+            try:
+                entries = sorted(os.scandir(folder), key=lambda entry: entry.name.lower())
+            except OSError:
+                continue
+            children: list[Path] = []
+            for entry in entries:
+                if entry.is_symlink():
+                    continue
+                relative = Path(entry.path).relative_to(root).as_posix()
+                if entry.is_dir(follow_symlinks=False):
+                    if entry.name not in SKIP and depth < 4:
+                        children.append(Path(entry.path))
+                elif entry.is_file(follow_symlinks=False):
+                    candidates.append(relative)
+                    if len(candidates) >= discovery_limit:
+                        truncated = True
+                        break
+            if truncated:
+                break
+            for child in reversed(children):
+                stack.append((child, depth + 1))
 
     candidates = sorted(set(candidates))
 
@@ -154,60 +209,61 @@ def build_options(root: Path, paths: list[str], stacks: list[str], key_files: li
                         "priority": score, "triggered_by": risk_ids})
 
     signals = {item["id"] for item in risks}
+    py = _python_command()
     if "no_readme" in signals or "no_agent_instructions" in signals or "unfamiliar_repository" in signals:
         add("ONBOARD", "Build a bounded repository map and onboard",
             "Entry points or agent instructions are missing/not evidenced.",
-            ["python3 skills/rcoder/scripts/context_snapshot.py . --max-paths 80",
-             "python3 skills/rcoder/scripts/rsaver.py measure README.md"],
+            [f"{py} {_script_rel('context_snapshot.py', root)} . --max-paths 80",
+             f"{py} {_script_rel('rsaver.py', root)} measure README.md"],
             ["token-efficiency", "documentation", "verification"], 70,
             sorted(signals & {"no_readme", "no_agent_instructions", "unfamiliar_repository"}))
     if "no_ci" in signals or "no_test_entry_point" in signals:
         add("QUALITY_GATES", "Add minimal tests and CI gates",
             "No CI workflow or test entry point was detected.",
-            ["python3 scripts/validate-all", "python3 scripts/test-context-snapshot.py"],
+            [f"{py} scripts/validate-all", f"{py} scripts/test-context-snapshot.py"],
             ["testing-qa", "devops-ci-cd"], 85,
             sorted(signals & {"no_ci", "no_test_entry_point"}))
     if "dependency_without_lock" in signals:
         add("DEPENDENCY_SECURITY", "Review dependency provenance and lockfiles",
             "A package manifest exists without a detected lockfile.",
-            ["python3 skills/rcoder/scripts/detect_stack.py . --json"],
+            [f"{py} {_script_rel('detect_stack.py', root)} . --json"],
             ["supply-chain-security", "build-toolchain-engineering"], 80,
             ["dependency_without_lock"])
     if git["changed_files"]:
         add("FINISH_CHANGE", "Finish and verify the in-progress change",
             "The working tree already contains uncommitted changes.",
-            ["git status --short", "git diff --stat", "python3 scripts/validate-all"],
+            ["git status --short", "git diff --stat", f"{py} scripts/validate-all"],
             ["coding", "review-refactor", "verification"], 90, ["uncommitted_changes"])
     if "no_readme" in signals or "docs_stale" in signals:
         add("DOCUMENTATION", "Refresh onboarding documentation",
             "Documentation is missing or does not match observed commands.",
-            ["python3 skills/rcoder/scripts/context_snapshot.py . --json"],
+            [f"{py} {_script_rel('context_snapshot.py', root)} . --json"],
             ["documentation"], 55, sorted(signals & {"no_readme", "docs_stale"}))
     if any(marker in " ".join(paths).lower() for marker in SECURITY_MARKERS):
         add("SECURITY_REVIEW", "Map trust boundaries and review security-sensitive paths",
             "Paths suggest authentication, tokens, or permission handling.",
-            ["python3 skills/rcoder/scripts/context_snapshot.py . --max-paths 80"],
+            [f"{py} {_script_rel('context_snapshot.py', root)} . --max-paths 80"],
             ["security", "threat-modeling", "secure-code-review"], 75, ["security_surface"])
     if "large_source_files" in signals:
         add("REFACTOR", "Decompose oversized modules behind stable contracts",
             "At least one file exceeds 300 lines in the bounded sample.",
-            ["python3 skills/rcoder/scripts/context_snapshot.py . --max-paths 120"],
+            [f"{py} {_script_rel('context_snapshot.py', root)} . --max-paths 120"],
             ["review-refactor", "architecture"], 50, ["large_source_files"])
     if "binary_artifacts" in signals:
         add("REVERSE_ENGINEERING", "Analyze binary artifacts with evidence provenance",
             "Binary artifacts were found in the bounded sample.",
-            ["python3 skills/rcoder/scripts/rsaver.py measure <artifact>"],
+            [f"{py} {_script_rel('rsaver.py', root)} measure <artifact>"],
             ["reverse-engineering", "reverse-engineering-file-formats"], 60,
             ["binary_artifacts"])
     if "benchmark_markers" in signals:
         add("PERFORMANCE", "Profile measured bottlenecks before optimizing",
             "Benchmark or profiling entry points were detected.",
-            ["python3 skills/rcoder/scripts/context_snapshot.py . --max-paths 80"],
+            [f"{py} {_script_rel('context_snapshot.py', root)} . --max-paths 80"],
             ["performance", "test-engineering"], 45, ["benchmark_markers"])
     if not git["changed_files"] and "no_ci" not in signals and quality["ci"]:
         add("RELEASE", "Prepare a release with reproducible packages",
             "Clean tree, CI, and build metadata are present.",
-            ["python3 scripts/package", "npm pack --dry-run --json"],
+            ["python scripts/package", "npm pack --dry-run --json"],
             ["devops-ci-cd", "documentation"], 40, [])
     return sorted(options, key=lambda item: (-item["priority"], item["id"]))
 
@@ -364,7 +420,10 @@ HOOK_EVENT = {"claude-code": "SessionStart", "gemini-cli": "SessionStart"}
 def hook_command(host: str) -> str:
     script = Path(__file__).resolve()
     payload_host = "claude" if host == "claude-code" else "gemini"
-    return f'"{sys.executable}" "{script}" scan --root . --hook {payload_host}'
+    # On Windows these hosts run the hook through PowerShell, where a quoted path must be
+    # invoked with the call operator or the parser rejects the line.
+    prefix = "& " if os.name == "nt" else ""
+    return f'{prefix}"{sys.executable}" "{script}" scan --root . --hook {payload_host}'
 
 
 def build_hook_config(host: str, settings: dict) -> dict:
@@ -374,7 +433,8 @@ def build_hook_config(host: str, settings: dict) -> dict:
     command = hook_command(host)
     for entry in entries:
         for handler in entry.get("hooks", []):
-            if "rscan.py" in handler.get("command", "") and "scan" in handler.get("command", ""):
+            cmd = handler.get("command", "")
+            if "rscan.py" in cmd and "scan" in cmd:
                 return settings
     handler = {"type": "command", "command": command, "name": "rscan-session-scan"}
     if host == "claude-code":
@@ -511,6 +571,9 @@ def command_hooks(args: argparse.Namespace) -> int:
     os.replace(temporary, target)
     print(f"RScan hook installed: {target}")
     print(f"RScan hook backup: {backup}")
+    print("Note: when the RCoder MCP server is available in this host, call its "
+          "mcp__rcoder__* tools natively; do not run python -m mcp__rcoder__* via Bash.",
+          file=sys.stderr)
     return 0
 
 

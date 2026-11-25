@@ -18,12 +18,12 @@ python3 skills/rcoder/scripts/rcoder_hooks.py install --only guard --profile str
 python3 skills/rcoder/scripts/rcoder_hooks.py uninstall
 ```
 
-The installed `RCoder` command exposes the same actions, so you do not need to remember the script path:
+The installed `rcoder` command exposes the same actions, so you do not need to remember the script path:
 
 ```sh
-RCoder hooks print-config
-RCoder hooks install --scope user --profile strict --dry-run
-RCoder hooks uninstall --scope project
+rcoder hooks print-config
+rcoder hooks install --scope user --profile strict --dry-run
+rcoder hooks uninstall --scope project
 ```
 
 `install` writes the absolute interpreter and script path, merges without removing existing hooks, writes a timestamped backup beside an existing settings file, is idempotent, and refuses symbolic links and settings files that are not strict JSON (print the snippet and merge by hand in that case). Hooks run with your privileges: install them only for projects you trust. Set `RCODER_HOOKS_DISABLE=1` in the environment that launches the host to switch both handlers off without editing settings.

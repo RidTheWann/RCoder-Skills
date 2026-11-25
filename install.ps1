@@ -99,7 +99,7 @@ function Install-GlobalLauncher([string]$Repo,[string]$UserHome) {
     $binRoot=Join-Path $launcherRoot 'bin'
     New-Item -ItemType Directory -Path $binRoot -Force | Out-Null
     $manager=Join-Path (Join-Path $appRoot 'launcher') 'RCoder.ps1'
-    $cmd=Join-Path $binRoot 'RCoder.cmd'
+    $cmd=Join-Path $binRoot 'rcoder.cmd'
     $cmdLines=@(
         '@echo off',
         'where powershell.exe >nul 2>nul',
@@ -115,7 +115,7 @@ function Install-GlobalLauncher([string]$Repo,[string]$UserHome) {
         ('pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "'+$manager+'" %*'),
         ':done',
         'echo.',
-        'echo Close and reopen the terminal if RCoder was just added to PATH.',
+        'echo Close and reopen the terminal if rcoder was just added to PATH.',
         'echo.'
     )
     $cmdText=($cmdLines -join "`r`n")+"`r`n"
@@ -225,8 +225,8 @@ try {
         Invoke-RCoderMcpSetup -Mode $Mcp -TargetId $Target -Scope $Scope -Base $base -SkillDestination $destination
     }
     Write-Host ''
-    Write-Host 'RCoder installation complete. Open a new terminal and type RCoder to manage agents.'
-    if($Mcp -eq 'none'){Write-Host 'Optional MCP server: type RCoder and choose "Set up MCP server", or re-run this installer with -Mcp show (print config) or -Mcp install (set it up).'}
+    Write-Host 'RCoder installation complete. Open a new terminal and type rcoder to manage agents.'
+    if($Mcp -eq 'none'){Write-Host 'Optional MCP server: type rcoder and choose "Set up MCP server", or re-run this installer with -Mcp show (print config) or -Mcp install (set it up).'}
 } catch {
     if($stage -and (Test-Path -LiteralPath $stage)){Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue}
     if($savedBackup -and (Test-Path -LiteralPath $savedBackup) -and -not(Test-Path -LiteralPath $destination)){Move-Item -LiteralPath $savedBackup -Destination $destination}
