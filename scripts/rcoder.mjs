@@ -31,7 +31,7 @@ function usage() {
 
 Usage:
   npx -y github:RidTheWann/RCoder-Skills [options]
-  RCoder
+  rcoder
 
 Options:
   --target <id>       Target host ID (default: agents)
@@ -42,7 +42,7 @@ Options:
   --list-targets      List supported agents and CLIs
   --dry-run           Preview without writing files
   --uninstall         Remove selected skill and restore the latest backup
-  --no-launcher       Do not install/update the global RCoder command
+  --no-launcher       Do not install/update the global rcoder command
   --features <csv>    Optional tools to enable: rsaver,rscan (default: both)
   --list-features     Show optional tools with short descriptions
   --mcp <mode>        MCP server setup after install: none (default) | show (print config) | install (set up automatically)
@@ -54,7 +54,7 @@ Options:
   hooks <install|uninstall|print-config>
                                 Manage opt-in Claude Code guard and completion-gate hooks
 
-After installation, open a new terminal and type RCoder.`);
+After installation, open a new terminal and type rcoder.`);
 }
 
 function parseArgs(args) {
@@ -796,7 +796,7 @@ function installLauncher(homeDir) {
     : path.join(homeDir, '.local', 'bin');
   mkdirSync(binRoot, { recursive: true });
   if (process.platform === 'win32') {
-    const cmdPath = path.join(binRoot, 'RCoder.cmd');
+    const cmdPath = path.join(binRoot, 'rcoder.cmd');
     const manager = path.join(appRoot, 'launcher', 'RCoder.ps1').replaceAll('%', '%%');
     const managerCli = path.join(appRoot, 'scripts', 'rcoder.mjs');
     const cmd = ['@echo off',
@@ -808,10 +808,10 @@ function installLauncher(homeDir) {
       ':pwsh7', 'pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "' + manager + '" %*', ''].join('\r\n');
     writeFileSync(cmdPath, cmd, 'utf8');
     registerWindowsPath(binRoot);
-    console.log(`Installed the global RCoder command: ${cmdPath}`);
+    console.log(`Installed the global rcoder command: ${cmdPath}`);
   } else {
     const managerCli = path.join(appRoot, 'scripts', 'rcoder.mjs');
-    const commandPath = path.join(binRoot, 'RCoder');
+    const commandPath = path.join(binRoot, 'rcoder');
     const wrapper = ['#!/bin/sh', 'set -eu',
       'manager=' + shellQuote(managerCli),
       'if [ "$#" -eq 0 ]; then exec node "$manager" --interactive; fi',
@@ -819,7 +819,7 @@ function installLauncher(homeDir) {
     writeFileSync(commandPath, wrapper, { encoding: 'utf8', mode: 0o755 });
     chmodSync(commandPath, 0o755);
     registerPosixPath(homeDir, binRoot);
-    console.log(`Installed the global RCoder command: ${commandPath}`);
+    console.log(`Installed the global rcoder command: ${commandPath}`);
   }
 }
 
@@ -947,7 +947,7 @@ try {
     if (options.dryRun && options.mcp !== 'none') console.log(`DRY RUN: MCP mode '${options.mcp}' would run after the skill is installed.`);
     else if (!options.uninstall) runMcpSetup(options.mcp, target, options.scope, mcpBase);
     if (!options.uninstall && !options.dryRun && options.mcp === 'none') {
-      console.log('Optional MCP server: type RCoder and choose "Set up MCP server", or re-run with --mcp show or --mcp install.');
+      console.log('Optional MCP server: type rcoder and choose "Set up MCP server", or re-run with --mcp show or --mcp install.');
     }
   }
 } catch (error) {

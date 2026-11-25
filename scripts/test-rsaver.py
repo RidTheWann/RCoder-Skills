@@ -371,6 +371,21 @@ def main():
         assert run("audit", "--root", str(root / "missing-dir")).returncode == 2
         assert run("audit", "--root", str(project), "--top", "0").returncode == 2
 
+        # --- audit: .gitignore exclusion (build trees and worktrees) ------------------------
+        gitignore_project = root / "gitignore-project"
+        (gitignore_project / "src").mkdir(parents=True)
+        (gitignore_project / "src" / "app.py").write_text("def f():\n    return 1\n" * 30, encoding="utf-8")
+        (gitignore_project / ".gitignore").write_text(
+            "obj/\nbin/\ntarget/\nnode_modules/\n.worktrees/\n", encoding="utf-8")
+        for d in ("obj", "bin", "target", "node_modules", ".worktrees"):
+            (gitignore_project / d).mkdir()
+            (gitignore_project / d / "junk.txt").write_text("junk\n" * 1000, encoding="utf-8")
+        audit = run_json("audit", "--root", str(gitignore_project), "--json")
+        paths = [row["path"] for row in audit["top_files"]]
+        for d in ("obj", "bin", "target", "node_modules", ".worktrees"):
+            assert f"{d}/junk.txt" not in paths, f"{d}/ must be excluded by .gitignore"
+        assert "src/app.py" in paths
+
         # --- redact: lossy credential masking with stable placeholders and aligned line numbers ---
         fake_token = "ghp_" + "a" * 36
         secret_text = ("db password = hunter2hunter2\n" + fake_token + "\n"

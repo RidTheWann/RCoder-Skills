@@ -447,6 +447,20 @@ def main():
             assert "outside the server root" in error_text(call(root, "rcoder_context_snapshot",
                                                                 {"root": "linkdir"}))
 
+        # --- workspace root resolution: "." resolves against process cwd, not import-time root ---
+        # Simulate user-scope install: server launched with --root . but cwd is the project dir.
+        # A tool call with "root": "." must resolve against cwd and stay inside State.root.
+        scan_dot = payload_of(call(root, "rcoder_scan", {"root": "."}))
+        assert scan_dot["ok"] is True
+        snapshot_dot = payload_of(call(root, "rcoder_context_snapshot", {"root": "."}))
+        assert snapshot_dot["ok"] is True
+        audit_dot = payload_of(call(root, "rsaver_audit", {"root": "."}))
+        assert audit_dot["ok"] is True
+        # Traversal outside root still refused even when cwd is inside root.
+        assert "outside the server root" in error_text(call(root, "rcoder_scan", {"root": ".."}))
+        assert "outside the server root" in error_text(call(root, "rcoder_detect_stack",
+                                                          {"root": str(outside)}))
+
         # --- resources and prompts --------------------------------------------------------------------
         by_id, _, _ = session([
             INIT,

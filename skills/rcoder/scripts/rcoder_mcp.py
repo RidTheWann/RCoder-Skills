@@ -106,7 +106,19 @@ def resolve_in_root(raw: str, must_exist: bool = True) -> Path:
         raise ToolError("path must be a non-empty string without NUL bytes")
     candidate = Path(raw)
     if not candidate.is_absolute():
-        candidate = State.root / candidate
+        # Resolve relative paths against the active process working directory
+        # at call time when cwd is inside the server root; otherwise fall back
+        # to State.root so relative paths stay confined (e.g. test harness runs
+        # with cwd outside the temp root). Confinement against State.root still
+        # blocks traversal outside root.
+        cwd = Path.cwd()
+        root_real = Path(os.path.realpath(State.root))
+        try:
+            cwd.relative_to(root_real)
+            base = cwd
+        except ValueError:
+            base = State.root
+        candidate = base / candidate
     real = Path(os.path.realpath(candidate))
     root = Path(os.path.realpath(State.root))
     try:

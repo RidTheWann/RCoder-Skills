@@ -64,7 +64,7 @@ Version 1.3.0 added:
 - An executable evaluation harness: routing expectations, a deterministic scorer with ablation deltas, its self-test, an ablation protocol, and five additional scenarios (s15-s19) for capability discovery, tool adaptation, context handoff, finding classification, and evidence-led reverse engineering.
 
 Version 1.2.0 added:
-- A global terminal manager invoked by typing `RCoder`.
+- A global terminal manager invoked by typing `rcoder`.
 - Twenty Agentic AI/CLI integrations with Project/User scopes, multi-selection, shared-root deduplication, update, uninstall, backup, and restore.
 - A Windows-native PowerShell launcher installed through the existing `irm` bootstrap; this route does not require Node.js.
 - A Node/npm installer that provisions a global launcher on Node-enabled platforms.
@@ -85,7 +85,7 @@ v1.14.0 is described in `CHANGELOG.md`; this file does not record its hosted-CI 
 irm https://raw.githubusercontent.com/RidTheWann/RCoder-Skills/main/install.ps1 | iex
 ```
 
-Supports Windows PowerShell 5.1 and PowerShell 7+. It downloads the repository archive over HTTPS, installs the selected skill, registers `%USERPROFILE%\.rcoder\bin` in the user PATH, and creates `RCoder.cmd`. Node.js is not required for this Windows `irm` route.
+Supports Windows PowerShell 5.1 and PowerShell 7+. It downloads the repository archive over HTTPS, installs the selected skill, registers `%USERPROFILE%\.rcoder\bin` in the user PATH, and creates `rcoder.cmd`. Node.js is not required for this Windows `irm` route.
 
 ### Node.js/npm
 
@@ -93,9 +93,9 @@ Supports Windows PowerShell 5.1 and PowerShell 7+. It downloads the repository a
 npx -y github:RidTheWann/RCoder-Skills
 ```
 
-Requires Node.js 18.18+, npm, and Git. It installs the selected skill and provisions `RCoder` under `~/.local/bin` on POSIX or `%USERPROFILE%\.rcoder\bin` on Windows.
+Requires Node.js 18.18+, npm, and Git. It installs the selected skill and provisions `rcoder` under `~/.local/bin` on POSIX or `%USERPROFILE%\.rcoder\bin` on Windows.
 
-After installation, open a new terminal and type `RCoder`.
+After installation, open a new terminal and type `rcoder`.
 
 ## Terminal manager
 

@@ -71,9 +71,9 @@ try {
   const launcherRoot = path.join(launcherHome, '.rcoder');
   const appRoot = path.join(launcherRoot, 'app');
   const command = process.platform === 'win32'
-    ? path.join(launcherRoot, 'bin', 'RCoder.cmd')
-    : path.join(launcherHome, '.local', 'bin', 'RCoder');
-  assert.ok(existsSync(command), 'Global RCoder command was not installed');
+    ? path.join(launcherRoot, 'bin', 'rcoder.cmd')
+    : path.join(launcherHome, '.local', 'bin', 'rcoder');
+  assert.ok(existsSync(command), 'Global rcoder command was not installed');
   assert.ok(existsSync(path.join(appRoot, 'launcher', 'RCoder.ps1')), 'PowerShell manager was not bundled');
   assert.ok(existsSync(path.join(appRoot, 'launcher', 'McpSetup.ps1')), 'MCP setup helper was not bundled');
   assert.ok(existsSync(path.join(appRoot, 'scripts', 'package')), 'Release package builder was not bundled');
@@ -145,7 +145,7 @@ try {
   assert.equal(readFileSync(path.join(legacyActive, 'original.txt'), 'utf8'), 'v1.1.0 user content');
   console.log('PASS legacy v1.1.0 backup restoration');
   console.log('PASS shared Agent Skills root: cross-host backup restoration');
-  console.log('PASS global RCoder command, bundled manager, launcher idempotence, and interactive menu');
+  console.log('PASS global rcoder command, bundled manager, launcher idempotence, and interactive menu');
   const featureProject = path.join(temp, 'feature-project');
   const featureHome = path.join(temp, 'feature-home');
   mkdirSync(featureProject, { recursive: true });

@@ -353,8 +353,8 @@ def main():
           "G4: Node CLI must resolve host IDs from the target catalog")
     check("targets.json" in node_cli and "targets.json" in ps_launcher,
           "G4: interactive managers must use the target catalog")
-    check("--interactive" in node_cli and "RCoder" in root_installer,
-          "G4: global RCoder launcher wiring missing")
+    check("--interactive" in node_cli and "rcoder" in root_installer,
+          "G4: global rcoder launcher wiring missing")
     check("legacyBackupRoot" in node_cli and "legacyBackupRoot" in ps_launcher,
           "G4: shared-root/legacy-backup compatibility missing")
     check("legacyBackup" in ps_installer and "LEGACY_BACKUP" in posix_installer,

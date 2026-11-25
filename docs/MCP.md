@@ -38,7 +38,9 @@ python3 skills/rcoder/scripts/rcoder_mcp.py --root . --profile minimal
 
 Options: `--root` (default: current directory; every path argument is confined to it), `--profile full|minimal`, `--tools a,b,c` (explicit allowlist that overrides the profile), `--print-config HOST`, `--command CMD`, `--version`.
 
-For user-scope host configuration, pass an absolute project path as `--root` instead of `.`; many hosts do not start user-scope servers inside the project directory.
+For user-scope host configuration, pass an absolute project path as `--root` instead of `.`; many hosts do not start user-scope servers inside the project directory. Relative tool arguments such as `"root": "."` are resolved against the server process's active working directory at call time, then confined to `--root`; traversal outside that root is refused.
+
+When a host exposes these tools, call them natively as `mcp__rcoder__*` (for example `mcp__rcoder__rcoder_scan`). Do not run `python -m mcp__rcoder__*` or launch the server module through Bash: the server is a long-lived stdio process started by the host, not a Python module to execute per call.
 
 ## Tools
 
@@ -168,7 +170,7 @@ Run `python3 scripts/test-mcp-contract.py` and `python3 scripts/test-mcp-http.py
 
 The new `mcp-transport-engineering` specialist owns MCP wire behavior: protocol lifecycle, stdio and Streamable HTTP adapter boundaries, request/header binding, token and Origin policy, pagination, structured tool results, and transport conformance. Use `agent-extensions-engineering` as an additional specialist when a host plugin, Agent Skill, marketplace, or installer is also in scope.
 
-For portable Agent Skill authoring, use `RCoder skill new`, `RCoder skill lint`, and `RCoder skill package`; the linter enforces a bounded, secret-safe skill tree before a reproducible ZIP is emitted. See the README's Agent Skill authoring toolkit section.
+For portable Agent Skill authoring, use `rcoder skill new`, `rcoder skill lint`, and `rcoder skill package`; the linter enforces a bounded, secret-safe skill tree before a reproducible ZIP is emitted. See the README's Agent Skill authoring toolkit section.
 
 
 ## Specification references for Streamable HTTP

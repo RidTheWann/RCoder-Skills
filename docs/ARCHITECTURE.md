@@ -51,7 +51,7 @@ Node/npm GitHub package ---------------+
        -> interactive target/scope/action manager
 ```
 
-The PowerShell bootstrap provisions a Windows-native `RCoder.cmd` shim that calls the bundled `launcher/RCoder.ps1`; Node.js is not needed for the Windows `irm` route. The Node/npm installer provisions a POSIX wrapper or Windows shim as appropriate.
+The PowerShell bootstrap provisions a Windows-native `rcoder.cmd` shim that calls the bundled `launcher/RCoder.ps1`; Node.js is not needed for the Windows `irm` route. The Node/npm installer provisions a POSIX wrapper or Windows shim as appropriate.
 
 ## Target registry
 

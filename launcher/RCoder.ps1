@@ -1,6 +1,3 @@
-[CmdletBinding()]
-param()
-
 $ErrorActionPreference = 'Stop'
 $AppRoot = Split-Path -Parent $PSScriptRoot
 $SkillSource = Join-Path (Join-Path $AppRoot 'skills') 'rcoder'
@@ -17,21 +14,60 @@ if (-not (Test-Path -LiteralPath $CatalogPath -PathType Leaf)) {
     throw "The RCoder target catalog is missing: $CatalogPath"
 }
 
+# A candidate must actually run Python 3: on Windows the Microsoft Store "python3.exe"
+# alias is on PATH but cannot execute scripts, so probing avoids a broken first match.
+function Get-RcoderPython {
+    $stdout = [IO.Path]::GetTempFileName()
+    $stderr = [IO.Path]::GetTempFileName()
+    try {
+        foreach ($name in @('python3', 'python', 'py')) {
+            $cmd = Get-Command $name -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $cmd) { continue }
+            $source = [string]$cmd.Source
+            if ([string]::IsNullOrWhiteSpace($source)) { continue }
+            $prefix = if ($name -eq 'py') { '-3 ' } else { '' }
+            $arguments = "$prefix-c ""import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)"""
+            $probe = Start-Process -FilePath $source -ArgumentList $arguments `
+                -NoNewWindow -Wait -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+            if ($probe.ExitCode -eq 0) {
+                return @{ Source = $source; Prefix = $(if ($prefix) { @($prefix) } else { @() }) }
+            }
+        }
+        return $null
+    }
+    finally {
+        Remove-Item -LiteralPath $stdout, $stderr -Force -ErrorAction SilentlyContinue
+    }
+}
+
 # The standalone PowerShell route keeps Skill authoring available without Node.js.
 # Plugin/host integrations and doctor use the Node CLI when it is installed.
 if ($args.Count -gt 0) {
     $CommandArgs = @($args)
     if ([string]$CommandArgs[0] -eq 'skill') {
         $SkillTool = Join-Path $SkillSource 'scripts/skill_authoring.py'
-        $Python = Get-Command python3 -ErrorAction SilentlyContinue
-        if (-not $Python) { $Python = Get-Command python -ErrorAction SilentlyContinue }
+        $Python = Get-RcoderPython
         if (-not $Python) { throw 'RCoder skill commands require Python 3. Install Python 3 and retry.' }
         if (-not (Test-Path -LiteralPath $SkillTool -PathType Leaf)) {
             throw "The bundled skill authoring toolkit is missing: $SkillTool"
         }
         $SkillArgs = @()
         if ($CommandArgs.Count -gt 1) { $SkillArgs = @($CommandArgs[1..($CommandArgs.Count - 1)]) }
-        & $Python.Source $SkillTool @SkillArgs
+        & $Python.Source $SkillTool @($Python.Prefix) @SkillArgs
+        exit $LASTEXITCODE
+    }
+
+    # The standalone PowerShell route keeps hook management available without Node.js.
+    if ([string]$CommandArgs[0] -eq 'hooks') {
+        $HookTool = Join-Path $SkillSource 'scripts/rcoder_hooks.py'
+        $Python = Get-RcoderPython
+        if (-not $Python) { throw 'RCoder hooks commands require Python 3. Install Python 3 and retry.' }
+        if (-not (Test-Path -LiteralPath $HookTool -PathType Leaf)) {
+            throw "The bundled hook toolkit is missing: $HookTool"
+        }
+        $HookArgs = @()
+        if ($CommandArgs.Count -gt 1) { $HookArgs = @($CommandArgs[1..($CommandArgs.Count - 1)]) }
+        & $Python.Source $HookTool @($Python.Prefix) @HookArgs
         exit $LASTEXITCODE
     }
 
@@ -41,7 +77,7 @@ if ($args.Count -gt 0) {
         & $Node.Source $NodeCli @CommandArgs
         exit $LASTEXITCODE
     }
-    throw "RCoder command '$($CommandArgs[0])' requires the Node CLI. Install RCoder through Node/npm or install Node.js and update the global RCoder app."
+    throw "rcoder command '$($CommandArgs[0])' requires the Node CLI. Install RCoder through Node/npm or install Node.js and update the global rcoder app."
 }
 
 $Catalog = Get-Content -LiteralPath $CatalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
