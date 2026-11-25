@@ -48,7 +48,7 @@ Every arrow back to the model is a new budget decision. A cache hit is a billing
 - Verification or authorization context → required; never defer it for budget reasons.
 
 ## Tool strategy
-The CLI is `python3 skills/rcoder/scripts/rsaver.py` (bundled) with a repository-root wrapper at `scripts/rsaver.py`. Use `budget` to allocate a window, `gate` to filter an envelope, `measure`/`compare` to estimate item sizes, `compact`/`dedupe` to reduce verbose results, and `recover`/`verify` to preserve evidence. Token counts in an envelope may come from an exact counter, a provider count endpoint, or RSaver's v2 estimator; label their source.
+The CLI is `python3 <skill-dir>/scripts/rsaver.py` (bundled) with a repository-root wrapper at `scripts/rsaver.py`. Use `budget` to allocate a window, `gate` to filter an envelope, `measure`/`compare` to estimate item sizes, `compact`/`dedupe` to reduce verbose results, and `recover`/`verify` to preserve evidence. Token counts in an envelope may come from an exact counter, a provider count endpoint, or RSaver's v2 estimator; label their source.
 
 ## Advanced techniques
 - **Prefix ordering:** sort by section (`prefix`, `working`, `history`, `tail`) and keep static items adjacent so cumulative cache hashes remain stable across turns.
