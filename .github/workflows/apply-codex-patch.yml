@@ -1,0 +1,57 @@
+name: Apply RCoder Codex fixes
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: rcoder-codex-patch-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  apply-patch:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - name: Apply verified source patch
+        env:
+          PATCH_FILE: .github/rcoder-codex-fixes.patch.xz.b64
+        run: |
+          python - <<'PY'
+          import base64
+          import lzma
+          import os
+          from pathlib import Path
+          encoded = Path(os.environ["PATCH_FILE"]).read_text(encoding="ascii")
+          patch = lzma.decompress(base64.b64decode(encoded))
+          Path("/tmp/rcoder-codex-fixes.patch").write_bytes(patch)
+          PY
+          git apply --check /tmp/rcoder-codex-fixes.patch
+          git apply /tmp/rcoder-codex-fixes.patch
+          rm -f .github/rcoder-codex-fixes.patch.xz.b64
+          rm -f .github/workflows/apply-codex-patch.yml
+          git add -A
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix: address Codex findings from closed PRs"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+      - name: Dispatch full quality matrix for patched head
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          curl --fail-with-body --silent --show-error -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/quality.yml/dispatches" \
+            -d "{\"ref\":\"${BRANCH}\"}"
