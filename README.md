@@ -25,7 +25,7 @@ RCoder provides a consistent engineering workflow across supported hosts:
 - **Model-agnostic instructions** — reusable guidance that does not depend on one model vendor or prompting format.
 - **Progressive disclosure** — a compact entry point with specialist references loaded only when the task requires them.
 - **Deterministic repository reconnaissance** — RScan produces bounded, read-only project inventories and prioritized development options.
-- **Context budgeting and recovery** — RSaver helps measure, reduce, redact, anchor, and reconstruct context with evidence.
+- **Context budgeting and recovery** — RSaver helps measure, safely tighten prose, reduce, redact, anchor, and reconstruct context with evidence.
 - **MCP integration** — expose supported RCoder capabilities as native tools to compatible agent hosts.
 - **Specialist engineering library** — focused guidance for programming languages, architecture, systems, security, reverse engineering, testing, and more.
 - **Agent integration utilities** — host-aware installation, diagnostics, skill authoring, packaging, and opt-in lifecycle hooks.

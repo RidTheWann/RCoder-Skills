@@ -5,6 +5,7 @@ RCoder follows Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- RSaver `optimize`: opt-in, content-aware prose phrase tightening via CLI and read-only MCP, with token-estimate gating, SHA-256 receipts, and preservation of code, structured data, logs, Markdown structures, and normative constraints.
 - Deterministic SSOT command and manifest synchronization with byte-exact LF checks; one unified parity gate validates generated Markdown/TOML, TOML syntax, manifest versions, contract JSON, SKILL references, and cross-platform path/line-ending rules.
 - Release hygiene checks for required runtime files, sensitive-file/test-artifact exclusions, token-shaped secrets, archive completeness, and package checksums.
 - Shared Claude Code/Gemini CLI lifecycle hook policy: bundled Claude tool guard, post-tool secret warning, compaction reminder, and host-specific Gemini before/after tool settings.
