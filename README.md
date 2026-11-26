@@ -1,6 +1,8 @@
 # RCoder
 
-**A model-agnostic engineering toolkit for AI coding agents.** RCoder helps agentic AI systems understand unfamiliar repositories, select the right engineering expertise, manage context, and execute software work with verifiable evidence. It combines a progressive-disclosure Agent Skill, specialist engineering references, deterministic project-analysis tools, context-management utilities, and an optional Model Context Protocol (MCP) server.
+**A model-agnostic engineering toolkit for AI coding agents.**
+
+RCoder helps agentic AI systems understand unfamiliar repositories, select the right engineering expertise, manage context, and execute software work with verifiable evidence. It combines a progressive-disclosure Agent Skill, specialist engineering references, deterministic project-analysis tools, context-management utilities, and an optional Model Context Protocol (MCP) server.
 
 [![Quality CI](https://github.com/RidTheWann/RCoder-Skills/actions/workflows/quality.yml/badge.svg)](https://github.com/RidTheWann/RCoder-Skills/actions/workflows/quality.yml)
 [![Security: A — Skills Directory](https://www.skillsdirectory.com/api/skills/ridthewann-rcoder/badge)](https://www.skillsdirectory.com/skills/ridthewann-rcoder)
@@ -44,7 +46,7 @@ RCoder provides a consistent engineering workflow across supported hosts:
 
 ## Installation
 
-Choose the installation route that matches your environment. You do not need Node.js for the native Windows PowerShell installer or the POSIX skill installer.
+Choose the installation route that matches your environment. You do not need Node.js for the native Windows PowerShell installer.
 
 ### Windows PowerShell
 
@@ -74,16 +76,17 @@ cd RCoder-Skills
 sh ./install.sh --target codex --scope project
 ```
 
-For Claude Code or Gemini CLI, the short aliases are also accepted:
+For Claude Code or Gemini CLI, short aliases are also accepted:
 
 ```sh
 sh ./install.sh --host claude --scope user
 sh ./install.sh --host gemini --scope project
 ```
 
-The root `install.sh` is a stable thin entrypoint that delegates to the canonical `scripts/install.sh`. The POSIX skill installation does not require Node.js. Use `--dry-run` to preview, `--uninstall` to restore the previous skill, `--yes` for automation-compatible invocation, or `--mcp show|install` to inspect/apply MCP configuration. `--host all` is intentionally rejected because the installer targets one host per invocation; use `--target agents` for the generic Agent Skills location.
+The root `install.sh` is a stable thin entrypoint that delegates to the canonical `scripts/install.sh`. Standard POSIX skill installation does not require Node.js. Use `--dry-run` to preview, `--uninstall` to restore the previous skill, `--yes` for automation-compatible invocation, or `--mcp show|install` to inspect/apply MCP configuration. `--host all` is intentionally rejected because the installer targets one host per invocation; use `--target agents` for the generic Agent Skills location.
 
 Run `sh ./install.sh --doctor` to run the CLI doctor. This diagnostic path requires Node.js 18.18 or newer; standard skill installation does not.
+
 
 ### Node.js / npm — Windows, Linux, macOS
 
@@ -106,7 +109,7 @@ npx -y github:RidTheWann/RCoder-Skills --target factory --scope user
 Launcher locations:
 
 - **Linux / macOS:** `~/.local/bin/rcoder`
-- **Windows:** `%USERPROFILE%\\.rcoder\\bin\\rcoder.cmd`
+- **Windows:** `%USERPROFILE%\.rcoder\bin\rcoder.cmd`
 
 ### Verify the installation
 
@@ -116,7 +119,7 @@ After installation, open a new terminal so the updated user `PATH` is loaded by 
 rcoder doctor --json
 ```
 
-`rcoder doctor --fix` repairs only canonical drift: repository-root wrappers, MCP launcher paths, and the SessionStart hook. It leaves unrelated host configuration untouched and reports each repair as `FIXED` or `SKIP`. `rcoder sync` normalizes portable MCP configs, state paths, POSIX executable modes, and host manifests; `doctor --fix` runs it automatically.
+`rcoder doctor --fix` repairs only canonical drift: repository-root wrappers, MCP launcher paths, and the SessionStart hook. It leaves unrelated host configuration untouched and reports each repair as `FIXED` or `SKIP`. `rcoder sync` normalizes portable MCP configs, POSIX state paths, POSIX executable modes, and host manifests; `doctor --fix` runs it automatically.
 
 For host-specific integration options and MCP configuration, see [docs/MCP.md](docs/MCP.md) and the relevant integration documentation.
 
@@ -187,4 +190,144 @@ python3 skills/rcoder/scripts/rcoder_mcp.py --root . --profile minimal
 
 The server is designed around workspace-root confinement and avoids subprocess shells and network sockets in its stdio implementation. An optional loopback Streamable HTTP transport is documented in [docs/MCP.md](docs/MCP.md).
 
-MCP is optional. Use it when the active host supports MCP and the server's read-only tools are useful; see [docs/MCP.md](docs/MCP.md) for setup and boundaries.
+MCP is optional. Use it when the active host supports MCP and the server has been configured; otherwise use the installed skill and supported CLI/helper workflows.
+
+### Launcher CLI
+
+Run the interactive management interface:
+
+```sh
+rcoder
+```
+
+Common commands:
+
+```sh
+# Integrations
+rcoder integration install opencode --scope project
+rcoder integration install codex
+rcoder integration verify opencode --scope project
+
+# Diagnostics
+rcoder doctor --json
+rcoder doctor --fix
+python3 scripts/verify-parity.py
+
+# Agent Skill lifecycle
+rcoder skill new custom-domain --description "Guidance for custom domain workflows."
+rcoder skill lint ./custom-domain
+rcoder skill package ./custom-domain --out ./dist/custom-domain.zip
+
+# Optional lifecycle hooks
+rcoder hooks install --scope project --dry-run
+rcoder hooks install --scope user --profile strict
+rcoder hooks uninstall --scope project
+rcoder hooks print-config
+```
+
+The CLI-managed `guard` and `stop-gate` handlers are opt-in; installing the skill or plugin does not enable them. The Claude Code plugin separately bundles a read-only RScan `SessionStart` hook in `hooks/hooks.json`, which runs when the plugin is active. See [docs/HOOKS.md](docs/HOOKS.md) and [docs/MCP.md](docs/MCP.md) for the distinction before enabling additional hooks.
+
+---
+
+## Supported agent hosts
+
+RCoder's installer maps supported hosts to their canonical project and user skill roots.
+
+| Agent / environment | Project skill root | User skill root |
+|---|---|---|
+| Claude Code | `.claude/skills` | `~/.claude/skills` |
+| OpenAI Codex CLI | `.agents/skills` | `~/.agents/skills` |
+| Cursor | `.cursor/skills` | `~/.cursor/skills` |
+| Gemini CLI | `.gemini/skills` | `~/.gemini/skills` |
+| GitHub Copilot | `.github/skills` | `~/.copilot/skills` |
+| Generic Agent Skills | `.agents/skills` | `~/.agents/skills` |
+| Qoder CLI / IDE | `.qoder/skills` | `~/.qoder/skills` |
+| OpenCode | `.opencode/skills` | `~/.config/opencode/skills` |
+| Google Antigravity | `.agents/skills` | `~/.gemini/config/skills` |
+| Amp CLI | `.agents/skills` | `~/.config/agents/skills` |
+| Zed Agent | `.agents/skills` | `~/.agents/skills` |
+| Pi Coding Agent | `.pi/skills` | `~/.pi/agent/skills` |
+| OpenClaw | `.agents/skills` | `~/.agents/skills` |
+| Autohand Code CLI | `.autohand/skills` | `~/.autohand/skills` |
+| Warp Agent | `.warp/skills` | `~/.warp/skills` |
+| Kilo Code | `.kilo/skills` | `~/.kilo/skills` |
+| Cline | `.cline/skills` | `~/.cline/skills` |
+| Roo Code | `.roo/skills` | `~/.roo/skills` |
+| TRAE | `.trae/skills` | `~/.trae/skills` |
+| Factory Droid | `.factory/skills` | `~/.factory/skills` |
+
+The table describes installation targets, not a guarantee that every host exposes identical MCP, hook, subagent, or CLI capabilities. Those features depend on the active host and its configuration.
+
+---
+
+## Specialist engineering library
+
+RCoder uses focused references under `skills/rcoder/references/`. Select only the modules relevant to the current deliverable.
+
+| Domain | Coverage |
+|---|---|
+| **Core engineering** | Coding, architecture, debugging, testing, QA, review, documentation, performance, DevOps, observability, API and database engineering |
+| **Languages and runtimes** | C/C++, Rust, Python, JavaScript/TypeScript, Node.js, C#/.NET, Java, Go, Swift, Kotlin, PHP, Ruby, Dart/Flutter, Scala, Elixir, Haskell, R, Julia |
+| **Platforms and systems** | Windows, Linux, Android/AOSP, mobile, embedded systems, firmware, graphics, GPU, game engines, distributed systems |
+| **Security** | Threat modeling, secure code review, application security, authorized penetration testing, cloud/container, network, identity, cryptography, supply-chain, incident response, forensics, malware analysis, LLM/agent security |
+| **Reverse engineering** | Binary analysis, disassembly/decompilation, file formats, protocol analysis, firmware research, ABI and semantic reconstruction |
+
+Security and reverse-engineering workflows emphasize authorization, preservation of evidence, and clear separation of observed facts from hypotheses.
+
+---
+
+## Developer guide and verification
+
+Run the relevant focused checks during development. The repository's full validation entry point is:
+
+```sh
+python3 scripts/validate-all
+```
+
+Additional test suites include:
+
+```sh
+# Python test suites
+python3 scripts/test-context-snapshot.py
+python3 scripts/test-score-eval.py
+python3 scripts/test-objective.py
+python3 scripts/test-route-predict.py
+python3 scripts/test-repo-map.py
+python3 scripts/test-rsaver.py
+python3 scripts/test-rscan.py
+python3 scripts/test-mcp.py
+python3 scripts/test-mcp-contract.py
+python3 scripts/test-mcp-http.py
+python3 scripts/test-mcp-modern.py
+python3 scripts/test-mcp-setup.py
+
+# CLI and host integration suites
+node scripts/test-cli-doctor.mjs
+node scripts/test-cli-skill.mjs
+node scripts/test-integrations.mjs
+node scripts/test-node-installer.mjs
+
+# Distribution checks
+python3 scripts/package
+python3 scripts/check-dist.py
+```
+
+For evaluation methodology and reproducibility, see [evals/ABLATION-PROTOCOL.md](evals/ABLATION-PROTOCOL.md), [evals/results.md](evals/results.md), and [docs/LIVE-BENCHMARK.md](docs/LIVE-BENCHMARK.md).
+
+---
+
+## Documentation
+
+- [Agent Skill entry point](skills/rcoder/SKILL.md)
+- [MCP setup and transports](docs/MCP.md)
+- [Compatibility matrix](docs/COMPATIBILITY.md)
+- [Environment discovery](docs/ENVIRONMENT.md)
+- [RScan hooks](docs/RSCAN-HOOKS.md)
+- [Token economics](docs/TOKEN-ECONOMICS.md)
+- [Changelog](CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+
+## License
+
+RCoder is released under the [MIT License](LICENSE).
