@@ -526,11 +526,12 @@ function repairHostMcpConfigs(record) {
   const entry = config.mcpServers?.rcoder;
   if (!entry || typeof entry !== 'object') { record(`host:${target}`, 'SKIP', 'no rcoder entry'); return; }
   const before = JSON.stringify(config);
-  const joined = ' '.join([String(entry.command || ''), ...(Array.isArray(entry.args) ? entry.args.map(String) : [])]);
+  const joined = [String(entry.command || ''),
+                  ...(Array.isArray(entry.args) ? entry.args.map(String) : [])].join(' ');
   if (/rcoder[-_]mcp/.test(joined)) {
     entry.command = 'node';
-    entry.args = ['launcher/rcoder-mcp.mjs'];
-    delete entry.cwd;
+    entry.args = [path.join(PACKAGE_ROOT, 'launcher', 'rcoder-mcp.mjs'), '--root', PACKAGE_ROOT];
+    entry.cwd = PACKAGE_ROOT;
   }
   if (JSON.stringify(config) === before) { record(`host:${target}`, 'SKIP', 'already portable'); return; }
   writeFileSync(target, JSON.stringify(config, null, 2) + '\n', 'utf8');

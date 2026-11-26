@@ -6,6 +6,7 @@ import ast
 import contextlib
 import hashlib
 import json
+import re
 import sqlite3
 from collections import deque
 from pathlib import Path
@@ -33,6 +34,40 @@ def _extract_python_symbols(source: str) -> list[dict[str, Any]]:
                 "start_line": node.lineno,
                 "end_line": getattr(node, "end_lineno", node.lineno),
             })
+    return symbols
+
+
+JS_FUNCTION_RE = re.compile(
+    r"\b(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]{1,})\s*\("
+)
+JS_CLASS_RE = re.compile(r"\bclass\s+([A-Za-z_$][\w$]{1,})")
+GO_FUNC_RE = re.compile(r"^func\s+(?:\([^)]*\)\s*)?([A-Za-z_]\w*)\s*\(", re.MULTILINE)
+GO_STRUCT_RE = re.compile(r"^type\s+([A-Za-z_]\w*)\s+struct\b", re.MULTILINE)
+RUST_FN_RE = re.compile(r"^(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?fn\s+([A-Za-z_]\w*)\s*\(", re.MULTILINE)
+RUST_STRUCT_RE = re.compile(r"^(?:pub(?:\([^)]*\))?\s+)?struct\s+([A-Za-z_]\w*)", re.MULTILINE)
+
+
+def _extract_heuristic_symbols(source: str, suffix: str) -> list[dict[str, Any]]:
+    if suffix == ".py":
+        return _extract_python_symbols(source)
+    patterns: list[tuple[re.Pattern[str], str]] = []
+    if suffix in {".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"}:
+        patterns = [(JS_FUNCTION_RE, "function"), (JS_CLASS_RE, "class")]
+    elif suffix == ".go":
+        patterns = [(GO_FUNC_RE, "function"), (GO_STRUCT_RE, "class")]
+    elif suffix == ".rs":
+        patterns = [(RUST_FN_RE, "function"), (RUST_STRUCT_RE, "class")]
+    symbols: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, int]] = set()
+    for pattern, kind in patterns:
+        for match in pattern.finditer(source):
+            name = match.group(1)
+            line = source.count("\n", 0, match.start()) + 1
+            key = (name, kind, line)
+            if key in seen:
+                continue
+            seen.add(key)
+            symbols.append({"name": name, "kind": kind, "start_line": line, "end_line": line})
     return symbols
 
 
@@ -103,9 +138,8 @@ class IncrementalRepoIndex:
                     continue
                 raw = full.read_bytes()
                 digest = _lf_sha256(raw)
-                symbols = (
-                    _extract_python_symbols(raw.decode("utf-8", errors="replace"))
-                    if posix.endswith(".py") else []
+                symbols = _extract_heuristic_symbols(
+                    raw.decode("utf-8", errors="replace"), Path(posix).suffix.lower()
                 )
                 connection.execute(
                     """

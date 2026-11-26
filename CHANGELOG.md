@@ -4,6 +4,9 @@ RCoder follows Semantic Versioning.
 
 ## [Unreleased]
 
+### Fixed
+- Addressed all 13 P2 findings from the Codex review of PR #28: wrapper options with operands and broad `git add` pathspecs are now denied by the guard; `doctor --fix` uses a valid array join and stores a package-root launcher for user-scope host configs; `rcoder_impact_test` selects a command for the detected Go/JS/Rust/Python stack; lesson sanitization redacts AWS keys and credential assignments; handoff capsules are described as checksums rather than signatures and lease claims are serialized with a lock; brace skeletons retain imports and module-scope lines; drift paths preserve leading dots; the edit sandbox rejects absolute paths outside the root and rolls back on `KeyboardInterrupt`; and the symbol index extracts JS/TS/Go/Rust symbols.
+
 ## [1.15.0] - 2026-11-26
 
 ### Added
@@ -11,7 +14,7 @@ RCoder follows Semantic Versioning.
 - RSaver AST/brace skeletonizer, reversible redactor, git-drift crosscheck, and a transactional multi-file patch sandbox (`rcoder_apply_verify`) that rolls back on syntax or verification failure.
 - Bounded specialist routing with at most two addendums and an executable verification footer on every reference; opt-in strict stop gate that blocks untouched targets, unverified claims, and nonzero verification exits.
 - Cross-platform runtime resolver and POSIX path canonicalizer, portable MCP launcher, `rcoder sync`, LF-normalized RSaver hashes, `.gitattributes`, a parity linter, and a three-OS CI matrix (`ubuntu-latest`, `windows-latest`, `macos-latest`).
-- Episodic failure-to-fix memory (`rcoder_recall`, `rcoder_learn`) recalled during preflight, plus advisory swarm file leases and signed handoff capsules (`rcoder_handoff`).
+- Episodic failure-to-fix memory (`rcoder_recall`, `rcoder_learn`) recalled during preflight, plus advisory swarm file leases and checksummed handoff capsules (`rcoder_handoff`).
 - `rcoder doctor --fix` repairs canonical wrapper/MCP/hook drift and runs `rcoder sync`; MCP errors now carry recovery envelopes and path confinement is symlink-safe.
 
 ### Changed

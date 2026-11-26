@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Advisory file-lease coordinator and canonical SHA-256 handoff capsule signer."""
+"""Advisory file-lease coordinator and canonical SHA-256 handoff capsule checksum."""
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
+import os
 import time
 from pathlib import Path
 from typing import Any
@@ -17,11 +19,32 @@ def canonical_digest(payload: dict[str, Any]) -> str:
 
 
 class SwarmCoordinator:
-    """Manages TTL file write-leases and tamper-evident subagent handoff capsules."""
+    """Manages TTL file write-leases and checksummed subagent handoff capsules."""
 
     def __init__(self, workspace_root: Path) -> None:
         self.root = workspace_root.resolve()
         self.leases_path = self.root / ".rcoder" / "leases.json"
+
+    @contextlib.contextmanager
+    def _lease_lock(self, timeout_sec: float = 5.0):
+        lock_path = self.leases_path.with_suffix(".lock")
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        if lock_path.exists() and time.time() - lock_path.stat().st_mtime > 60:
+            lock_path.unlink(missing_ok=True)
+        deadline = time.time() + timeout_sec
+        while True:
+            try:
+                descriptor = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                break
+            except FileExistsError:
+                if time.time() >= deadline:
+                    raise RuntimeError("timed out acquiring the file-lease lock")
+                time.sleep(0.02)
+        try:
+            yield
+        finally:
+            os.close(descriptor)
+            lock_path.unlink(missing_ok=True)
 
     def _read_leases(self, now: float) -> dict[str, dict[str, Any]]:
         if not self.leases_path.exists():
@@ -50,35 +73,37 @@ class SwarmCoordinator:
             handle.write(json.dumps(leases, indent=2, sort_keys=True) + "\n")
 
     def claim_files(self, agent_id: str, files: list[str], ttl_sec: int = 300) -> dict[str, Any]:
-        now = time.time()
-        leases = self._read_leases(now)
-        normalized = sorted({to_posix_rel(item, self.root) for item in files if item})
-        conflicts: list[dict[str, Any]] = []
-        for rel in normalized:
-            holder = leases.get(rel)
-            if holder and holder.get("agent_id") != agent_id:
-                conflicts.append({
-                    "file": rel,
-                    "held_by": holder["agent_id"],
-                    "expires_at": holder.get("expires_at"),
-                })
-        if conflicts:
-            return {"granted": False, "conflicts": conflicts}
-        for rel in normalized:
-            leases[rel] = {"agent_id": agent_id, "expires_at": now + ttl_sec}
-        self._write_leases(leases)
-        return {"granted": True, "agent_id": agent_id, "claimed": normalized}
+        with self._lease_lock():
+            now = time.time()
+            leases = self._read_leases(now)
+            normalized = sorted({to_posix_rel(item, self.root) for item in files if item})
+            conflicts: list[dict[str, Any]] = []
+            for rel in normalized:
+                holder = leases.get(rel)
+                if holder and holder.get("agent_id") != agent_id:
+                    conflicts.append({
+                        "file": rel,
+                        "held_by": holder["agent_id"],
+                        "expires_at": holder.get("expires_at"),
+                    })
+            if conflicts:
+                return {"granted": False, "conflicts": conflicts}
+            for rel in normalized:
+                leases[rel] = {"agent_id": agent_id, "expires_at": now + ttl_sec}
+            self._write_leases(leases)
+            return {"granted": True, "agent_id": agent_id, "claimed": normalized}
 
     def release_files(self, agent_id: str, files: list[str] | None = None) -> dict[str, Any]:
-        leases = self._read_leases(time.time())
-        targets = {to_posix_rel(item, self.root) for item in files} if files else None
-        released: list[str] = []
-        for rel in list(leases):
-            if leases[rel].get("agent_id") == agent_id and (targets is None or rel in targets):
-                del leases[rel]
-                released.append(rel)
-        self._write_leases(leases)
-        return {"released": sorted(released)}
+        with self._lease_lock():
+            leases = self._read_leases(time.time())
+            targets = {to_posix_rel(item, self.root) for item in files} if files else None
+            released: list[str] = []
+            for rel in list(leases):
+                if leases[rel].get("agent_id") == agent_id and (targets is None or rel in targets):
+                    del leases[rel]
+                    released.append(rel)
+            self._write_leases(leases)
+            return {"released": sorted(released)}
 
     def pack_handoff(
         self,
@@ -101,6 +126,7 @@ class SwarmCoordinator:
 
     @staticmethod
     def verify_handoff(capsule: dict[str, Any]) -> bool:
+        """Verify the checksum; this is integrity, not cryptographic authentication."""
         expected = capsule.get("sha256")
         if not isinstance(expected, str) or len(expected) != 64:
             return False

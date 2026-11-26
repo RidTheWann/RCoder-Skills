@@ -768,6 +768,26 @@ def tool_read_symbol(args):
     }
 
 
+def _detected_test_command(root: Path, tests: list[str]) -> str:
+    if (root / "go.mod").is_file():
+        return "go test ./..."
+    if (root / "Cargo.toml").is_file():
+        return "cargo test"
+    package_file = root / "package.json"
+    if package_file.is_file():
+        try:
+            scripts = json.loads(package_file.read_text(encoding="utf-8")).get("scripts", {})
+            if isinstance(scripts, dict) and "test" in scripts:
+                return "npm test"
+            return "npm run test"
+        except (OSError, ValueError):
+            return "npm test"
+    if tests and all(str(item).endswith((".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs")) for item in tests):
+        return "npm test"
+    command = "python3 -m pytest -q"
+    return command + (" " + " ".join(tests) if tests else "")
+
+
 def tool_impact_test(args):
     from platform_runtime import to_posix_rel
     from rscan_graph import analyze_repository_graph
@@ -797,7 +817,7 @@ def tool_impact_test(args):
     ]))
     blast = compute_test_blast_radius(changed, adjacency, all_files)
     tests = blast["recommended_tests"]
-    command = "python3 -m pytest -q" + (" " + " ".join(tests) if tests else "")
+    command = _detected_test_command(root, tests)
     return {
         "ok": True,
         "tool": "rcoder_impact_test",
@@ -858,7 +878,7 @@ def tool_handoff(args):
     return {
         "ok": True, "tool": "rcoder_handoff", "version": product_version(),
         "root": str(root), "capsule": capsule,
-        "signature_verified": SwarmCoordinator.verify_handoff(capsule),
+        "checksum_verified": SwarmCoordinator.verify_handoff(capsule),
     }
 
 
@@ -1071,8 +1091,8 @@ TOOLS = [
              "tags": {"type": "array", "items": {"type": "string", "maxLength": 60},
                       "maxItems": 20},
              "root": ROOT_PROP}, ["symptom", "root_cause", "verified_fix"]), tool_learn),
-    ("rcoder_handoff", "Sign a swarm handoff",
-     "Build a canonical POSIX-path handoff capsule with a SHA-256 signature for verification by the receiving subagent.",
+    ("rcoder_handoff", "Checksum a swarm handoff",
+     "Build a canonical POSIX-path handoff capsule with a SHA-256 checksum for detecting stale or altered content.",
      schema({"from_agent": {"type": "string", "minLength": 1, "maxLength": 100},
              "to_agent": {"type": "string", "minLength": 1, "maxLength": 100},
              "objective": {"type": "string", "minLength": 1, "maxLength": 4000},

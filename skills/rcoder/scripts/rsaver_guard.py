@@ -275,8 +275,20 @@ def compress_brace_skeleton(source: str, file_label: str = "") -> str:
     output: list[str] = []
     if file_label:
         output.append(f"// FILE: {file_label} (total_lines={len(lines)})")
+    cursor = 0
     for start, end, header in entries:
+        if start <= cursor:
+            continue
+        for number in range(cursor + 1, start):
+            line = lines[number - 1]
+            if line.strip():
+                output.append(f"L{number}: {line[:200]}")
         output.append(f"L{start}-L{end}: {header} {{ ... }}")
+        cursor = end
+    for number in range(cursor + 1, len(lines) + 1):
+        line = lines[number - 1]
+        if line.strip():
+            output.append(f"L{number}: {line[:200]}")
     return "\n".join(output)
 
 
@@ -317,11 +329,15 @@ def crosscheck_git_drift(
                 modified.add(path_part.replace("\\", "/"))
 
     def normalize(values: list[str]) -> set[str]:
-        return {
-            value.replace("\\", "/").lstrip("./")
-            for value in values
-            if isinstance(value, str) and value.strip()
-        }
+        normalized: set[str] = set()
+        for value in values:
+            if not isinstance(value, str) or not value.strip():
+                continue
+            item = value.replace("\\", "/")
+            while item.startswith("./"):
+                item = item[2:]
+            normalized.add(item)
+        return normalized
 
     normalized_targets = normalize(target_files)
     normalized_claims = normalize(claimed_files or [])
