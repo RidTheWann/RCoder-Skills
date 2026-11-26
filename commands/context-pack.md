@@ -1,6 +1,7 @@
 ---
 description: Build a checksummed context capsule and capture verified lessons before handoff or compaction
 argument-hint: [current objective]
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Prepare a compact, verifiable context handoff capsule for long-running or multi-agent work.
 

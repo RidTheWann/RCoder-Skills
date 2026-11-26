@@ -1,3 +1,4 @@
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 description = "Reproduce, isolate, and diagnose a failure with evidence before proposing a fix"
 prompt = """
 Diagnose this failure: $ARGUMENTS

@@ -1,5 +1,6 @@
 ---
 description: Check that RCoder is installed correctly and which optional tools are enabled
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Diagnose the RCoder installation.
 
