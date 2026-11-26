@@ -217,8 +217,9 @@ class TestCodexReviewFixes(unittest.TestCase):
             target = workspace / "calc.py"
             original = "def add(a, b):\n    return a + b\n"
             target.write_text(original, encoding="utf-8")
+            outside_path = str(workspace.parent / "rcoder-outside-evil.txt")
             rejected = transactional_apply_and_verify(
-                workspace, [{"path": "/etc/evil.txt", "old_text": "", "new_text": "x"}]
+                workspace, [{"path": outside_path, "old_text": "", "new_text": "x"}]
             )
             self.assertFalse(rejected["ok"])
             with mock.patch.object(rsaver_sandbox.subprocess, "run", side_effect=KeyboardInterrupt):
