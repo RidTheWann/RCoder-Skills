@@ -94,15 +94,19 @@ class TestAutonomousPhase3(unittest.TestCase):
             workspace = Path(temporary)
             (workspace / "helper.py").write_bytes(b"print('hi')\r\n")
             (workspace / "CON.txt").write_text("reserved", encoding="utf-8")
-            (workspace / "Auth.py").write_text("a=1\n", encoding="utf-8")
-            (workspace / "auth.py").write_text("a=2\n", encoding="utf-8")
+            upper = workspace / "Auth.py"
+            lower = workspace / "auth.py"
+            upper.write_text("a=1\n", encoding="utf-8")
+            lower.write_text("a=2\n", encoding="utf-8")
+            case_sensitive_filesystem = upper.resolve() != lower.resolve()
             (workspace / "mcp.json").write_text(
                 r'{"command": "C:\\Python\\python.exe"}', encoding="utf-8"
             )
             issues = audit_cross_platform_parity(workspace)
             self.assertTrue(any("[CRLF_LEAK]" in issue for issue in issues))
             self.assertTrue(any("[WIN_RESERVED_NAME]" in issue for issue in issues))
-            self.assertTrue(any("[CASE_COLLISION]" in issue for issue in issues))
+            if case_sensitive_filesystem:
+                self.assertTrue(any("[CASE_COLLISION]" in issue for issue in issues))
             self.assertTrue(any("[HARDCODED_OS_PATH]" in issue for issue in issues))
 
     def test_mcp_registry_exposes_autonomous_tools(self) -> None:
