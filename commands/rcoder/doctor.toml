@@ -1,3 +1,4 @@
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 description = "Check that RCoder is installed correctly and which optional tools are enabled"
 prompt = """
 Diagnose the RCoder installation.
