@@ -558,8 +558,8 @@ function repairHostMcpConfigs(record) {
                   ...(Array.isArray(entry.args) ? entry.args.map(String) : [])].join(' ');
   if (/rcoder[-_]mcp/.test(joined)) {
     entry.command = 'node';
-    entry.args = [path.join(PACKAGE_ROOT, 'launcher', 'rcoder-mcp.mjs'), '--root', PACKAGE_ROOT];
-    entry.cwd = PACKAGE_ROOT;
+    entry.args = [path.join(PACKAGE_ROOT, 'launcher', 'rcoder-mcp.mjs')];
+    delete entry.cwd;
   }
   if (JSON.stringify(config) === before) { record(`host:${target}`, 'SKIP', 'already portable'); return; }
   writeFileSync(target, JSON.stringify(config, null, 2) + '\n', 'utf8');
@@ -900,13 +900,16 @@ function runHarvestEval(options) {
     const match = /\[rcoder:redactions=(\d+)\]\s*$/.exec(text);
     if (match) redactions += Number(match[1]);
     const redacted = text.replace(/\s*\[rcoder:redactions=\d+\]\s*$/, '').trimEnd();
+    let sanitized = {};
+    try { sanitized = JSON.parse(redacted); }
+    catch (error) { throw new Error(`Redacted eval evidence is not valid JSON: ${error.message}`); }
     return {
       id: `harvested-${failure.variant}-${failure.case_id}`,
       source_run: failure.source,
       source_case: failure.case_id,
-      failure_signals: failure.failure_signals,
+      failure_signals: Array.isArray(sanitized.failure_signals) ? sanitized.failure_signals : [],
       tags: ['regression', 'harvested', failure.variant],
-      redacted_evidence: redacted,
+      redacted_evidence: JSON.stringify(sanitized, null, 2),
     };
   });
   const payload = {
