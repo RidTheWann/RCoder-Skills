@@ -1,7 +1,6 @@
 ---
 description: Verify a completion claim against the diff and test output
 argument-hint: [claim to verify, or paths to saved artifacts]
-# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Verify this completion claim independently: $ARGUMENTS
 
@@ -9,3 +8,4 @@ Verify this completion claim independently: $ARGUMENTS
 2. If the `rcoder` MCP server is connected and an expectations file exists, call `rsaver_crosscheck`. Otherwise compare the claim to the diff and test output by hand.
 3. Report PASS, FAIL, or UNVERIFIED with line-referenced evidence for each claimed item. Anything not observed is UNVERIFIED, never PASS.
 4. Do not modify source files while verifying.
+

@@ -1,7 +1,6 @@
 ---
 description: Threat-model an LLM or agent system for prompt injection, tool abuse, and over-broad permissions
 argument-hint: [system, repo path, or agent description]
-# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Assess the security of an LLM or agent system defensively, using the RCoder `llm-agent-security` specialist.
 

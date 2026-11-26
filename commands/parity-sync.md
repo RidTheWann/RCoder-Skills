@@ -1,7 +1,6 @@
 ---
 description: Synchronize Gemini TOML commands and verify cross-platform plugin and filesystem parity
 argument-hint: [optional target host or check]
-# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Synchronize and verify multi-host plugin artifacts across Linux, Windows, macOS, and Termux.
 

@@ -1,7 +1,6 @@
 ---
 description: Review or design telemetry, SLOs, alerting, and rollback readiness for a service
 argument-hint: [service, repo path, or symptom]
-# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Review production observability and reliability using the RCoder `observability-sre` specialist.
 

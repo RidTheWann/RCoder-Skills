@@ -1,7 +1,6 @@
 ---
 description: Budget context, prune verbose output, detect drift, or recover evidence using RSaver
 argument-hint: [subcommand: audit|redact|ledger|compact|budget|gate|drift|anchor|dedupe|measure|recover] [target]
-# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Manage and optimize context using RSaver.
 

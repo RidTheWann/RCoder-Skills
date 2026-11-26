@@ -1,7 +1,6 @@
 ---
 description: Design a risk-based test plan and the narrowest verification commands for a change
 argument-hint: [change, feature, or diff to test]
-# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Design the test plan for: $ARGUMENTS
 

@@ -1,4 +1,3 @@
-# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 description = "Review or design telemetry, SLOs, alerting, and rollback readiness for a service"
 prompt = """
 Review production observability and reliability using the RCoder `observability-sre` specialist.

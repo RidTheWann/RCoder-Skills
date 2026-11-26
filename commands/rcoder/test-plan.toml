@@ -1,4 +1,3 @@
-# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 description = "Design a risk-based test plan and the narrowest verification commands for a change"
 prompt = """
 Design the test plan for: $ARGUMENTS

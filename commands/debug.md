@@ -1,7 +1,6 @@
 ---
 description: Reproduce, isolate, and diagnose a failure with evidence before proposing a fix
 argument-hint: [error message, failing test, or symptom]
-# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Diagnose this failure: $ARGUMENTS
 

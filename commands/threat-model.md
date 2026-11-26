@@ -1,7 +1,6 @@
 ---
 description: Build a passive, evidence-led threat model for a system, feature, or change
 argument-hint: [system, feature, or diff to model]
-# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Threat-model this target: $ARGUMENTS
 

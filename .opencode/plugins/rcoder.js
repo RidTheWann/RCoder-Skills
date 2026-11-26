@@ -123,7 +123,7 @@ export const RCoderPlugin = async ({ directory }) => {
         if (summary && !output.system.some((item) => textOf(item).startsWith('RScan:'))) output.system.push(summary);
         const lessonsFile = path.join(workspaceDirectory, '.rcoder', 'lessons.jsonl');
         if (existsSync(lessonsFile)) {
-          const count = readFileSync(lessonsFile, 'utf8').split(/\\r?\\n/).filter(Boolean).length;
+          const count = readFileSync(lessonsFile, 'utf8').split(/\r?\n/).filter(Boolean).length;
           if (count > 0 && !output.system.some((item) => textOf(item).startsWith('RCoder Memory:'))) {
             output.system.push(`RCoder Memory: ${count} verified episodic lesson(s) available via rcoder_recall.`);
           }
@@ -186,7 +186,7 @@ export const RCoderPlugin = async ({ directory }) => {
           const packed = compactOutput(redacted);
           if (packed && packed.length < redacted.length) {
             const savedPct = Math.round((1 - packed.length / redacted.length) * 100);
-            output.output = `[rcoder:rsaver saved ${savedPct}%]\\n${packed}`;
+            output.output = `[rcoder:rsaver saved ${savedPct}%]\n${packed}`;
           } else {
             output.output = redacted;
           }
@@ -221,7 +221,7 @@ export const RCoderPlugin = async ({ directory }) => {
         `- Workspace: ${path.basename(workspaceDirectory)}`,
         `- State (secret-redacted JSON): ${serialized}`,
         '- Before stopping: inspect the final diff, run the narrowest relevant tests, and record verified evidence. This capsule is not proof that checks passed.',
-      ].join('\\n');
+      ].join('\n');
       if (!Array.isArray(output.context)) output.context = [];
       output.context.push(capsule);
     },
