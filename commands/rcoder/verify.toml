@@ -1,3 +1,4 @@
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 description = "Verify a completion claim against the diff and test output"
 prompt = """
 Verify this completion claim independently: $ARGUMENTS

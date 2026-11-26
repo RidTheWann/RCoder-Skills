@@ -1,3 +1,4 @@
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 description = "Build a passive, evidence-led threat model for a system, feature, or change"
 prompt = """
 Threat-model this target: $ARGUMENTS

@@ -1,6 +1,7 @@
 ---
 description: Run RScan and present ranked development options for this repository
 argument-hint: [optional focus area]
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Run RScan, the read-only project scan, for the current repository and present its ranked development options.
 

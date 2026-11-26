@@ -8,7 +8,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parent.parent
 SKILL = ROOT / "skills" / "rcoder"
 DIST = ROOT / "dist"
-VERSION = "1.16.0"
+VERSION = '1.16.0'
 FIXED_TIME = (2026, 1, 1, 0, 0, 0)
 EXCLUDED_DIRS = {
     ".git", ".mcp-live-test", "dist", "__pycache__", ".venv", "venv",
@@ -48,7 +48,7 @@ def main():
     DIST.mkdir(exist_ok=True)
     packages = [
         (f"rcoder-v{VERSION}.skill.zip", [(SKILL, "rcoder")]),
-        (f"rcoder-v{VERSION}.claude-plugin.zip", [(ROOT / ".claude-plugin", ".claude-plugin"), (ROOT / ".mcp.json", ".mcp.json"), (ROOT / "launcher" / "rcoder-mcp.mjs", "launcher/rcoder-mcp.mjs"), (ROOT / "commands", "commands"), (ROOT / "agents", "agents"), (ROOT / "hooks", "hooks"), (SKILL.parent, "skills"), (ROOT / "LICENSE", "LICENSE"), (ROOT / "README.md", "README.md")]),
+        (f"rcoder-v{VERSION}.claude-plugin.zip", [(ROOT / ".claude-plugin", ".claude-plugin"), (ROOT / ".mcp.json", ".mcp.json"), (ROOT / "launcher" / "rcoder-mcp.mjs", "launcher/rcoder-mcp.mjs"), (ROOT / "commands", "commands"), (ROOT / "agents", "agents"), (ROOT / 'hooks', 'hooks'), (SKILL.parent, "skills"), (ROOT / "LICENSE", "LICENSE"), (ROOT / "README.md", "README.md")]),
         (f"rcoder-v{VERSION}.agent-plugin.zip", [(ROOT / "plugin.json", "plugin.json"), (ROOT / "mcp.json", "mcp.json"), (ROOT / "launcher" / "rcoder-mcp.mjs", "launcher/rcoder-mcp.mjs"), (SKILL.parent, "skills"), (ROOT / "LICENSE", "LICENSE"), (ROOT / "README.md", "README.md")]),
         (f"rcoder-v{VERSION}.codex-plugin.zip", [(ROOT / "plugin.json", "plugin.json"), (ROOT / ".codex-plugin", ".codex-plugin"), (ROOT / ".mcp.json", ".mcp.json"), (ROOT / "launcher" / "rcoder-mcp.mjs", "launcher/rcoder-mcp.mjs"), (SKILL.parent, "skills"), (ROOT / "LICENSE", "LICENSE"), (ROOT / "README.md", "README.md")]),
         (f"rcoder-v{VERSION}.gemini-extension.zip", [(ROOT / "gemini-extension.json", "gemini-extension.json"), (ROOT / "GEMINI.md", "GEMINI.md"), (ROOT / "commands" / "rcoder", "commands/rcoder"), (ROOT / "launcher" / "rcoder-mcp.mjs", "launcher/rcoder-mcp.mjs"), (SKILL.parent, "skills")]),
