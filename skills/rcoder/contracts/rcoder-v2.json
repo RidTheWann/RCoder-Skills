@@ -3,7 +3,7 @@
   "contract_schema_version": 1,
   "product": {
     "name": "RCoder",
-    "version": "1.15.0",
+    "version": "1.16.0",
     "release_channel": "development"
   },
   "mcp": {
