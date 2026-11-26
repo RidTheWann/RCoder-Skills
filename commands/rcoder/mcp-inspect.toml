@@ -1,0 +1,12 @@
+description = "Audit MCP tools, live resources, contract invariants, and multi-host plugin parity"
+prompt = """
+Audit the RCoder MCP server and multi-host plugin configuration for the current workspace.
+
+Focus requested by the user (may be empty): $ARGUMENTS
+
+1. If the `rcoder` MCP server is connected, call `rcoder_doctor`, `rcoder_contract`, `rcoder_parity_audit`, and `rcoder_runtime_profile`. Otherwise inspect `skills/rcoder/scripts/rcoder_mcp.py`, `skills/rcoder/scripts/rcoder_mcp_modern.py`, and `skills/rcoder/contracts/rcoder-v2.json` directly.
+2. Verify strict JSON-RPC framing, `additionalProperties: false` tool schemas, workspace path confinement, and version parity across all plugin manifests.
+3. Do not modify files during inspection. Label every finding VERIFIED, INFERRED, or NOT VERIFIED.
+
+User request / target arguments: {{args}}
+"""
