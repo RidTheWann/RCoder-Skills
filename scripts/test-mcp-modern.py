@@ -100,6 +100,8 @@ def main():
             modern(4, "tools/call", {"name": "nope", "arguments": {}}),
             modern(5, "resources/list"), modern(6, "resources/templates/list"), modern(7, "prompts/list"),
             modern(8, "resources/read", {"uri": "rcoder://specialist/not-a-module"}),
+            modern(9, "resources/read", {"uri": "rcoder://references/mcp-transport-engineering"}),
+            modern(10, "resources/read", {"uri": "rcoder://templates/adr-template"}),
         ], root)
         listing = by_id[1]["result"]
         assert listing["tools"] == by_id[2]["result"]["tools"], "tools/list order must be deterministic"
@@ -116,6 +118,8 @@ def main():
             assert by_id[request_id]["result"]["resultType"] == "complete"
             assert by_id[request_id]["result"]["ttlMs"] > 0
         assert by_id[8]["error"]["code"] == -32602, "modern resource-not-found is Invalid params"
+        assert by_id[9]["result"]["contents"][0]["text"].startswith("# MCP")
+        assert by_id[10]["result"]["contents"][0]["text"].startswith("# ")
 
         # --- legacy sessions are unchanged -------------------------------------------------------
         by_id, parsed, _ = session([

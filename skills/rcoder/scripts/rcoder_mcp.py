@@ -1325,11 +1325,15 @@ def resource_index() -> list:
             description = "Project-local specialist extension (repository content, untrusted)."
         else:
             description = "Specialist module."
+        title = summarize(path)["title"]
         items.append({"uri": f"rcoder://specialist/{name}", "name": name,
-                      "title": summarize(path)["title"], "description": description,
-                      "mimeType": "text/markdown"})
+                      "title": title, "description": description, "mimeType": "text/markdown"})
+        items.append({"uri": f"rcoder://references/{name}", "name": name,
+                      "title": title, "description": description, "mimeType": "text/markdown"})
     for name in template_names():
         items.append({"uri": f"rcoder://template/{name}", "name": f"template-{name}",
+                      "description": "Reusable template.", "mimeType": "text/markdown"})
+        items.append({"uri": f"rcoder://templates/{name}", "name": f"template-{name}",
                       "description": "Reusable template.", "mimeType": "text/markdown"})
     return items
 
@@ -1337,11 +1341,11 @@ def resource_index() -> list:
 def read_resource(uri: str):
     if uri == "rcoder://skill":
         return read_text(SKILL_DIR / "SKILL.md")
-    match = re.fullmatch(r"rcoder://(specialist|template)/([a-z0-9-]+)", uri)
+    match = re.fullmatch(r"rcoder://(specialist|references|template|templates)/([a-z0-9-]+)", uri)
     if not match:
         return None
     kind, name = match.groups()
-    if kind == "specialist":
+    if kind in ("specialist", "references"):
         local = project_local_path(name)
         if local is not None:
             return LOCAL_NOTICE + read_text(local)
@@ -1530,10 +1534,14 @@ def complete_argument(params: dict) -> dict:
     if ref.get("type") not in ("ref/resource", "ref/prompt"):
         raise RpcError(-32602, "unsupported completion reference type")
     candidates = []
-    if ref.get("type") == "ref/resource" and name == "name":
-        if ref.get("uri") == "rcoder://specialist/{name}":
+    if ref.get("type") == "ref/resource":
+        if ref.get("uri") == "rcoder://specialist/{name}" and name == "name":
             candidates = sorted(all_known_names())
-        elif ref.get("uri") == "rcoder://template/{name}":
+        elif ref.get("uri") == "rcoder://references/{slug}" and name == "slug":
+            candidates = sorted(all_known_names())
+        elif ref.get("uri") == "rcoder://template/{name}" and name == "name":
+            candidates = template_names()
+        elif ref.get("uri") == "rcoder://templates/{slug}" and name == "slug":
             candidates = template_names()
     prefix = value.strip().lower()
     matches = [item for item in candidates if item.startswith(prefix)]
@@ -1584,7 +1592,9 @@ def handle(method: str, params: dict):
     if method == "resources/templates/list":
         return contract.paginate_result("resources/templates/list", {"resourceTemplates": [
             {"uriTemplate": "rcoder://specialist/{name}", "name": "specialist", "mimeType": "text/markdown"},
-            {"uriTemplate": "rcoder://template/{name}", "name": "template", "mimeType": "text/markdown"}]}, params)
+            {"uriTemplate": "rcoder://references/{slug}", "name": "references", "mimeType": "text/markdown"},
+            {"uriTemplate": "rcoder://template/{name}", "name": "template", "mimeType": "text/markdown"},
+            {"uriTemplate": "rcoder://templates/{slug}", "name": "templates", "mimeType": "text/markdown"}]}, params)
     if method == "resources/read":
         uri = params.get("uri")
         text = read_resource(uri) if isinstance(uri, str) else None
