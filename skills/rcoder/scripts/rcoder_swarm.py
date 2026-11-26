@@ -46,8 +46,6 @@ class SwarmCoordinator:
         try:
             if os.name == "nt":
                 import msvcrt
-                if os.fstat(descriptor).st_size == 0:
-                    os.write(descriptor, b"0")
                 while not locked:
                     try:
                         os.lseek(descriptor, 0, os.SEEK_SET)
@@ -57,6 +55,12 @@ class SwarmCoordinator:
                         if time.monotonic() >= deadline:
                             raise RuntimeError("timed out acquiring the file-lease lock")
                         time.sleep(0.02)
+                # Initialize the lock byte only after acquiring the exclusive lock.
+                # Concurrent first-time callers can otherwise both observe an empty
+                # file and race to write it while the other caller holds the byte lock.
+                if os.fstat(descriptor).st_size == 0:
+                    os.lseek(descriptor, 0, os.SEEK_SET)
+                    os.write(descriptor, b"0")
             else:
                 import fcntl
                 while not locked:
