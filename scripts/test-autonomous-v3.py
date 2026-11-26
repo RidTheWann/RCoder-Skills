@@ -178,7 +178,7 @@ class TestCodexReviewFixes(unittest.TestCase):
             swarm = SwarmCoordinator(workspace)
             self.assertTrue(swarm.claim_files("rcoder-a", ["shared.py"])["granted"])
             self.assertFalse(swarm.claim_files("rcoder-b", ["shared.py"])["granted"])
-            self.assertFalse(swarm.leases_path.with_suffix(".lock").exists())
+            self.assertTrue(swarm.leases_path.with_suffix(".lock").exists())  # persistent inode for OS-level locking
             capsule = swarm.pack_handoff("rcoder-a", "rcoder-b", "goal", ["shared.py"], ["PASS"])
             self.assertTrue(SwarmCoordinator.verify_handoff(capsule))
             self.assertIn("checksum", rcoder_swarm_source())
@@ -319,7 +319,7 @@ class TestV3Architecture(unittest.TestCase):
             "rcoder://repo/map", "rcoder://memory/recall", "rcoder://capsule/latest"
         } <= uris)
         commands = modern.command_prompts()
-        self.assertEqual(13, len(commands))
+        self.assertEqual(16, len(commands))
         prompts = modern.modern_result("prompts/list", {})["prompts"]
         self.assertTrue(any(item["name"].startswith(modern.PROMPT_PREFIX) for item in prompts))
         built = modern.modern_result(
