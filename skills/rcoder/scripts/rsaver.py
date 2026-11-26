@@ -27,7 +27,7 @@ try:  # Optional companion module; core RSaver commands remain standalone.
 except ImportError:  # pragma: no cover - packaging guard
     ReversibleRedactor = compress_skeleton = crosscheck_git_drift = None
 
-VERSION = "1.11.0"
+VERSION = "1.12.0"
 PIECES = re.compile(r"[^\W\d_]+|\d+|[^\s\w]", re.UNICODE)
 DEFAULT_CRITICAL = (
     r"(?i)(error|fail|exception|traceback|fatal|panic|exit[ _-]?code|"
@@ -944,6 +944,53 @@ def command_budget(args: argparse.Namespace) -> int:
     return 0
 
 
+
+def command_optimize(args: argparse.Namespace) -> int:
+    """Tighten allowlisted phrases in prose without modifying source files."""
+    from rsaver_optimizer import optimize_context
+    if len(args.paths) > 1 and not args.json:
+        raise ValueError("multiple inputs require --json so their outputs remain separate")
+    if args.name and "-" not in args.paths:
+        raise ValueError("--name is only valid when reading stdin via '-'")
+    if args.paths.count("-") > 1:
+        raise ValueError("stdin ('-') may be specified only once")
+    rows = []
+    for path in args.paths:
+        if path == "-":
+            source, display_name = sys.stdin.read(), args.name or "<stdin>"
+        else:
+            source = Path(path).read_text(encoding="utf-8", errors="replace")
+            display_name = path
+        result = optimize_context(
+            source, name=display_name, content_type=args.content_type,
+            profile=args.profile, estimator=estimate_v2,
+            tighten_phrases=not args.no_phrase_tightening,
+        )
+        result["path"] = path
+        rows.append(result)
+    original_total = sum(row["stats"]["original_estimate"] for row in rows)
+    optimized_total = sum(row["stats"]["optimized_estimate"] for row in rows)
+    saved_total = max(0, original_total - optimized_total)
+    report = {
+        "tool": "RSaver", "version": VERSION, "command": "optimize",
+        "source_files_modified": False, "files": rows,
+        "totals": {
+            "original_estimate": original_total, "optimized_estimate": optimized_total,
+            "saved_estimate": saved_total,
+            "saved_percent": round(100 * saved_total / original_total, 2) if original_total else 0.0,
+        },
+    }
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+    else:
+        sys.stdout.write(rows[0]["optimized_text"])
+        stats = rows[0]["stats"]
+        print(f"RSaver optimize: {stats['original_estimate']} -> {stats['optimized_estimate']} "
+              f"estimated tokens ({stats['saved_percent']:.2f}% saved); "
+              f"type={rows[0]['content_type']}; source unchanged", file=sys.stderr)
+    return 0
+
+
 def command_measure(args: argparse.Namespace) -> int:
     rows = []
     for path in args.paths:
@@ -1746,6 +1793,18 @@ def build_parser() -> argparse.ArgumentParser:
     measure.add_argument("--tokenizer-command", help="shell command that reads text on stdin and prints a token count")
     measure.add_argument("--json", action="store_true", help="emit JSON instead of text")
     measure.set_defaults(func=command_measure)
+
+    optimize = sub.add_parser("optimize", help="safely tighten allowlisted prose phrases")
+    optimize.add_argument("paths", nargs="+", help="text files to optimize, or '-' for stdin")
+    optimize.add_argument("--name", help="filename hint for stdin classification")
+    optimize.add_argument("--type", dest="content_type", choices=[
+        "auto", "prose", "markdown", "code", "structured", "evidence"
+    ], default="auto")
+    optimize.add_argument("--profile", choices=sorted(PROFILES), default="generic")
+    optimize.add_argument("--no-phrase-tightening", action="store_true")
+    optimize.add_argument("--json", action="store_true",
+                          help="emit structured reports; required for multiple inputs")
+    optimize.set_defaults(func=command_optimize)
 
     compare = sub.add_parser("compare", help="compare heuristic estimates with an exact tokenizer")
     compare.add_argument("paths", nargs="+")

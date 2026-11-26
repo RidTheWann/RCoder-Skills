@@ -21,7 +21,7 @@ Optimize total engineering cost—not token count alone. Minimize sufficient con
 3. Prefer exact symbol search, bounded line ranges, focused diffs, and relevant test output. Never dump all files or full logs by default.
 4. Maintain one compact working ledger: goal, constraints, verified facts with paths/lines, assumptions, decisions, commands/results, changed files, risks, and next action.
 5. Deduplicate reads and tool calls. Parallelize independent read-only reconnaissance; serialize writes and state-changing operations.
-6. Summarize verbose output while preserving paths, line numbers, exact error snippets, status codes, and uncertainty. Never compress away security-critical evidence.
+6. Summarize verbose output while preserving paths, line numbers, exact error snippets, status codes, and uncertainty. For ordinary prose only, `rsaver optimize --type auto --json` can apply allowlisted phrase tightening; review the returned copy and keep the original when savings are not positive. Never run semantic deletion or compress away security-critical evidence.
 7. Delegate only independent bounded tasks with explicit inputs, outputs, file scopes, and acceptance criteria; prevent overlapping edits.
 8. Use risk-based verification: narrow test first, expand proportionately, and state exactly which checks were skipped.
 9. Before context compaction or handoff, update a concise state capsule from `assets/templates/context-capsule-template.md`; do not narrate the entire conversation.

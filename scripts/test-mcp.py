@@ -142,7 +142,7 @@ def main():
             cursor = page.get("nextCursor")
         names = [item["name"] for item in tools]
         assert len(names) == len(set(names))
-        assert {"rcoder_skill_lint", "rcoder_hooks_config", "rcoder_contract"} <= set(names)
+        assert {"rcoder_skill_lint", "rcoder_hooks_config", "rcoder_contract", "rsaver_optimize"} <= set(names)
         for tool in tools:
             assert re.fullmatch(r"[a-z][a-z0-9_]*", tool["name"]), tool["name"]
             spec = tool["inputSchema"]
@@ -296,6 +296,22 @@ def main():
         measured_file = payload_of(call(root, "rsaver_measure", {"paths": ["build.log"]}))
         assert measured_file["result"]["files"][0]["lines"] == 151
         assert "provide text or at least one path" in error_text(call(root, "rsaver_measure", {}))
+
+        optimized_prose = payload_of(call(root, "rsaver_optimize", {
+            "text": "In order to run the checks prior to release, review the results.",
+            "name": "notes.txt",
+        }))
+        optimized_row = optimized_prose["result"]["files"][0]
+        assert optimized_prose["ok"] is True
+        assert optimized_row["optimized_text"].startswith("To run the checks before release")
+        assert optimized_row["source_modified"] is False
+        optimized_code = payload_of(call(root, "rsaver_optimize", {
+            "text": 'def run():\n    return "In order to preserve code prior to release"\n',
+            "name": "sample.py",
+        }))["result"]["files"][0]
+        assert optimized_code["content_type"] == "code"
+        assert optimized_code["optimized_text"] == 'def run():\n    return "In order to preserve code prior to release"\n'
+        assert "missing required" in error_text(call(root, "rsaver_optimize", {}))
 
         selected = payload_of(call(root, "rsaver_select",
                                    {"path": "build.log", "match": "ERROR", "context": 1}))

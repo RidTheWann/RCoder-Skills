@@ -50,9 +50,9 @@ def main():
         assert canonical.is_file()
         direct = subprocess.run([sys.executable, str(canonical), "--version"],
                                 text=True, capture_output=True, check=True, timeout=20)
-        assert "RSaver 1.11.0" in direct.stdout
+        assert "RSaver 1.12.0" in direct.stdout
         version = run("--version")
-        assert version.returncode == 0 and "RSaver 1.11.0" in version.stdout
+        assert version.returncode == 0 and "RSaver 1.12.0" in version.stdout
 
         calibration = {
             "prose": "The quick brown fox jumps over the lazy dog. This sentence uses common words.",
@@ -72,6 +72,65 @@ def main():
         assert hooked["rows"][0]["exact"] is not None
         assert hooked["rows"][0]["exact_source"] == "external-tokenizer-command"
         assert hooked["rows"][0]["v2_error_percent"] is not None
+
+        # --- safe prose optimization: preserve constraints, code, structures, and source files ---
+        prose_sample = (
+            "In order to run checks prior to release, keep just this note.\n"
+            "You must preserve every constraint prior to merging.\n"
+        )
+        prose_row = run_json("optimize", "-", "--type", "prose", "--json",
+                             stdin_text=prose_sample)["files"][0]
+        assert prose_row["content_type"] == "prose"
+        assert prose_row["optimized_text"].startswith("To run checks before release")
+        assert "just this note" in prose_row["optimized_text"], "filler words must not be stripped"
+        assert "You must preserve every constraint prior to merging." in prose_row["optimized_text"]
+        assert prose_row["source_modified"] is False and prose_row["stats"]["saved_estimate"] > 0
+        assert prose_row["original_sha256"] != prose_row["optimized_sha256"]
+
+        fence = chr(96) * 3
+        markdown_sample = (
+            "# In order to configure\n"
+            "In order to run tests, complete them prior to release.\n"
+            "- In order to preserve this constraint, do not remove it.\n"
+            + chr(96) + "In order to keep inline code unchanged" + chr(96) + ".\n"
+            + fence + "python\n"
+            "message = 'In order to keep code unchanged'\n"
+            + fence + "\n"
+        )
+        markdown_row = run_json("optimize", "-", "--name", "guide.md", "--json",
+                                 stdin_text=markdown_sample)["files"][0]
+        assert markdown_row["content_type"] == "markdown"
+        assert "# In order to configure" in markdown_row["optimized_text"]
+        assert "To run tests, complete them before release." in markdown_row["optimized_text"]
+        assert "- In order to preserve this constraint, do not remove it." in markdown_row["optimized_text"]
+        assert chr(96) + "In order to keep inline code unchanged" + chr(96) + "." in markdown_row["optimized_text"]
+        assert "message = 'In order to keep code unchanged'" in markdown_row["optimized_text"]
+
+
+        forced_markdown = run_json(
+            "optimize", "-", "--name", "guide.md", "--type", "prose", "--json",
+            stdin_text=markdown_sample,
+        )["files"][0]
+        assert forced_markdown["content_type"] == "markdown"
+        assert "message = 'In order to keep code unchanged'" in forced_markdown["optimized_text"]
+
+        code_sample = 'def run():\n    return "In order to preserve this code prior to release"\n'
+        code_row = run_json("optimize", "-", "--name", "sample.py", "--json",
+                            stdin_text=code_sample)["files"][0]
+        assert code_row["content_type"] == "code" and code_row["optimized_text"] == code_sample
+        json_sample = '{"message": "In order to preserve JSON prior to release", "enabled": true}'
+        json_row = run_json("optimize", "-", "--name", "settings.json", "--json",
+                            stdin_text=json_sample)["files"][0]
+        assert json_row["content_type"] == "structured" and json_row["optimized_text"] == json_sample
+        unchanged_row = run_json("optimize", "-", "--type", "prose", "--no-phrase-tightening", "--json",
+                                 stdin_text=prose_sample)["files"][0]
+        assert unchanged_row["optimized_text"] == prose_sample
+
+        read_only_source = root / "guide.md"
+        read_only_source.write_text(markdown_sample, encoding="utf-8")
+        run_json("optimize", str(read_only_source), "--json")
+        assert read_only_source.read_text(encoding="utf-8") == markdown_sample, \
+            "optimize must never rewrite its source file"
 
         budget = run_json("budget", "--window", "100000", "--output-reserve", "4000",
                           "--reasoning-reserve", "8000", "--tool-schema", "1000", "--json")

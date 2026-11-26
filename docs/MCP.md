@@ -59,6 +59,7 @@ All tools are read-only (`readOnlyHint: true`, `destructiveHint: false`) and use
 | `rcoder_contract` | Read the shared RCoder 2.0 contract: product version, transports, pagination, structured output, or invariants |
 | `rcoder_doctor` | Server version, skill files, helpers, enabled tools, project-local extension count |
 | `rsaver_measure` | Relative token estimate for inline text or files |
+| `rsaver_optimize` | Conservatively tighten allowlisted phrases in inline prose; source files are never modified and code, structured data, evidence, constraints, and Markdown structure are preserved |
 | `rsaver_audit` | Rank project files by estimated token cost, group them by category (lockfile, minified, generated, log, data, source, docs), and suggest exclusions; skips dependency trees, symlinks, binaries, and credential files, and never returns file contents |
 | `rsaver_select` | Bounded line windows around regex matches |
 | `rsaver_compact` | Prune non-critical lines from a log; the original file is never modified |
@@ -85,6 +86,10 @@ Resources: `rcoder://skill`, `rcoder://specialist/{name}` for every module, and 
 Prompts: `rcoder_intake`, `rcoder_route` (select and validate specialists before work), `rcoder_review`, `rcoder_verify` (check a completion claim with `rsaver_crosscheck`), `rcoder_handoff` (embeds the context-capsule template), `rcoder_security_scope` (authorization checklist; stays passive until scope is confirmed), `rcoder_context_gate` (context envelope budgeting and cache prefix verification), and `rcoder_reanchor` (dual-end explicit-ID anchor block generation). `rcoder_route` and `rcoder_verify` give hosts that surface MCP prompts the same workflows as the plugin's `/route` and `/verify` commands.
 
 Completion: `completion/complete` is advertised from protocol `2025-03-26` and completes the `{name}` argument of the specialist and template resource templates by case-insensitive prefix (at most 100 values). Prompt arguments are free text and complete to nothing.
+
+### Safe prose optimization
+
+`rsaver_optimize` accepts inline text (up to 40,000 characters) and returns a copy with only allowlisted phrase tightening. Automatic classification prevents code, structured data, and log/evidence content from being rewritten; Markdown headings, lists, tables, links, fenced/inline code, front matter, and normative constraint lines are also preserved. The result includes original/optimized SHA-256 hashes, changed-line metadata, the estimator profile, and relative savings. The tool is read-only and never writes the source. Estimated savings must be positive or the original text is returned. Token counts remain deterministic estimates, not provider billing counts.
 
 ## Context cost
 
