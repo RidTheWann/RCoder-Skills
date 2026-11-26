@@ -308,6 +308,8 @@ class TestV3Architecture(unittest.TestCase):
         commands = sorted(path.stem for path in (ROOT / "commands").glob("*.md"))
         tomls = sorted(path.stem for path in sync_plugins.GEMINI_CMD_DIR.glob("*.toml"))
         self.assertEqual(commands, tomls)
+        for path in sync_plugins.GEMINI_CMD_DIR.glob("*.toml"):
+            self.assertNotIn("\r", path.read_bytes().decode("utf-8"))
 
     def test_modern_live_resources_and_command_prompts(self) -> None:
         rcoder_mcp.State.root = ROOT

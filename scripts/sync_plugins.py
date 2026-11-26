@@ -43,7 +43,8 @@ def sync_gemini_toml() -> list[str]:
             f"User request / target arguments: {{{{args}}}}\n"
             f'"""\n'
         )
-        toml_path.write_text(content, encoding="utf-8")
+        with toml_path.open("w", encoding="utf-8", newline="\n") as handle:
+            handle.write(content)
         generated.append(toml_path.name)
     return generated
 
