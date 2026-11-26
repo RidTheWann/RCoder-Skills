@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 COMMANDS_DIR = ROOT / "commands"
 GEMINI_CMD_DIR = COMMANDS_DIR / "rcoder"
+SKILL_COMMANDS_DIR = ROOT / "skills" / "rcoder" / "commands"
 DESCRIPTION_RE = re.compile(r'^description:\s*["\']?(.+?)["\']?\s*$', re.M)
 
 
@@ -49,6 +50,25 @@ def sync_gemini_toml() -> list[str]:
     return generated
 
 
+
+def sync_skill_command_prompts() -> list[str]:
+    """Bundle MCP prompt sources inside the skill tree for skill-only installations."""
+    SKILL_COMMANDS_DIR.mkdir(parents=True, exist_ok=True)
+    synced: list[str] = []
+    source_names = set()
+    for md_file in sorted(COMMANDS_DIR.glob("*.md")):
+        source_names.add(md_file.name)
+        target = SKILL_COMMANDS_DIR / md_file.name
+        content = md_file.read_text(encoding="utf-8")
+        with target.open("w", encoding="utf-8", newline="\\n") as handle:
+            handle.write(content)
+        synced.append(md_file.name)
+    for target in SKILL_COMMANDS_DIR.glob("*.md"):
+        if target.name not in source_names:
+            target.unlink()
+    return synced
+
+
 def verify_manifests() -> dict[str, bool]:
     required = [
         ROOT / ".claude-plugin" / "plugin.json",
@@ -65,9 +85,11 @@ def verify_manifests() -> dict[str, bool]:
 
 def main() -> int:
     tomls = sync_gemini_toml()
+    skill_prompts = sync_skill_command_prompts()
     manifests = verify_manifests()
     missing = [name for name, ok in manifests.items() if not ok]
-    print(json.dumps({"gemini_toml_synced": tomls, "missing_manifests": missing}, indent=2))
+    print(json.dumps({"gemini_toml_synced": tomls, "skill_prompts_synced": skill_prompts,
+                      "missing_manifests": missing}, indent=2))
     return 1 if missing else 0
 
 
