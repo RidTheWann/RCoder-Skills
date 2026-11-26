@@ -112,7 +112,6 @@ jobs:
         run: python scripts/test-autonomous-v3.py -v
       - name: Phase 4 v1.16 runtime and MCP upgrade tests
         run: python scripts/test-v116-upgrades.py -v
-        run: python scripts/test-autonomous-v3.py -v
       - name: Verify npm package contents
         run: npm pack --dry-run --json
       - name: POSIX installer simulations
