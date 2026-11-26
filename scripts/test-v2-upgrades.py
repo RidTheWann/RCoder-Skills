@@ -185,7 +185,7 @@ class MCPBoundaryTests(unittest.TestCase):
         allowed = self.root / "allowed.txt"
         allowed.write_text("safe", encoding="utf-8")
         self.assertEqual(
-            allowed, rcoder_mcp.resolve_workspace_path(self.root, "allowed.txt")
+            allowed.resolve(), rcoder_mcp.resolve_workspace_path(self.root, "allowed.txt")
         )
         with self.assertRaises(rcoder_mcp.WorkspaceSecurityError):
             rcoder_mcp.resolve_workspace_path(self.root, "../outside.txt")
