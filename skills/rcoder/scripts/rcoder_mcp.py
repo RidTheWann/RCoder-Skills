@@ -768,7 +768,7 @@ def tool_read_symbol(args):
     }
 
 
-def _detected_test_command(root: Path, tests: list[str]) -> str:
+def _detected_test_command(root: Path, tests: list[str]) -> str | None:
     if (root / "go.mod").is_file():
         return "go test ./..."
     if (root / "Cargo.toml").is_file():
@@ -776,16 +776,29 @@ def _detected_test_command(root: Path, tests: list[str]) -> str:
     package_file = root / "package.json"
     if package_file.is_file():
         try:
-            scripts = json.loads(package_file.read_text(encoding="utf-8")).get("scripts", {})
-            if isinstance(scripts, dict) and "test" in scripts:
+            package = json.loads(package_file.read_text(encoding="utf-8"))
+            scripts = package.get("scripts", {})
+            if isinstance(scripts, dict) and isinstance(scripts.get("test"), str) and scripts["test"].strip():
                 return "npm test"
-            return "npm run test"
+            dependencies = {
+                **(package.get("dependencies", {}) if isinstance(package.get("dependencies", {}), dict) else {}),
+                **(package.get("devDependencies", {}) if isinstance(package.get("devDependencies", {}), dict) else {}),
+            }
+            if "vitest" in dependencies:
+                return "npx --no-install vitest run"
+            if "jest" in dependencies:
+                return "npx --no-install jest --runInBand"
+            if "mocha" in dependencies:
+                return "npx --no-install mocha"
+            return None
         except (OSError, ValueError):
-            return "npm test"
-    if tests and all(str(item).endswith((".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs")) for item in tests):
-        return "npm test"
-    command = "python3 -m pytest -q"
-    return command + (" " + " ".join(tests) if tests else "")
+            return None
+    if tests and all(str(item).endswith((".py",)) for item in tests):
+        command = "python3 -m pytest -q"
+        return command + (" " + " ".join(tests) if tests else "")
+    if tests and all(str(item).endswith((".js", ".mjs", ".cjs")) for item in tests):
+        return "node --test " + " ".join(tests)
+    return "python3 -m pytest -q" if not tests else None
 
 
 def tool_impact_test(args):
@@ -826,8 +839,9 @@ def tool_impact_test(args):
         "changed_files": changed,
         "impacted_modules": blast["impacted_modules"],
         "recommended_tests": tests,
-        "required_verification": command,
-        "note": "Run this command before the stop gate accepts completion.",
+        "required_verification": command or "No runnable test command was detected; identify and run the project's test runner before completion.",
+        "verification_command_available": bool(command),
+        "note": "Run the detected command before the stop gate accepts completion; if unavailable, identify the project test runner explicitly.",
     }
 
 
@@ -848,18 +862,28 @@ def tool_recall(args):
 
 
 def tool_learn(args):
-    from rcoder_memory import EpisodicLessonStore
+    from rcoder_memory import EpisodicLessonStore, RCoderMemoryStore
 
     root = _selected_root(args)
+    symptom = str(args["symptom"])
+    root_cause = str(args["root_cause"])
+    verified_fix = str(args["verified_fix"])
+    related_files = args.get("related_files") or []
+    tags = args.get("tags") or []
     result = EpisodicLessonStore(root).record_lesson(
-        symptom=str(args["symptom"]),
-        root_cause=str(args["root_cause"]),
-        verified_fix=str(args["verified_fix"]),
-        related_files=args.get("related_files") or [],
-        tags=args.get("tags") or [],
+        symptom=symptom,
+        root_cause=root_cause,
+        verified_fix=verified_fix,
+        related_files=related_files,
+        tags=tags,
+    )
+    memory_id = RCoderMemoryStore(root).record(
+        "fix", symptom,
+        f"Root cause: {root_cause}\nVerified fix: {verified_fix}\nTags: {', '.join(str(tag) for tag in tags)}",
+        files=related_files,
     )
     return {"ok": True, "tool": "rcoder_learn", "version": product_version(),
-            "root": str(root), **result}
+            "root": str(root), "memory_id": memory_id, **result}
 
 
 def tool_handoff(args):
