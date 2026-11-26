@@ -60,7 +60,7 @@ def sync_skill_command_prompts() -> list[str]:
         source_names.add(md_file.name)
         target = SKILL_COMMANDS_DIR / md_file.name
         content = md_file.read_text(encoding="utf-8")
-        with target.open("w", encoding="utf-8", newline="\\n") as handle:
+        with target.open("w", encoding="utf-8", newline="\n") as handle:
             handle.write(content)
         synced.append(md_file.name)
     for target in SKILL_COMMANDS_DIR.glob("*.md"):
