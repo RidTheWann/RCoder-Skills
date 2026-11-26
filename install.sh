@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # Stable POSIX entrypoint. Keep installation behavior in scripts/install.sh.
 set -eu
 
@@ -12,4 +12,4 @@ if [ ! -f "$DELEGATE" ]; then
   exit 1
 fi
 
-exec /bin/sh "$DELEGATE" "$@"
+exec sh "$DELEGATE" "$@"
