@@ -106,6 +106,14 @@ def main():
         assert chr(96) + "In order to keep inline code unchanged" + chr(96) + "." in markdown_row["optimized_text"]
         assert "message = 'In order to keep code unchanged'" in markdown_row["optimized_text"]
 
+
+        forced_markdown = run_json(
+            "optimize", "-", "--name", "guide.md", "--type", "prose", "--json",
+            stdin_text=markdown_sample,
+        )["files"][0]
+        assert forced_markdown["content_type"] == "markdown"
+        assert "message = 'In order to keep code unchanged'" in forced_markdown["optimized_text"]
+
         code_sample = 'def run():\n    return "In order to preserve this code prior to release"\n'
         code_row = run_json("optimize", "-", "--name", "sample.py", "--json",
                             stdin_text=code_sample)["files"][0]
