@@ -113,6 +113,13 @@ export const RCoderPlugin = async ({ directory }) => ({
     try {
       const summary = await scanProject(directory || repoRoot);
       if (summary && !output.system.some((item) => textOf(item).startsWith('RScan:'))) output.system.push(summary);
+      const lessonsFile = path.join(directory || repoRoot, '.rcoder', 'lessons.jsonl');
+      if (existsSync(lessonsFile)) {
+        const count = readFileSync(lessonsFile, 'utf8').split(/\\r?\\n/).filter(Boolean).length;
+        if (count > 0 && !output.system.some((item) => textOf(item).startsWith('RCoder Memory:'))) {
+          output.system.push(`RCoder Memory: ${count} verified episodic lesson(s) available via rcoder_recall.`);
+        }
+      }
     } catch (error) {
       console.error('RCoder RScan skipped:', error && error.message ? error.message : String(error));
     }
