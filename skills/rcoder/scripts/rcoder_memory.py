@@ -12,9 +12,16 @@ from typing import Any
 from platform_runtime import to_posix_rel
 
 TOKEN_RE = re.compile(r"[a-z0-9_]{3,}")
+PRIVATE_KEY_RE = re.compile(
+    r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]+?-----END [A-Z0-9 ]*PRIVATE KEY-----"
+)
 INLINE_SECRET_RE = re.compile(
-    r"(?:sk-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9_]{20,}|"
+    r"(?:sk-[A-Za-z0-9_-]{16,}|(?:AKIA|ASIA)[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|"
     r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})"
+)
+ASSIGNMENT_SECRET_RE = re.compile(
+    r"(?i)\b(?:api[_-]?key|secret|token|password|passwd|pwd)\b\s*[:=]\s*"
+    r"['\"]([^'\"\n]{8,})['\"]"
 )
 
 
@@ -23,7 +30,12 @@ def _tokenize(text: str) -> set[str]:
 
 
 def _sanitize(text: str) -> str:
-    return INLINE_SECRET_RE.sub("[REDACTED_SECRET]", text.replace("\r\n", "\n").strip())
+    cleaned = text.replace("\r\n", "\n").strip()
+    cleaned = PRIVATE_KEY_RE.sub("[REDACTED_SECRET]", cleaned)
+    cleaned = INLINE_SECRET_RE.sub("[REDACTED_SECRET]", cleaned)
+    return ASSIGNMENT_SECRET_RE.sub(
+        lambda match: match.group(0).replace(match.group(1), "[REDACTED_SECRET]"), cleaned
+    )
 
 
 class EpisodicLessonStore:

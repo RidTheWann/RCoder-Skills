@@ -5,7 +5,7 @@
 RCoder remains one portable Agent Skill with progressive disclosure. The core router selects focused references rather than injecting the entire specialist library into every agent context.
 
 Version 1.15.0 adds:
-- Autonomous execution and cross-platform upgrades: transactional multi-file edit sandbox with automatic rollback (`rsaver_sandbox.py`, `rcoder_apply_verify`), incremental SQLite symbol index and test blast-radius solver (`rscan_index.py`, `rcoder_impact_test`), portable runtime/path canonicalizer (`platform_runtime.py`), cross-platform state sync (`rcoder sync`), episodic failure-to-fix memory (`rcoder_memory.py`, `rcoder_recall`, `rcoder_learn`), signed swarm leases and handoffs (`rcoder_swarm.py`, `rcoder_handoff`), and a parity linter with a three-OS CI matrix.
+- Autonomous execution and cross-platform upgrades: transactional multi-file edit sandbox with automatic rollback (`rsaver_sandbox.py`, `rcoder_apply_verify`), incremental SQLite symbol index and test blast-radius solver (`rscan_index.py`, `rcoder_impact_test`), portable runtime/path canonicalizer (`platform_runtime.py`), cross-platform state sync (`rcoder sync`), episodic failure-to-fix memory (`rcoder_memory.py`, `rcoder_recall`, `rcoder_learn`), checksummed swarm leases and handoffs (`rcoder_swarm.py`, `rcoder_handoff`), and a parity linter with a three-OS CI matrix.
 - Graph-aware RScan reports, deterministic routing addendums with executable verification footers, MCP path confinement with structured error envelopes and `rcoder_preflight`, plus `doctor --fix` and an opt-in strict stop gate.
 
 Version 1.14.0 adds:

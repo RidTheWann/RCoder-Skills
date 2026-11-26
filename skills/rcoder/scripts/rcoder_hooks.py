@@ -54,6 +54,11 @@ READERS = {
     "yq", "vi", "vim", "nano", "emacs",
 }
 WRAPPERS = {"sudo", "env", "command", "nohup", "time", "nice", "exec", "builtin", "doas"}
+WRAPPER_VALUE_FLAGS = {
+    "-u", "--user", "-g", "--group", "-h", "--host", "-p", "--port",
+    "-C", "--chdir", "-D", "--chroot", "-a", "--apparmor-profile",
+    "-t", "--target-type", "-T", "--command-timeout", "-P", "--preserve-env",
+}
 CATASTROPHIC_TARGETS = {"/", "/*", "~", "~/", "~/*", "$home", "$home/", "${home}", "${home}/", "/etc", "/usr",
                         "/bin", "/sbin", "/boot", "/lib", "/var", "/home", "/root", "/opt"}
 WINDOWS_DELETERS = {"rd", "rmdir", "del", "erase", "remove-item", "ri"}
@@ -193,7 +198,12 @@ def _program(tokens: list[str]) -> tuple[str, list[str], bool]:
             elevated = elevated or base in {"sudo", "doas"}
             index += 1
             while index < len(tokens) and tokens[index].startswith("-"):
+                flag = tokens[index]
                 index += 1
+                if flag == "--":
+                    break
+                if "=" not in flag and flag in WRAPPER_VALUE_FLAGS and index < len(tokens):
+                    index += 1
         else:
             break
     if index >= len(tokens):
@@ -282,7 +292,14 @@ def analyze_command(command: str, profile: str = "standard", _depth: int = 0) ->
         if program == "git":
             sub, rest = _git_subcommand(args)
             if sub in {"add", "diff", "show", "blame", "cat-file"}:
-                for operand in _clean_tokens(rest):
+                operands = _clean_tokens(rest)
+                if sub == "add":
+                    broad_flag = any(token in {"-A", "--all", "-a", "--"} for token in rest)
+                    broad_operand = any(operand in {".", "./", "*", "**"} for operand in operands)
+                    explicit = any(operand not in {".", "./", "*", "**"} for operand in operands)
+                    if (broad_flag or broad_operand) and not explicit:
+                        return "deny", "git add with a broad pathspec can stage credential files; stage explicit paths"
+                for operand in operands:
                     why = secret_reason(operand.rsplit(":", 1)[-1] if sub != "add" else operand)
                     if why:
                         effect = "stage" if sub == "add" else "print the contents of"

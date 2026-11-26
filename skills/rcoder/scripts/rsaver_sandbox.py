@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import ntpath
+import os
 import py_compile
 import subprocess
 import tempfile
@@ -65,9 +67,20 @@ def transactional_apply_and_verify(
         if not edits:
             raise SandboxEditError("No edits provided.")
         for index, item in enumerate(edits):
-            rel = to_posix_rel(item.get("path", ""), root)
-            if not rel:
+            raw_path = item.get("path", "")
+            if not isinstance(raw_path, str) or not raw_path.strip():
                 raise SandboxEditError(f"Edit #{index} missing valid 'path'.")
+            if ntpath.isabs(raw_path) and not os.path.isabs(raw_path):
+                raise SandboxEditError(f"Absolute path outside workspace rejected: {raw_path}")
+            if os.path.isabs(raw_path):
+                absolute = Path(raw_path).resolve(strict=False)
+                if not absolute.is_relative_to(root):
+                    raise SandboxEditError(f"Absolute path outside workspace rejected: {raw_path}")
+                rel = absolute.relative_to(root).as_posix()
+            else:
+                rel = to_posix_rel(raw_path, root)
+                if not rel or rel == ".." or rel.startswith("../"):
+                    raise SandboxEditError(f"Path traversal rejected: {raw_path}")
             target = to_native_path(rel, root).resolve(strict=False)
             if not target.is_relative_to(root):
                 raise SandboxEditError(f"Path traversal rejected: {rel}")
@@ -134,8 +147,10 @@ def transactional_apply_and_verify(
                     "files": touched_rel,
                 }
         return {"ok": True, "rolled_back": False, "files_committed": touched_rel}
-    except Exception as error:
+    except BaseException as error:
         rollback()
+        if isinstance(error, (KeyboardInterrupt, SystemExit)):
+            raise
         return {
             "ok": False, "rolled_back": True, "stage": "patch_apply",
             "error": str(error), "files": touched_rel,
