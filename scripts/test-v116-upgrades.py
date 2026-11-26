@@ -16,6 +16,8 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 import platform_runtime  # noqa: E402
 import rcoder_mcp as core  # noqa: E402
 import rcoder_mcp_modern as modern  # noqa: E402
+sys.path.insert(0, str(ROOT / "scripts"))
+import sync_plugins  # noqa: E402
 
 
 class TestV116Upgrades(unittest.TestCase):
@@ -58,9 +60,16 @@ class TestV116Upgrades(unittest.TestCase):
         for name in ("rcoder_cmd_context-pack", "rcoder_cmd_mcp-inspect", "rcoder_cmd_parity-sync"):
             self.assertIn(name, prompts)
         source = ROOT / "commands"
-        bundled = ROOT / "skills" / "rcoder" / "commands"
-        for command in source.glob("*.md"):
-            self.assertEqual(command.read_bytes(), (bundled / command.name).read_bytes())
+        canonical = ROOT / "skills" / "rcoder" / "commands"
+        self.assertEqual(sync_plugins.sync_command_markdown(check=True),
+                         sorted(path.name for path in canonical.glob("*.md")))
+        self.assertEqual(sync_plugins.sync_gemini_toml(check=True),
+                         sorted(path.stem + ".toml" for path in canonical.glob("*.md")))
+        for command in canonical.glob("*.md"):
+            generated = source / command.name
+            self.assertIn(sync_plugins.GENERATED_MARKER, generated.read_text(encoding="utf-8"))
+            self.assertEqual(sync_plugins.parse_command_md(generated),
+                             sync_plugins.parse_command_md(command))
 
     def test_version_and_default_eval_data_are_packaged(self) -> None:
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))

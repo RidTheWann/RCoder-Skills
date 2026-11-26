@@ -1,6 +1,7 @@
 ---
 description: Produce a scoped implementation plan with acceptance criteria before changing code
 argument-hint: [task or goal to plan]
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Plan this change without implementing it: $ARGUMENTS
 

@@ -498,6 +498,10 @@ def main():
              "params": {"name": "rcoder_context_gate", "arguments": {"task": "multi-file refactor", "window": "80000"}}},
             {"jsonrpc": "2.0", "id": 22, "method": "prompts/get",
              "params": {"name": "rcoder_reanchor", "arguments": {"objective": "fix parser regression"}}},
+            {"jsonrpc": "2.0", "id": 23, "method": "resources/read",
+             "params": {"uri": "rcoder://references/mcp-transport-engineering"}},
+            {"jsonrpc": "2.0", "id": 24, "method": "resources/read",
+             "params": {"uri": "rcoder://templates/adr-template"}},
         ], root)
         resources = list(by_id[1]["result"]["resources"])
         cursor = by_id[1]["result"].get("nextCursor")
@@ -514,7 +518,10 @@ def main():
         assert by_id[2]["result"]["contents"][0]["text"].startswith("---")
         assert by_id[3]["result"]["contents"][0]["text"].startswith("# Agent extensions")
         assert by_id[4]["error"]["code"] == -32002 and by_id[5]["error"]["code"] == -32002
-        assert len(by_id[6]["result"]["resourceTemplates"]) == 2
+        assert len(by_id[6]["result"]["resourceTemplates"]) == 4
+        template_uris = {item["uriTemplate"] for item in by_id[6]["result"]["resourceTemplates"]}
+        assert "rcoder://references/{slug}" in template_uris
+        assert "rcoder://templates/{slug}" in template_uris
         assert by_id[7]["result"]["contents"][0]["text"].strip()
         assert {item["name"] for item in by_id[8]["result"]["prompts"]} == {
             "rcoder_intake", "rcoder_review", "rcoder_handoff", "rcoder_security_scope",
@@ -543,6 +550,8 @@ def main():
         assert "Re-anchor" in reanchor_text and "fix parser regression" in reanchor_text
         assert "fix the parser" in by_id[9]["result"]["messages"][0]["content"]["text"]
         assert by_id[10]["error"]["code"] == -32602
+        assert by_id[23]["result"]["contents"][0]["text"].startswith("# MCP")
+        assert by_id[24]["result"]["contents"][0]["text"].startswith("# ")
         assert "ship v2" in by_id[11]["result"]["messages"][0]["content"]["text"]
         assert by_id[12]["error"]["code"] == -32602
         assert "stay passive" in by_id[13]["result"]["messages"][0]["content"]["text"]
@@ -563,6 +572,12 @@ def main():
         assert everything["hasMore"] is (everything["total"] > 100)
         template = complete({"type": "ref/resource", "uri": "rcoder://template/{name}"},
                             {"name": "name", "value": "adr"})["result"]["completion"]
+        alias_reference = complete({"type": "ref/resource", "uri": "rcoder://references/{slug}"},
+                                   {"name": "slug", "value": "mcp"})["result"]["completion"]
+        alias_template = complete({"type": "ref/resource", "uri": "rcoder://templates/{slug}"},
+                                   {"name": "slug", "value": "adr"})["result"]["completion"]
+        assert "mcp-transport-engineering" in alias_reference["values"]
+        assert alias_template["values"] == ["adr-template"]
         assert template["values"] == ["adr-template"]
         for harmless in ({"name": "name", "value": "../"}, {"name": "other", "value": "rev"}):
             assert complete(spec_ref, harmless)["result"]["completion"]["values"] == [], harmless

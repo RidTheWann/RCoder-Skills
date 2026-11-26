@@ -1,6 +1,7 @@
 ---
 description: Audit MCP tools, live resources, contract invariants, and multi-host plugin parity
 argument-hint: [optional focus: tools | resources | parity | security]
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Audit the RCoder MCP server and multi-host plugin configuration for the current workspace.
 

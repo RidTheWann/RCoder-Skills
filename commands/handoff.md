@@ -1,6 +1,7 @@
 ---
 description: Write a context capsule so a long task can continue in a fresh session
 argument-hint: [current objective]
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Write a context capsule for this objective: $ARGUMENTS
 

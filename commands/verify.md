@@ -1,6 +1,7 @@
 ---
 description: Verify a completion claim against the diff and test output
 argument-hint: [claim to verify, or paths to saved artifacts]
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Verify this completion claim independently: $ARGUMENTS
 

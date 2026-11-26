@@ -1,6 +1,7 @@
 ---
 description: Adversarial review of the current change with evidence-labelled findings
 argument-hint: [branch, diff range, or files]
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Review the following change adversarially: $ARGUMENTS (default: the uncommitted diff plus untracked files).
 

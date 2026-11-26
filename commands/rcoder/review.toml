@@ -1,3 +1,4 @@
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 description = "Adversarial review of the current change with evidence-labelled findings"
 prompt = """
 Review the following change adversarially: $ARGUMENTS (default: the uncommitted diff plus untracked files).
