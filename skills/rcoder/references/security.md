@@ -66,3 +66,8 @@ Run applicable dependency, secret, static-analysis, configuration, and applicati
 
 ## Output format
 Scope/authorization · threat model · prioritized findings with classification and confidence · source/sink/reachability/evidence · remediation · tests/scans · residual risk · NOT VERIFIED areas.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run applicable dependency, secret, static-analysis, configuration, and application checks.
+- **Anti-Patterns**: Client-only validation or hidden UI controls as authorization; broad permissions, wildcard CORS with credentials, or disabled TLS verification
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

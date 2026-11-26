@@ -15,6 +15,12 @@ import sys
 import time
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+try:  # Optional companion module; RScan still works when packaged without it.
+    from rscan_graph import analyze_repository_graph
+except ImportError:  # pragma: no cover - packaging guard
+    analyze_repository_graph = None
+
 VERSION = "1.11.0"
 SKIP = {
     ".git", ".hg", ".svn", "node_modules", "vendor", "dist", "build", "target",
@@ -268,7 +274,7 @@ def build_options(root: Path, paths: list[str], stacks: list[str], key_files: li
     return sorted(options, key=lambda item: (-item["priority"], item["id"]))
 
 
-def scan_project(root: Path, max_paths: int) -> dict:
+def scan_project(root: Path, max_paths: int, token_budget: int | None = None) -> dict:
     git = git_summary(root)
     paths, truncated, candidate_paths_seen = collect_paths(root, max_paths)
     by_name = {Path(path).name: path for path in paths}
@@ -330,7 +336,9 @@ def scan_project(root: Path, max_paths: int) -> dict:
                "readme": has_readme, "readme_confidence": "observed" if has_readme else ("unknown-truncated" if truncated else "complete-absent"),
                "lockfile": has_lock, "lockfile_confidence": "observed" if has_lock else ("unknown-truncated" if truncated else "complete-absent")}
     options = build_options(root, paths, stacks, key_files, quality, risks, git)
-    return {
+    graph = (analyze_repository_graph(root, token_budget=token_budget)
+             if analyze_repository_graph is not None else None)
+    report = {
         "tool": "RScan", "version": VERSION,
         "root": str(root.resolve()), "git": git,
         "scan": {"max_paths": max_paths, "paths_sampled": len(paths), "candidate_paths_seen": candidate_paths_seen,
@@ -342,13 +350,29 @@ def scan_project(root: Path, max_paths: int) -> dict:
                    "No files are modified by scan.",
                    "Binary and non-text contents are not inspected."],
     }
+    report["graph"] = graph
+    report["hotspots"] = graph["hotspots"] if graph else []
+    report["risks"] = graph["risks"] if graph else []
+    report["budget_mode"] = graph["budget_mode"] if graph else "unavailable"
+    return report
 
 
 def render_menu(report: dict) -> str:
     lines = [f"RScan: {report['root']}", f"Branch: {report['git']['branch']}",
              f"Stacks: {', '.join(report['stacks']) or 'undetected'}",
              f"Sampled paths: {report['scan']['paths_sampled']} (truncated={report['scan']['truncated']})",
-             f"Risk signals: {len(report['risk_signals'])}", "", "Development options:"]
+             f"Risk signals: {len(report['risk_signals'])}"]
+    graph = report.get("graph") or {}
+    summary = graph.get("summary") or {}
+    if summary:
+        top = (report.get("hotspots") or [{}])[0].get("file", "none")
+        lines.append(
+            f"Dependency graph: {summary.get('analyzed_code_files', 0)} modules, "
+            f"{summary.get('dependency_edges', 0)} edges, "
+            f"{summary.get('circular_dependency_groups', 0)} cycles "
+            f"(mode={report.get('budget_mode')}, top={top})"
+        )
+    lines.extend(["", "Development options:"])
     for index, option in enumerate(report["development_options"], 1):
         lines.append(f"  {index}. [{option['id']}] {option['title']} (priority {option['priority']})")
         lines.append(f"     why: {option['why']}")
@@ -366,6 +390,24 @@ def render_markdown(report: dict) -> str:
              "", "## Risk signals", ""]
     for risk in report["risk_signals"]:
         lines.append(f"- **{risk['severity']}** `{risk['id']}`: {risk['detail']}")
+    graph = report.get("graph") or {}
+    if graph:
+        lines.extend(["", "## Semantic dependency graph", "",
+                      f"- Budget mode: `{report.get('budget_mode')}`",
+                      f"- Edges: {graph['summary']['dependency_edges']}",
+                      f"- Circular groups: {graph['summary']['circular_dependency_groups']}", ""])
+        for hotspot in report.get("hotspots", [])[:5]:
+            lines.append(
+                f"- `{hotspot['file']}` score={hotspot['hotspot_score']} "
+                f"fan_in={hotspot['fan_in']} fan_out={hotspot['fan_out']}"
+            )
+        if report.get("risks"):
+            lines.extend(["", "### Graph risks", ""])
+            for risk in report["risks"]:
+                target = risk.get("file") or ", ".join(risk.get("files", []))
+                lines.append(
+                    f"- **{risk['severity']}** `{risk['code']}` {target}: {risk['detail']}"
+                )
     lines.extend(["", "## Development options", ""])
     for option in report["development_options"]:
         lines.append(f"### {option['id']} — {option['title']}")
@@ -398,7 +440,7 @@ def command_scan(args: argparse.Namespace) -> int:
     root = Path(args.root).expanduser().resolve()
     if not root.is_dir():
         raise ValueError(f"root is not a directory: {root}")
-    report = scan_project(root, args.max_paths)
+    report = scan_project(root, args.max_paths, token_budget=getattr(args, "token_budget", None))
     if args.hook:
         print(hook_payload(report, args.hook))
     elif args.format == "json":
@@ -590,6 +632,8 @@ def main() -> int:
     scan = sub.add_parser("scan", help="scan the project and offer development options")
     scan.add_argument("--root", default=".")
     scan.add_argument("--max-paths", type=int, default=80)
+    scan.add_argument("--token-budget", type=int, default=None,
+                      help="optional 400..16000 token budget for dependency-graph density")
     scan.add_argument("--format", choices=("text", "json", "markdown"), default="text")
     scan.add_argument("--hook", choices=("claude", "gemini", "opencode"),
                       help="emit a session-start hook payload")

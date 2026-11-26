@@ -145,3 +145,8 @@ Context: 1 file in working set (target.py:40-80) | Anti-loop: clean
 Last verification: pytest -k test_payment passed
 Next: Step 3 — Edit auth.py: add token rotation
 ```
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run the ablation: same model, same tasks, same tools, same budget — with and without the weak-model profile.
+- **Anti-Patterns**: Adding more harness structure without a measured failure justifying it (mega-harness anti-pattern).; Letting the model grade its own work — verification quality is model-bound.
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

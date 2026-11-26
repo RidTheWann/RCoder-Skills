@@ -66,3 +66,8 @@ Run with validation and a captured frame, compare against a reference renderer, 
 
 ## Output format
 Hardware and driver · symptom and capture evidence · root cause · fix and why it is sufficient · measurements before and after · unverified GPUs and residual risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run with validation and a captured frame, compare against a reference renderer, and measure frame-time percentiles on each claimed GPU.
+- **Anti-Patterns**: Full-pipeline waits to hide a race; blaming the driver without a repro
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

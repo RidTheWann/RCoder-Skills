@@ -77,3 +77,8 @@ Run a scripted stdio session covering initialize, the initialized notification, 
 
 ## Output format
 Mechanism chosen and why · manifest and file layout · tool or skill contract with limits · context-cost measurement · security review (trust boundaries, confinement, injection handling) · tests run with observed results · evidence tier per host · residual risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run a scripted stdio session covering initialize, the initialized notification, list, call (success, invalid arguments, unknown tool), resources, prompts, malformed JSON, and an unknown method; assert that notifications get no response and stdout contains only JSON lines.
+- **Anti-Patterns**: Putting secrets in manifests or tool arguments; building shell strings from model-supplied values
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

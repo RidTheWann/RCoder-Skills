@@ -5,9 +5,7 @@
       "type": "stdio",
       "command": "node",
       "args": [
-        "${PLUGIN_ROOT}/launcher/rcoder-mcp.mjs",
-        "--root",
-        "${PLUGIN_ROOT}"
+        "launcher/rcoder-mcp.mjs"
       ],
       "cwd": "${PLUGIN_ROOT}"
     }

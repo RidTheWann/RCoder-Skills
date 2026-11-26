@@ -65,3 +65,8 @@ Run `python3 scripts/test-rsaver.py`, which checks failure/pass verdicts, scope 
 
 ## Output format
 Verdict · check statuses with evidence lines · observed usage fields · billing caveat · compression estimates and recovery manifest · next action.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run `python3 scripts/test-rsaver.py`, which checks failure/pass verdicts, scope detection, usage copying, billing caveat, pack economics, and exact unpack restoration.
+- **Anti-Patterns**: Promising refunds; deleting usage records
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> python3 scripts/test-rsaver.py.

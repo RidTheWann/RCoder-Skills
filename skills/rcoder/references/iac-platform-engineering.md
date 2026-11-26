@@ -66,3 +66,8 @@ Run validation and render steps locally, a plan against a non-production target,
 
 ## Output format
 Environment and versions · summary of planned changes with replace/destroy callouts · blast radius and rollback · commands run with results · unverified items and residual risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run validation and render steps locally, a plan against a non-production target, and a post-apply re-plan.
+- **Anti-Patterns**: Applying from a laptop to production; `latest` image tags
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

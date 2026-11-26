@@ -28,7 +28,7 @@ python3 skills/rcoder/scripts/rcoder_mcp.py --print-config cursor
 python3 skills/rcoder/scripts/rcoder_mcp.py --print-config vscode
 ```
 
-Supported snippet hosts: `claude-code`, `codex`, `cursor`, `gemini-cli`, `vscode`, `opencode`, and `generic` (the common `mcpServers` JSON shape). On Windows use `--command python` because `python3` may not exist. The repository-root wrapper `scripts/rcoder-mcp.py` runs the same server.
+Supported snippet hosts: `claude-code`, `codex`, `cursor`, `gemini-cli`, `vscode`, `opencode`, and `generic` (the common `mcpServers` JSON shape). On Windows use `--command python` because `python3` may not exist. The repository-root wrapper `scripts/rcoder-mcp.py` runs the same server. The portable plugin configs use `node launcher/rcoder-mcp.mjs`; that bridge probes for a real Python >= 3.9, rejects Windows Store stubs, and forwards stdio with UTF-8 on every OS. Run `rcoder sync` to restore that portable form.
 
 Run it by hand to see the protocol: it reads one JSON-RPC message per line on stdin and writes one per line on stdout. Logs go to stderr only.
 

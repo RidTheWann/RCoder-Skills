@@ -65,3 +65,8 @@ Compare the final state against acceptance criteria and the working ledger; insp
 
 ## Output format
 Compact handoff: objective, profile, decisions, changed files, verified commands/results, assumptions, risks, unresolved hypotheses, and next action.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Compare the final state against acceptance criteria and the working ledger; inspect the final diff and verify every reported command/result.
+- **Anti-Patterns**: Dumping whole files or logs; loading every specialist "just in case"
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

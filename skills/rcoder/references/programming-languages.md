@@ -56,3 +56,8 @@ Run pinned formatters, linters, type checkers, unit/integration tests, and suppo
 
 ## Output format
 Versions · selected specialists · boundary contracts · checks · compatibility risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run pinned formatters, linters, type checkers, unit/integration tests, and supported target builds; mark unavailable platforms NOT VERIFIED.
+- **Anti-Patterns**: "It is all just C-like syntax"; copying an idiom from another runtime
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

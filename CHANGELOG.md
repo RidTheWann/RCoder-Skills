@@ -4,6 +4,20 @@ RCoder follows Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-11-26
+
+### Added
+- RScan semantic dependency graph with Tarjan cycle detection, hotspots, risk signals, budget modes, and `rcoder_preflight`; incremental SQLite symbol index with `rcoder_read_symbol` and transitive test blast-radius via `rcoder_impact_test`.
+- RSaver AST/brace skeletonizer, reversible redactor, git-drift crosscheck, and a transactional multi-file patch sandbox (`rcoder_apply_verify`) that rolls back on syntax or verification failure.
+- Bounded specialist routing with at most two addendums and an executable verification footer on every reference; opt-in strict stop gate that blocks untouched targets, unverified claims, and nonzero verification exits.
+- Cross-platform runtime resolver and POSIX path canonicalizer, portable MCP launcher, `rcoder sync`, LF-normalized RSaver hashes, `.gitattributes`, a parity linter, and a three-OS CI matrix (`ubuntu-latest`, `windows-latest`, `macos-latest`).
+- Episodic failure-to-fix memory (`rcoder_recall`, `rcoder_learn`) recalled during preflight, plus advisory swarm file leases and signed handoff capsules (`rcoder_handoff`).
+- `rcoder doctor --fix` repairs canonical wrapper/MCP/hook drift and runs `rcoder sync`; MCP errors now carry recovery envelopes and path confinement is symlink-safe.
+
+### Changed
+- Product version bumped from 1.14.0 to 1.15.0 across manifests, contract, skill metadata, package builder, and current-version documentation.
+- Mutating MCP tools (`rcoder_apply_verify`, `rcoder_learn`) declare `readOnlyHint: false`; MCP tests were updated to assert this explicitly.
+
 ### Fixed
 - Clarify MCP resolution when `rcoder_doctor` is absent from the minimal profile, limit `--root` to RSaver/RScan subcommands that support it, and switch external-project RSaver examples to the installed helper path with absolute file arguments. Update the S20 regression fixture and MCP profile documentation.
 - MCP-first routing now respects server confinement: a tool-level `root` target must remain inside the server process's configured `--root`; external worktrees use the installed helper by absolute path or a reconfigured, least-privilege MCP root. `docs/MCP.md`, `SKILL.md`, and the S20 fixture document this boundary.

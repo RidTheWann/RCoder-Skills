@@ -61,3 +61,8 @@ Run schema validation, consumer-driven contract tests, parser fuzzing, and old/n
 
 ## Output format
 Contract · version compatibility · errors · security · rollout · verification evidence.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run schema validation, consumer-driven contract tests, parser fuzzing, and old/new interoperability tests.
+- **Anti-Patterns**: Silent field removal; wildcard CORS with credentials
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

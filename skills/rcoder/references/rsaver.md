@@ -91,3 +91,8 @@ Run `python3 scripts/test-rsaver.py` for the CLI contract. For a real artifact, 
 
 ## Output format
 Objective · critical pattern · original/reduced estimates and percentage · critical lines preserved · omitted ranges and manifest path · verify result · recovered sample · residual risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run `python3 scripts/test-rsaver.py` for the CLI contract.
+- **Anti-Patterns**: Summarizing code or stack traces; using RSaver numbers for billing or hard limits
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> python3 scripts/test-rsaver.py.

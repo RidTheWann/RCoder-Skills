@@ -60,3 +60,8 @@ Run authz tests, token audience/scope checks, secret scans, certificate validati
 
 ## Output format
 Identity model · algorithms/libraries · key lifecycle · exposure boundaries · tests · recovery gaps.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run authz tests, token audience/scope checks, secret scans, certificate validation, and key-lifecycle exercises.
+- **Anti-Patterns**: Bearer tokens in URLs; logging authorization headers
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

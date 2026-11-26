@@ -60,3 +60,8 @@ Hash acquired evidence, preserve logs, validate containment, run recovery checks
 
 ## Output format
 Timeline · evidence inventory · confirmed observations · confidence · actions · impact · recovery · unknowns.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Hash acquired evidence, preserve logs, validate containment, run recovery checks, and seek independent review.
+- **Anti-Patterns**: Rebooting a compromised host "to see if it helps"; sharing raw captures containing personal data
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

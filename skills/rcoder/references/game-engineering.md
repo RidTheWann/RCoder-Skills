@@ -60,3 +60,8 @@ Run deterministic regressions, scene/game fixtures, CPU/GPU profiling, frame-tim
 
 ## Output format
 Timing model · affected subsystems · deterministic evidence · frame metrics · compatibility limits.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run deterministic regressions, scene/game fixtures, CPU/GPU profiling, frame-time captures, audio timing tests, and target builds.
+- **Anti-Patterns**: Frame-rate-dependent physics; allocation in audio callbacks
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

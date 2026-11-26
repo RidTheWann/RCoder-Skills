@@ -66,3 +66,8 @@ Run on a clean Windows installation or virtual machine, as both account types, w
 
 ## Output format
 Environment tested (OS build, architecture, shell, privilege) · root cause with evidence · change · results on each tested configuration · untested configurations and residual risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run on a clean Windows installation or virtual machine, as both account types, with the documented PowerShell hosts; record OS build, architecture, and signature verification output.
+- **Anti-Patterns**: Disabling antivirus or UAC to make something work; hard-coded `C:\` paths and `\` separators
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

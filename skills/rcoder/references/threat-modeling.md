@@ -61,3 +61,8 @@ Review the model against implementation and deployment evidence. Test high-risk 
 
 ## Output format
 Data-flow summary · threats · severity with evidence · mitigations and owners · tests/telemetry · assumptions · residual risk.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Review the model against implementation and deployment evidence.
+- **Anti-Patterns**: Trusting network location as a control; rating risk without evidence
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

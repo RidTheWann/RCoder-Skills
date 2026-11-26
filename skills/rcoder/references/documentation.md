@@ -60,3 +60,8 @@ Run commands in disposable environments, validate links, and compare flags and e
 
 ## Output format
 Audience and task · changed docs · command/link checks · version/source notes · remaining uncertainty.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run commands in disposable environments, validate links, and compare flags and examples to implementation.
+- **Anti-Patterns**: Screenshot-only instructions; hidden prerequisites
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

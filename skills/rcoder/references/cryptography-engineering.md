@@ -61,3 +61,8 @@ Use standard test vectors, negative/tamper tests, dependency reviews, and indepe
 
 ## Output format
 Property · standard/library · parameters · key lifecycle · test vectors · negative tests · residual assumptions.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Use standard test vectors, negative/tamper tests, dependency reviews, and independent cryptographic review for high-risk changes.
+- **Anti-Patterns**: Homegrown ciphers or modes; ECB for structured data
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

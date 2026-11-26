@@ -63,3 +63,8 @@ Reproduce traces from clean snapshots, compare against a reference/hardware, and
 
 ## Output format
 Question · evidence ledger · hypotheses · confirmed semantics · tests · confidence · unresolved issues.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Reproduce traces from clean snapshots, compare against a reference/hardware, and test each inferred rule with minimal cases.
+- **Anti-Patterns**: Inventing undocumented behavior to fill gaps; asserting semantics from decompiler pseudocode
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

@@ -85,3 +85,8 @@ path/to/file.ext [score S]
   class: name signature
   imports: dep1, dep2
 ```
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run `scripts/test-repo-map.py`: synthetic multi-language fixtures assert discovery, symbol/import extraction, graph edges, ranking order, budget bounding, and deterministic output.
+- **Anti-Patterns**: Dumping whole files instead of consulting the map.; Re-running the map on every turn without edits.
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> scripts/test-repo-map.py.

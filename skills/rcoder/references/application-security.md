@@ -61,3 +61,8 @@ Run security regression tests, authorized SAST/DAST, authorization matrices, dep
 
 ## Output format
 Scope · controls assessed · confirmed/potential findings with evidence · standards mapping · gaps · residual risk.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run security regression tests, authorized SAST/DAST, authorization matrices, dependency scans, and platform-specific checks.
+- **Anti-Patterns**: Blocklist-only filters; disabling TLS verification for convenience
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

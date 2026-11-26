@@ -87,3 +87,8 @@ Run the stdio and HTTP conformance suites against the same commit. Include valid
 
 ## Output format
 Protocol revisions and supported subset · transport architecture · shared tool contract · security boundaries and limits · conformance tests with exact results · host/client version and evidence tier · unsupported features · residual risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run the stdio and HTTP conformance suites against the same commit.
+- **Anti-Patterns**: Treating CORS as authentication.; Exposing a development endpoint on all network interfaces.
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

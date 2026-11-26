@@ -10,7 +10,7 @@ body:
     id: version
     attributes:
       label: RCoder version or commit
-      placeholder: "1.14.0 or a commit hash"
+      placeholder: "1.15.0 or a commit hash"
     validations:
       required: true
   - type: dropdown

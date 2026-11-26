@@ -63,3 +63,8 @@ Use disposable databases, schema diff, contract tests, query plans, and concurre
 
 ## Output format
 Schema/contract impact · compatibility plan · migration safety · tests · rollout/rollback · risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Use disposable databases, schema diff, contract tests, query plans, and concurrent/duplicate request tests.
+- **Anti-Patterns**: Mutable shared fixtures; silently dropping unknown fields
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

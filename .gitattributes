@@ -1,0 +1,24 @@
+# Default: normalize text to LF so RSaver hashes and POSIX shebangs stay identical on every OS
+* text=auto eol=lf
+
+# Scripts and configuration must stay LF
+*.py text eol=lf
+*.sh text eol=lf
+*.mjs text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Native Windows scripts must stay CRLF
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary assets and archives
+*.zip binary
+*.db binary
+*.sqlite binary
+*.png binary

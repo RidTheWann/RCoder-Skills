@@ -62,3 +62,8 @@ Run lockfile checks, SCA, secret scans, provenance/signature checks, license rev
 
 ## Output format
 Dependency delta · advisories with reachability context · provenance · licenses · remediation · exceptions · residual risk.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run lockfile checks, SCA, secret scans, provenance/signature checks, license review, and reproducible builds.
+- **Anti-Patterns**: `latest` tags in production builds; unverified curl-to-shell installers
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

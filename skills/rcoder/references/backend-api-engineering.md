@@ -60,3 +60,8 @@ Run schema validation, unit/contract/integration tests, authorization matrices, 
 
 ## Output format
 Contract changes · threat boundaries · retry/consistency behavior · observability · rollout · verification.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run schema validation, unit/contract/integration tests, authorization matrices, proportionate load tests, and deployment smoke checks.
+- **Anti-Patterns**: Hidden UI controls as authorization; accepting client-side price or role
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

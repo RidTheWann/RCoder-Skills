@@ -61,3 +61,8 @@ Run the ecosystem's pinned formatter, linter, type checker, unit/integration sui
 
 ## Output format
 Language/framework versions · lifecycle/concurrency decisions · package impact · commands · platform limitations.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run the ecosystem's pinned formatter, linter, type checker, unit/integration suite, production build, and platform-specific validation.
+- **Anti-Patterns**: Copying patterns across frameworks without verification; pinning nothing
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

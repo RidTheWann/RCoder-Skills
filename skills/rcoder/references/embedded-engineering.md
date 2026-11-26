@@ -60,3 +60,8 @@ Run static analysis, cross compilation, unit tests with fakes, hardware-in-loop 
 
 ## Output format
 Board/toolchain · memory/timing budgets · hardware evidence · update safety · unverified conditions.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run static analysis, cross compilation, unit tests with fakes, hardware-in-loop tests, fault injection, and flash/rollback verification.
+- **Anti-Patterns**: Blocking in interrupt handlers; magic addresses without documentation
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

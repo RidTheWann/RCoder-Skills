@@ -60,3 +60,8 @@ Run lint, type checks, component tests, production build, accessibility audits, 
 
 ## Output format
 Visible behavior · accessibility · state transitions · browser checks · performance evidence.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run lint, type checks, component tests, production build, accessibility audits, browser tests, and visual regression where configured.
+- **Anti-Patterns**: Hidden focus outlines; infinite scroll without bounds
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

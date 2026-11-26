@@ -57,3 +57,8 @@ Use emulators/simulators, isolated labs, hardware, reference implementations, or
 
 ## Output format
 Domain · decision impact · module path · routing/evaluation additions · verification evidence.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Use emulators/simulators, isolated labs, hardware, reference implementations, or scoped staging environments as appropriate; record versions and unverified behaviors.
+- **Anti-Patterns**: Creating a module to inflate the library; duplicating existing guidance
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

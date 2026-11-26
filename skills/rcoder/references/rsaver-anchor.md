@@ -67,3 +67,8 @@ Run `python3 scripts/test-rsaver.py`, which checks drift signals, dual-end struc
 
 ## Output format
 Drift signals with line numbers · anchor IDs and estimate · warnings · changed state entries · budget impact · evidence labels · residual uncertainty.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run `python3 scripts/test-rsaver.py`, which checks drift signals, dual-end structure, explicit IDs, budget warnings, and rejection paths.
+- **Anti-Patterns**: Re-anchoring every turn regardless of need; paraphrasing constraints
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> python3 scripts/test-rsaver.py.

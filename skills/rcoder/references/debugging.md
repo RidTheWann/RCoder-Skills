@@ -61,3 +61,8 @@ Run the failing test before and after the fix where feasible. Repeat timing-sens
 
 ## Output format
 Reproduction · minimized case · hypotheses · evidence · root cause · fix · regression test · side effects · residual risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run the failing test before and after the fix where feasible.
+- **Anti-Patterns**: Guessing from stack traces without reproducing; treating correlation as causation
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

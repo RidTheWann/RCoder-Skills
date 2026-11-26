@@ -29,6 +29,7 @@ NOTIFIED = {"jsonrpc": "2.0", "method": "notifications/initialized"}
 # Regression guards on context cost (characters of the serialized tools/list result).
 TOOLS_FIRST_PAGE_CHAR_BUDGET = 8000
 MINIMAL_TOOLS_CHAR_BUDGET = 2800
+MUTATING_TOOLS = {"rcoder_apply_verify", "rcoder_learn"}
 
 
 def session(messages, root, extra_args=(), raw_lines=(), entrypoint=SERVER):
@@ -146,7 +147,7 @@ def main():
             assert re.fullmatch(r"[a-z][a-z0-9_]*", tool["name"]), tool["name"]
             spec = tool["inputSchema"]
             assert spec["type"] == "object" and spec["additionalProperties"] is False
-            assert tool["annotations"]["readOnlyHint"] is True
+            assert tool["annotations"]["readOnlyHint"] is (tool["name"] not in MUTATING_TOOLS)
             assert tool["annotations"]["destructiveHint"] is False
             assert 10 <= len(tool["description"]) <= 220, tool["name"]
             assert tool["title"]

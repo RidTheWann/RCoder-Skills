@@ -82,3 +82,8 @@ Run `python3 scripts/test-rsaver.py`, which checks budget arithmetic, required/d
 
 ## Output format
 Gate decision summary · input/cache/output/reserve numbers · kept and deferred item IDs · cache warnings · recovery pointers · observed usage delta · residual risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run `python3 scripts/test-rsaver.py`, which checks budget arithmetic, required/deferred decisions, cache eligibility, fragmentation, and rejection paths.
+- **Anti-Patterns**: Deferring the user prompt or failing tests to save tokens; claiming a cache hit without usage evidence
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> python3 scripts/test-rsaver.py.

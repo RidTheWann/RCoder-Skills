@@ -61,3 +61,8 @@ Use accessibility tree, keyboard walkthrough, contrast measurement, representati
 
 ## Output format
 User flow · state coverage · design-system fit · WCAG findings by severity · responsive evidence · gaps.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Use accessibility tree, keyboard walkthrough, contrast measurement, representative viewport screenshots, and tool/version notes.
+- **Anti-Patterns**: Clickable divs without roles or keyboard handlers; color-only status
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

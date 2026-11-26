@@ -60,3 +60,8 @@ Run locked restore, analyzers, formatter, unit/integration tests, packaging, and
 
 ## Output format
 SDK/JDK versions · framework changes · API/ABI effects · diagnostics · measured performance.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run locked restore, analyzers, formatter, unit/integration tests, packaging, and every declared target build.
+- **Anti-Patterns**: Ignoring compiler warnings; catching all exceptions and continuing
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

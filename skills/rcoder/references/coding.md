@@ -60,3 +60,8 @@ Use the pinned runtime/lockfile; run the narrowest test first, then compile/type
 
 ## Output format
 Behavior changed · files · exact checks/results · compatibility notes · assumptions · residual risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Use the pinned runtime/lockfile; run the narrowest test first, then compile/type checks and the documented project gate.
+- **Anti-Patterns**: Unrelated rewrites; broad catches with fabricated defaults
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

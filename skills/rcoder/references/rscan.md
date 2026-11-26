@@ -65,3 +65,8 @@ Run `python3 scripts/test-rscan.py`, which checks bounded scanning, risk signals
 
 ## Output format
 Scan root · sampled paths and truncation · stacks · quality entry points · risk signals with severity · ranked options with IDs/commands/specialists · hook status · residual uncertainty.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run `python3 scripts/test-rscan.py`, which checks bounded scanning, risk signals, option ranking, both hook payload formats, preview, idempotent installation, and preservation of existing hooks.
+- **Anti-Patterns**: Auto-generating hooks for every host; reading whole repositories into context
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> python3 scripts/test-rscan.py.

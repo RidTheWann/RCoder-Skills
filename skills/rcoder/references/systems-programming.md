@@ -61,3 +61,8 @@ Run compiler warnings, format/lint, unit tests, ASan/UBSan/TSan or Miri as appli
 
 ## Output format
 Invariants · ownership changes · ABI effects · unsafe surface · flags · tests · platform risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run compiler warnings, format/lint, unit tests, ASan/UBSan/TSan or Miri as applicable, fuzz/property tests, and all supported target builds.
+- **Anti-Patterns**: Relying on implementation-defined behavior without documentation; treating `volatile` as synchronization
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Optional bundled helpers need a Python 3 interpreter. The optional MCP server (scripts/rcoder_mcp.py) needs a host that can launch stdio MCP servers."
 metadata:
   author: RidTheWann
-  version: "1.14.0"
+  version: "1.15.0"
 ---
 
 # RCoder
@@ -73,7 +73,7 @@ These layers describe responsibilities, not extra steps to perform on every task
 
 ## RScan (session start)
 
-On a new session or in an unfamiliar repository, load [RScan](references/rscan.md) and call `rcoder_scan` when the MCP tools are available and the project root is inside the server's configured `--root`; otherwise run `python3 <skill-dir>/scripts/rscan.py scan --root <project-root> --format json` (or `--format text` for a menu); see [tool execution and resolution priority](#tool-execution-and-resolution-priority). Present the ranked development options with their first commands and specialist references before choosing work. Automatic launch scanning requires a verified host session-start hook; install it only for supported hosts with `rscan hooks install` and see `docs/RSCAN-HOOKS.md`. Never claim automatic invocation from file installation alone. Check `<target-root>/.rcoder-features.json` to see whether RScan and RSaver were enabled at install time.
+On a new session or in an unfamiliar repository, load [RScan](references/rscan.md) and call `rcoder_scan` when the MCP tools are available and the project root is inside the server's configured `--root`; otherwise run `python3 <skill-dir>/scripts/rscan.py scan --root <project-root> --format json` (or `--format text` for a menu); see [tool execution and resolution priority](#tool-execution-and-resolution-priority). RScan also returns a bounded semantic dependency graph (`graph`, `hotspots`, `risks`, `budget_mode`) with optional `--token-budget` density. When MCP is available, `rcoder_preflight` combines graph analysis, objective anchoring, and routing in one call. Use `rcoder_read_symbol` for anchored symbol slices instead of whole-file reads, and `rcoder_impact_test` to derive the narrowest test command from the diff before stopping. For implementation, `rcoder_apply_verify` applies exact-match multi-file edits and rolls back automatically when syntax or verification fails. `rcoder_preflight` also recalls matching lessons; `rcoder_recall` and `rcoder_learn` manage repo-local episodic memory, and `rcoder_handoff` signs swarm capsules. Present the ranked development options with their first commands and specialist references before choosing work. Automatic launch scanning requires a verified host session-start hook; install it only for supported hosts with `rscan hooks install` and see `docs/RSCAN-HOOKS.md`. Never claim automatic invocation from file installation alone. Check `<target-root>/.rcoder-features.json` to see whether RScan and RSaver were enabled at install time.
 
 ## RSaver gate (before routing)
 
@@ -96,6 +96,8 @@ For multi-domain, ambiguous, or previously mis-routed requests, load [specialist
 7. Select by deliverable and acceptance criteria rather than English keyword matching. For paraphrased or non-English prompts, restate the required artifact and its check, preserve technical identifiers, and route from that restatement.
 
 Record the selection as: classification · candidates · selected · primary · supporting with reasons · verifier · ordinal confidence · unselected alternatives · required verification · handoff dependencies.
+
+`route_predict.py` returns one primary plus at most two `addendums`. Load the full primary reference; for each addendum, load only its `## Executable Verification & Failure Diagnostics` section instead of the whole file. The every-reference footer defines the deterministic Verify command, the two anti-patterns to reject, and the symptom -> root cause -> remediation chain.
 
 For unfamiliar models or hosts, choose an execution profile before routing; see [model adaptation](references/model-adaptation.md). Host evidence tiers are recorded in `docs/COMPATIBILITY.md` and observed runtime facts in `docs/ENVIRONMENT.md`. These documents are host-side metadata, not skills to load for domain tasks.
 

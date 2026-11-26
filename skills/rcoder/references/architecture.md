@@ -62,3 +62,8 @@ Review dependency graphs and architecture fitness checks, validate contract/migr
 
 ## Output format
 Requirements · quality priorities · options/trade-offs · ADR · contracts/failure modes · evolution plan · residual risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Review dependency graphs and architecture fitness checks, validate contract/migration tests with fixtures, and exercise one end-to-end path plus one failure path.
+- **Anti-Patterns**: Designing for hypothetical scale; copying another organization's topology
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

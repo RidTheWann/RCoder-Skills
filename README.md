@@ -96,6 +96,8 @@ After installation, open a new terminal so the updated user `PATH` is loaded by 
 rcoder doctor --json
 ```
 
+`rcoder doctor --fix` repairs only canonical drift: repository-root wrappers, MCP launcher paths, and the SessionStart hook. It leaves unrelated host configuration untouched and reports each repair as `FIXED` or `SKIP`. `rcoder sync` normalizes portable MCP configs, POSIX state paths, POSIX executable modes, and host manifests; `doctor --fix` runs it automatically.
+
 For host-specific integration options and MCP configuration, see [docs/MCP.md](docs/MCP.md) and the relevant integration documentation.
 
 ---
@@ -185,6 +187,8 @@ rcoder integration verify opencode --scope project
 
 # Diagnostics
 rcoder doctor --json
+rcoder doctor --fix
+python3 scripts/verify-parity.py
 
 # Agent Skill lifecycle
 rcoder skill new custom-domain --description "Guidance for custom domain workflows."

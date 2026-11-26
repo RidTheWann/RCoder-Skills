@@ -32,6 +32,11 @@ SECURITY_FAMILY = {
     "smart-contract-security", "llm-agent-security",
 }
 SYSTEMS_LANGS = {"systems-programming"}
+LANGUAGE_MODULE_NAMES = {
+    "systems-programming", "go-engineering", "dotnet-java-engineering",
+    "python-engineering", "javascript-typescript", "polyglot-ecosystems",
+    "programming-languages",
+}
 
 # --- signals: (regex, [modules], evidence label). Ordered by specificity. -------
 # Patterns are matched case-insensitively against the request text. Only
@@ -215,6 +220,39 @@ COMPOSITION: list[tuple[str, set[str], str]] = [
 ]
 
 MAX_PROPOSED = 4
+SECONDARY_THRESHOLD = 0.35
+MAX_ADDENDUMS = 2
+ADDENDUM_SECTION = "Executable Verification & Failure Diagnostics"
+
+
+def bundle_multistage_route(
+    ranked_matches: list[tuple[str, float]],
+    secondary_threshold: float = SECONDARY_THRESHOLD,
+    max_addendums: int = MAX_ADDENDUMS,
+) -> dict:
+    """Select one primary specialist and up to two high-signal cross-domain addendums."""
+    if not ranked_matches:
+        return {"primary": "coding", "primary_score": 0.0, "addendums": [], "mode": "fallback"}
+
+    primary, primary_score = ranked_matches[0]
+    addendums: list[dict] = []
+    for module, score in ranked_matches[1:]:
+        if len(addendums) >= max_addendums or module in HELPERS:
+            continue
+        if score >= secondary_threshold and score >= primary_score * 0.55:
+            addendums.append({
+                "module": module,
+                "reference": f"references/{module}.md",
+                "score": round(score, 3),
+                "load_section": ADDENDUM_SECTION,
+            })
+
+    return {
+        "primary": primary,
+        "primary_score": round(primary_score, 3),
+        "addendums": addendums,
+        "mode": "composite" if addendums else "single",
+    }
 
 
 def reference_names() -> list[str]:
@@ -280,9 +318,16 @@ def propose(text: str, valid: set[str]) -> dict:
             seen[base] = f"composition: {label} implied by {sorted(selected & family)[0]}"
             comp_notes.append(base)
 
-    # Order: domain modules first, helpers last; primary is the first non-helper.
+    # Order: an explicitly named implementation language owns the code change,
+    # then domain modules, then helpers. This keeps the selected set stable while
+    # making the primary deterministic for polyglot requests.
     ordered = [m for m in seen if m not in HELPERS]
     helpers = [m for m in seen if m in HELPERS]
+    original_order = {module: index for index, module in enumerate(ordered)}
+    ordered.sort(key=lambda module: (
+        0 if module in LANGUAGE_MODULE_NAMES else 1,
+        original_order[module],
+    ))
     proposed = (ordered + helpers)[:MAX_PROPOSED]
     primary = ordered[0] if ordered else (proposed[0] if proposed else None)
 
@@ -305,6 +350,9 @@ def propose(text: str, valid: set[str]) -> dict:
         notes.append("Out-of-scope signals present: " + "; ".join(sorted(set(scope_evidence))))
     if comp_notes:
         notes.append("Composition bases added: " + ", ".join(comp_notes))
+    ranked = [(module, round(max(0.2, 1.0 - index * 0.2), 3))
+              for index, module in enumerate(ordered)]
+    bundle = bundle_multistage_route(ranked)
     result = {
         "proposed": proposed,
         "primary": primary,
@@ -312,6 +360,8 @@ def propose(text: str, valid: set[str]) -> dict:
         "confidence": confidence,
         "evidence": {m: seen[m] for m in proposed},
         "notes": notes,
+        "addendums": bundle["addendums"],
+        "route_mode": bundle["mode"],
     }
     if n == 0 and not out_of_scope:
         result["next"] = ("No documented signal fired. Confirm the request is software "
@@ -351,6 +401,10 @@ def main() -> int:
         print(f"  - {module}: {label}")
     for note in result["notes"]:
         print("Note:", note)
+    if result.get("addendums"):
+        print("Addendums (load only the named section):")
+        for addendum in result["addendums"]:
+            print(f"  - {addendum['reference']} ({addendum['load_section']}, score={addendum['score']})")
     if "next" in result:
         print("Next:", result["next"])
     return 0

@@ -66,3 +66,8 @@ Build the changed modules and the target image; boot on a device or virtual devi
 
 ## Output format
 Layer of the fault · evidence (log lines, denial tuples, manifest entries) · change made · build and boot evidence · hardware and compatibility gaps · residual risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Build the changed modules and the target image; boot on a device or virtual device and capture `getenforce`, the denial count, and the HAL service list; run an OTA from the previous build.
+- **Anti-Patterns**: Shipping permissive SELinux to fix denials; `allow` rules with wildcard types
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.
