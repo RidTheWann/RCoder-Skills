@@ -1,0 +1,14 @@
+---
+description: Threat-model an LLM or agent system for prompt injection, tool abuse, and over-broad permissions
+argument-hint: [system, repo path, or agent description]
+---
+Assess the security of an LLM or agent system defensively, using the RCoder `llm-agent-security` specialist.
+
+Target requested by the user: $ARGUMENTS
+
+1. Load the specialist with `rcoder_get_specialist` (MCP; name `llm-agent-security`, sections `Procedure`, `Decision tree`, `Verification`) or read `references/llm-agent-security.md` from the installed skill. Keep `security` as the framing base and add `threat-modeling` for the data-flow diagram.
+2. Map every source of text entering the model (user, retrieved content, tool results, tool descriptions, memory, other agents) and every sink (tool calls, rendered output, logs, other agents). Use `rcoder_scan` or `rcoder_context_snapshot` to locate the relevant code and manifests; never read credential files.
+3. For each session, mark whether it combines private data, untrusted content, and an outbound channel. Where all three coexist, recommend a design change before any hardening.
+4. List tools by real permission (read, write, network, execute, credential scope) and propose least-privilege, deterministic policy gates, and human approval that shows literal arguments.
+5. Test only systems the user owns or is authorized to test, with an inert corpus and a fake network sink. Do not produce working attacks against third-party systems.
+6. Report: data-flow summary, findings ranked by impact with the control that blocks each, required changes in order, tests run with observed results, and anything NOT VERIFIED.
