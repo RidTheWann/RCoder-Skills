@@ -452,6 +452,20 @@ def tool_rsaver_measure(args):
     return helper_result(code, out, err)
 
 
+
+def tool_rsaver_optimize(args):
+    """Safely optimize prose in memory; source files are never modified."""
+    arguments = [
+        "optimize", "-", f"--type={args.get('content_type', 'auto')}",
+        f"--profile={args.get('profile', 'generic')}", "--json",
+    ]
+    if "name" in args:
+        arguments.append(f"--name={args['name']}")
+    if args.get("tighten_phrases") is False:
+        arguments.append("--no-phrase-tightening")
+    return helper_result(*run_helper("rsaver.py", arguments, stdin_text=args["text"]))
+
+
 def tool_rsaver_select(args):
     arguments = ["select", resolve_in_root(args["path"]), f"--match={args['match']}", "--json"]
     for key, flag in (("context", "--context"), ("max_lines", "--max-lines")):
@@ -1069,6 +1083,16 @@ TOOLS = [
              "maxItems": 20}, "profile": {"type": "string", "enum": [
                  "generic", "openai-cl100k", "openai-o200k", "gpt2", "cjk-native"]}}),
      tool_rsaver_measure),
+    ("rsaver_optimize", "Safely tighten prose phrases",
+     "Tighten allowlisted prose phrases; preserves code, structured data, evidence, constraints, and Markdown structure.",
+     schema({"text": {"type": "string", "maxLength": 40000},
+             "name": {"type": "string", "maxLength": 255},
+             "content_type": {"type": "string", "enum": [
+                 "auto", "prose", "markdown", "code", "structured", "evidence"]},
+             "profile": {"type": "string", "enum": [
+                 "generic", "openai-cl100k", "openai-o200k", "gpt2", "cjk-native"]},
+             "tighten_phrases": {"type": "boolean"}}, ["text"]),
+     tool_rsaver_optimize),
     ("rsaver_select", "Bounded windows around matches",
      "Extract line windows around regex matches from a file instead of reading the whole file.",
      schema({"path": PATH_PROP, "match": {"type": "string", "maxLength": 300},
