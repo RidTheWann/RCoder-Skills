@@ -1,6 +1,7 @@
 ---
 description: Select and validate RCoder specialist modules for a task before starting work
 argument-hint: [task description]
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Choose RCoder specialists for this task and record the selection before doing any work.
 
