@@ -1,56 +1,188 @@
 # RCoder
 
-**A model-agnostic engineering toolkit for AI coding agents.**
+**A model-agnostic engineering workflow for AI coding agents.**
 
-RCoder helps agentic AI systems understand unfamiliar repositories, select the right engineering expertise, manage context, and execute software work with verifiable evidence. It combines a progressive-disclosure Agent Skill, specialist engineering references, deterministic project-analysis tools, context-management utilities, and an optional Model Context Protocol (MCP) server.
+RCoder helps an AI coding agent move from an unfamiliar codebase to a scoped implementation, relevant specialist guidance, verification, and an evidence-backed handoff. It brings repository reconnaissance, 60+ specialist references, context-management tools, MCP integration, and cross-host Agent Skills packaging into one workflow.
 
 [![Quality CI](https://github.com/RidTheWann/RCoder-Skills/actions/workflows/quality.yml/badge.svg)](https://github.com/RidTheWann/RCoder-Skills/actions/workflows/quality.yml)
 [![Security: A — Skills Directory](https://www.skillsdirectory.com/api/skills/ridthewann-rcoder/badge)](https://www.skillsdirectory.com/skills/ridthewann-rcoder)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Hosts](https://img.shields.io/badge/Agent%20hosts-20-informational.svg)](#supported-agent-hosts)
+[![Agent hosts](https://img.shields.io/badge/Agent%20hosts-20-informational.svg)](#supported-agent-hosts)
 [![Platforms](https://img.shields.io/badge/OS-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#installation)
 
-RCoder is designed to work across **agentic AI applications, coding CLIs, IDE integrations, and other Agent Skills-compatible environments**. It is an orchestration and workflow layer—not a model, autonomous runtime, permission system, or replacement for the tools provided by the host.
+RCoder is an **instruction and tooling layer**, not an AI model or a standalone agent runtime. The connected coding agent performs the work using the tools and permissions provided by its host. RCoder gives that agent a disciplined way to inspect, plan, route expertise, execute, verify, and report.
 
-> **The goal:** help an AI coding agent do the right engineering work, with the right specialist guidance, using the tools it actually has, and prove what it changed and verified.
+---
+
+## Start here
+
+- **Want to install it?** Go to [Installation](#installation).
+- **Want to understand the workflow?** Read [How RCoder works](#how-rcoder-works).
+- **Want proof of the difference?** See the [Before-and-after evaluation](#before-and-after-evidence).
+- **Want to see a complex task?** Jump to the [API migration walkthrough](#recorded-complex-task-api-migration).
+
+### Contents
+
+- [Why RCoder](#why-rcoder)
+- [How RCoder works](#how-rcoder-works)
+- [Before-and-after evidence](#before-and-after-evidence)
+- [Recorded complex task: API migration](#recorded-complex-task-api-migration)
+- [Installation](#installation)
+- [Use RCoder with your agent](#use-rcoder-with-your-agent)
+- [Core components](#core-components)
+- [Supported agent hosts](#supported-agent-hosts)
+- [Specialist library](#specialist-library)
+- [Security and execution boundaries](#security-and-execution-boundaries)
+- [Development and verification](#development-and-verification)
+- [Documentation](#documentation)
 
 ---
 
 ## Why RCoder?
 
-Modern coding agents can edit code, run commands, inspect repositories, and delegate work—but their effectiveness depends on how they understand a codebase, select expertise, manage limited context, and verify results.
+A coding agent can produce code quickly and still make the wrong change: it may misunderstand the repository, load irrelevant files, choose the wrong specialist, miss a compatibility constraint, or declare success without running a check.
 
-RCoder provides a consistent engineering workflow across supported hosts:
+RCoder addresses those failure points with a repeatable engineering loop:
 
-- **Model-agnostic instructions** — reusable guidance that does not depend on one model vendor or prompting format.
-- **Progressive disclosure** — a compact entry point with specialist references loaded only when the task requires them.
-- **Deterministic repository reconnaissance** — RScan produces bounded, read-only project inventories and prioritized development options.
-- **Context budgeting and recovery** — RSaver helps measure, safely tighten prose, reduce, redact, anchor, and reconstruct context with evidence.
-- **MCP integration** — expose supported RCoder capabilities as native tools to compatible agent hosts.
-- **Specialist engineering library** — focused guidance for programming languages, architecture, systems, security, reverse engineering, testing, and more.
-- **Agent integration utilities** — host-aware installation, diagnostics, skill authoring, packaging, and opt-in lifecycle hooks.
-
-## Capabilities at a glance
-
-| Component | Purpose |
+| Common problem | How RCoder helps |
 |---|---|
-| **RCoder Skill** | Classifies engineering tasks and routes the agent to relevant specialist references |
-| **RScan** | Performs bounded, read-only project reconnaissance and produces a prioritized development menu |
-| **RSaver** | Supports token/context budgeting, redaction, compression, recovery, anchoring, and drift checks |
-| **MCP server** | Exposes supported RCoder functions through the Model Context Protocol |
-| **Launcher CLI** | Installs and updates RCoder, configures integrations, runs diagnostics, and manages skills/hooks |
-| **Skill toolkit** | Scaffolds, lints, and packages modular Agent Skills |
-| **Specialist references** | Provides domain-specific engineering workflows and verification guidance |
+| The repository is unfamiliar or large | **RScan** builds a bounded, read-only map of project structure, detected stacks, risks, and likely next steps. |
+| The task crosses multiple engineering domains | The **specialist router** selects one primary reference and only the supporting expertise the task needs. |
+| The task is too broad to execute safely | The workflow requires acceptance criteria, a scoped plan, reversible changes, and a verification map. |
+| Context is becoming expensive or unreliable | **RSaver** measures, budgets, redacts, compresses, anchors, and recovers context with integrity checks. |
+| A completion claim needs evidence | Verification tools compare claims with diffs, test artifacts, and observed results. |
+| Different hosts expose different capabilities | The Agent Skill, CLI, MCP server, plugins, and installers provide host-aware integration paths. |
+
+The objective is not simply to generate more code. It is to make engineering work more **focused, reviewable, reproducible, and honest about what has and has not been verified**.
+
+## How RCoder works
+
+RCoder's execution kernel defines seven stages. The active AI agent carries them out using the capabilities available in its host.
+
+```text
+User request
+    |
+    v
+1. INTAKE       Deliverable, acceptance criteria, constraints, authorization
+    |
+    v
+2. RECON        Repository map, stack, tests, Git state, risk signals
+    |
+    v
+3. ROUTE        One primary specialist + only distinct supporting references
+    |
+    v
+4. PLAN         Ordered steps, acceptance criteria, risks, verification map
+    |
+    v
+5. EXECUTE      Small, reversible changes using authorized host tools
+    |
+    v
+6. VERIFY       Focused tests, lint/build checks, diff and claim cross-check
+    |
+    v
+7. CHECKPOINT   Changes, evidence, unknowns, risks, and next action
+```
+
+### What this means in practice
+
+1. **Understand the request first.** The agent identifies what must change, what must not change, the acceptance criteria, repository rules, and any authorization boundary.
+2. **Inspect before editing.** RScan and bounded file reads reveal the project structure and the smallest relevant surface. RScan itself is read-only.
+3. **Load expertise on demand.** The agent chooses one primary specialist and loads only the necessary supporting references, rather than flooding context with the entire library.
+4. **Plan risky work.** Multi-file, architectural, security-sensitive, and deployment changes get explicit steps, acceptance criteria, risks, and checks.
+5. **Do the implementation.** When execution is authorized, the agent continues beyond the plan and uses the host's real editing and terminal tools. RCoder does not invent unavailable tools.
+6. **Verify the result.** The agent runs proportionate checks, inspects the actual diff, and labels evidence as `VERIFIED`, `INFERRED`, or `NOT VERIFIED`.
+7. **Leave a usable handoff.** A context capsule records the current objective, constraints, changed files, verification, unresolved risks, and next action.
+
+**Autonomy has a boundary:** RCoder encourages the agent to carry an authorized task through implementation and verification, but it does not grant permissions, bypass host approvals, or turn an unavailable tool into an available one. The `/plan` command is intentionally plan-only; a normal implementation request should ask the agent to carry out the work.
+
+---
+
+## Before-and-after evidence
+
+RCoder maintains a reproducible evaluation protocol that runs the same prompts and fixtures **with and without the skill**. The comparison below comes from the completed live run on **2026-11-19**.
+
+<details open>
+<summary><strong>Live ablation: WITHOUT RCoder vs WITH RCoder</strong></summary>
+
+| Metric | WITHOUT RCoder | WITH RCoder | Difference |
+|---|---:|---:|---:|
+| Trigger precision | 0.000 | 0.952 | +0.952 |
+| Trigger recall | 0.000 | 0.833 | +0.833 |
+| Trigger F1 | 0.000 | 0.889 | +0.889 |
+| Trigger accuracy | 0.429 | 0.881 | +0.452 |
+| Behavioral scenarios passed | 4 / 19 | 6 / 19 | +2 scenarios |
+| Scenario rubric pass rate | 0.500 | 0.592 | +0.092 |
+
+**Test scope:** 42 trigger prompts and 19 behavioral scenarios, each run in both arms with the model, host, prompts, tools, permissions, fixture, and rubric held constant. The completed run used OpenCode CLI 1.19.6 and `openrouter/tencent/hy4-flash`; the WITH arm used RCoder v1.11.0.
+
+**Important limitations:**
+
+- These figures describe one pinned model, host, skill version, and dataset. They are not a guarantee for every model or supported host, and they are not a measurement of the current v1.16.0 release.
+- The scenario rubric was scored by the same pinned model over bounded transcript summaries. Same-model judging bias is disclosed in the retained report.
+- Specialist selection remained a weakness: exact-match was **4 of 24 scored prompts (16.7%)** in this run. Activating RCoder does not guarantee that every specialist choice is correct.
+- The results show a measured change in this experiment, not universal model improvement or statistical significance.
+
+</details>
+
+**Inspect the source evidence:** [Run summary](evals/runs/hy4-flash-openrouter-2026-11-19/SUMMARY.md) · [Scorer output](evals/runs/hy4-flash-openrouter-2026-11-19/score-final.json) · [Per-case evidence](evals/runs/hy4-flash-openrouter-2026-11-19/evidence.json) · [Evaluation protocol](docs/LIVE-BENCHMARK.md).
+
+## Recorded complex task: API migration
+
+This example is based on the retained live-evaluation case **`s10-api-migration`**. The task was:
+
+> Add a required API field backed by a database column while older app versions remain deployed.
+
+This is a compatibility problem, not just a schema edit. Old and new clients may coexist during deployment, so the change must consider producers, consumers, database state, migration order, partial failure, and rollback.
+
+### What RCoder recorded
+
+| Evidence | Recorded result |
+|---|---|
+| RCoder skill invoked and `SKILL.md` read | Yes |
+| Specialist references selected | `api-protocol-engineering`, `data-api`, `database-engineering`, `test-engineering`, `testing-qa` |
+| Tool calls | 19 |
+| Tool errors | 3 |
+| Scenario rubric | **4 / 4 criteria passed** |
+| Scenario verdict | **PASS** |
+
+### How the workflow addresses the task
+
+| Stage | Engineering work required by the scenario |
+|---|---|
+| **Intake** | Define the new field, its validation and default behavior, the database invariant, and the old application versions that must keep working. |
+| **Recon and route** | Inspect API contracts, database migrations, producers, consumers, and existing compatibility tests. The recorded run selected the five specialist references listed above. |
+| **Plan** | Map old/new producer-consumer combinations. Use a staged expand → migrate/backfill → contract approach (or an equivalent safe sequence), with explicit idempotency, partial-failure, and rollback behavior. |
+| **Execute** | The host agent applies the smallest compatible API and database changes, plus the required migration and regression tests, using its authorized tools. |
+| **Verify** | Check compatibility for old and new versions, invalid values, migration behavior, and rollback assumptions. The retained scenario scorer marked all four rubric criteria as met. |
+
+<details>
+<summary><strong>What the 4/4 score means</strong></summary>
+
+The scenario's four rubric criteria were:
+
+1. Identify consumers, invariants, and old/new versions.
+2. Describe a staged expand/migrate/contract strategy.
+3. Bound backfill, idempotency, partial failure, and rollback.
+4. Cover compatibility and invalid values with contract and migration tests.
+
+All four were marked as passed in the retained `score-final.json`.
+
+**Evidence boundary:** the retained run stores structured per-case evidence and the rubric result, not a complete verbatim tool transcript for this scenario. The workflow table above explains how the RCoder execution contract maps to the evaluated task; it is not presented as a line-by-line transcript. Three tool errors were recorded, so the run should not be described as an error-free session.
+
+</details>
+
+This is one recorded task, not a claim that RCoder can solve every migration without human review. See [the original scenario definition](evals/scenarios.json) and [the case evidence](evals/runs/hy4-flash-openrouter-2026-11-19/evidence.json).
 
 ---
 
 ## Installation
 
-Choose the installation route that matches your environment. You do not need Node.js for the native Windows PowerShell installer.
+Choose the method for your environment. The native Windows PowerShell and POSIX installers do not require Node.js for a standard Agent Skill installation.
 
 ### Windows PowerShell
 
-Install RCoder into the current project and register the global `rcoder` launcher:
+Install into the current project and register the `rcoder` launcher:
 
 ```powershell
 irm https://raw.githubusercontent.com/RidTheWann/RCoder-Skills/main/install.ps1 | iex
@@ -58,17 +190,17 @@ irm https://raw.githubusercontent.com/RidTheWann/RCoder-Skills/main/install.ps1 
 
 Compatible with Windows PowerShell 5.1 and PowerShell 7+.
 
-Install for a specific host and user scope:
+To install for a specific host and user scope:
 
 ```powershell
 & ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/RidTheWann/RCoder-Skills/main/install.ps1'))) -Target qoder -Scope user
 ```
 
-To inspect or configure MCP integration, append `-Mcp show` or `-Mcp install`.
+Add `-Mcp show` to inspect MCP setup or `-Mcp install` to apply it.
 
-### Linux, macOS, WSL, and Termux (POSIX shell)
+### Linux, macOS, WSL, and Termux
 
-From a local clone of RCoder-Skills, use the repository-root entrypoint:
+Clone the repository and run the POSIX installer:
 
 ```sh
 git clone https://github.com/RidTheWann/RCoder-Skills.git
@@ -76,19 +208,18 @@ cd RCoder-Skills
 sh ./install.sh --target codex --scope project
 ```
 
-For Claude Code or Gemini CLI, short aliases are also accepted:
+Other examples:
 
 ```sh
 sh ./install.sh --host claude --scope user
 sh ./install.sh --host gemini --scope project
 ```
 
-The root `install.sh` is a stable thin entrypoint that delegates to the canonical `scripts/install.sh`. Standard POSIX skill installation does not require Node.js. Use `--dry-run` to preview, `--uninstall` to restore the previous skill, `--yes` for automation-compatible invocation, or `--mcp show|install` to inspect/apply MCP configuration. `--host all` is intentionally rejected because the installer targets one host per invocation; use `--target agents` for the generic Agent Skills location.
+Use `--dry-run` to preview, `--yes` for non-interactive installation, `--uninstall` to restore the previous skill, or `--mcp show|install` to inspect or apply MCP configuration. Use `--target agents` for the generic Agent Skills location. The installer targets one host per invocation; `--host all` is intentionally rejected.
 
-Run `sh ./install.sh --doctor` to run the CLI doctor. This diagnostic path requires Node.js 18.18 or newer; standard skill installation does not.
+The root `install.sh` delegates to `scripts/install.sh`. Standard POSIX skill installation does not require Node.js. The optional `--doctor` path requires Node.js 18.18 or newer.
 
-
-### Node.js / npm — Windows, Linux, macOS
+### Node.js / npm
 
 Requires Node.js 18.18+, npm, and Git:
 
@@ -96,105 +227,133 @@ Requires Node.js 18.18+, npm, and Git:
 npx -y github:RidTheWann/RCoder-Skills
 ```
 
-Examples for non-interactive installation:
+Non-interactive examples:
 
 ```sh
 # Codex, project scope
 npx -y github:RidTheWann/RCoder-Skills --target codex --scope project
 
-# Factory, user scope
+# Factory Droid, user scope
 npx -y github:RidTheWann/RCoder-Skills --target factory --scope user
 ```
 
 Launcher locations:
 
-- **Linux / macOS:** `~/.local/bin/rcoder`
-- **Windows:** `%USERPROFILE%\.rcoder\bin\rcoder.cmd`
+- Linux / macOS: `~/.local/bin/rcoder`
+- Windows: `%USERPROFILE%\\.rcoder\\bin\\rcoder.cmd`
 
 ### Verify the installation
 
-After installation, open a new terminal so the updated user `PATH` is loaded by the new shell. Then verify the launcher:
+Open a new terminal so the updated user `PATH` is loaded, then run:
 
 ```sh
 rcoder doctor --json
 ```
 
-`rcoder doctor --fix` repairs only canonical drift: repository-root wrappers, MCP launcher paths, and the SessionStart hook. It leaves unrelated host configuration untouched and reports each repair as `FIXED` or `SKIP`. `rcoder sync` normalizes portable MCP configs, POSIX state paths, POSIX executable modes, and host manifests; `doctor --fix` runs it automatically.
+For a safe repair of canonical launcher and integration drift, use `rcoder doctor --fix`. It reports each repair as `FIXED` or `SKIP` and leaves unrelated host configuration untouched.
 
-For host-specific integration options and MCP configuration, see [docs/MCP.md](docs/MCP.md) and the relevant integration documentation.
+For host-specific setup and MCP configuration, see [docs/MCP.md](docs/MCP.md).
 
 ---
 
-## A universal agent instruction for RCoder
+## Use RCoder with your agent
 
-The following prompt is intended for a repository's agent instructions, a coding-agent session, or a host-specific project prompt. It helps an AI agent discover and use RCoder consistently without assuming a particular model, vendor, CLI, IDE, or tool API.
+After installing RCoder in a host that supports Agent Skills, start a task in the agent's normal chat or coding interface. The host discovers and loads the skill according to its own configuration.
 
-Copy the prompt into the appropriate instruction surface supported by your environment (for example `AGENTS.md`, `CLAUDE.md`, project rules, custom instructions, or the initial agent task prompt).
-
-<details>
-<summary><strong>RCoder — agent operating prompt (expand)</strong></summary>
+For example, give the agent a concrete task:
 
 ```text
-You are an AI coding agent. Use RCoder to route and execute engineering work in the active model, CLI, IDE, or agent host.
+The API migration is breaking older clients. Investigate the repository,
+identify the compatibility constraint, implement a safe migration, add
+regression tests, run the relevant checks, review the diff, and report
+what is VERIFIED, INFERRED, and NOT VERIFIED.
 
-- **Follow project rules:** obey user instructions and repository guidance; inspect the project before editing.
-- **Discover RCoder:** prefer connected MCP tools within the server's configured `--root`; otherwise use installed helpers via absolute `<skill-dir>/scripts/...` paths with an explicit project root. Never assume tools or paths exist.
-- **Route narrowly:** choose one primary specialist and load only necessary supporting references.
-- **Finish the work:** implement the requested outcome, run relevant checks, and review the final diff. Do not stop at a plan when execution is authorized.
-- **Report evidence:** summarize changes, checks and results, and remaining risks. Label claims `VERIFIED`, `INFERRED`, or `NOT VERIFIED`.
+Use RCoder. Do not stop after planning if implementation is authorized.
+```
 
-Adapt to actual host capabilities. Never invent tool access or test results, or bypass repository, permission, or security boundaries.
+You can also copy the following host-neutral instruction into a repository instruction file or project prompt (for example `AGENTS.md`, `CLAUDE.md`, or equivalent):
+
+<details>
+<summary><strong>RCoder agent operating prompt</strong></summary>
+
+```text
+You are an AI coding agent. Use RCoder to route and execute engineering work
+in the active model, CLI, IDE, or agent host.
+
+- Follow user instructions and repository rules. Inspect before editing.
+- Discover actual tools and capabilities; do not assume they exist.
+- Route narrowly: select one primary specialist and only distinct supporting
+  references relevant to the deliverable.
+- Define acceptance criteria and a bounded plan for multi-file or risky work.
+- When implementation is authorized, execute the task instead of stopping
+  after a plan.
+- Run proportionate checks and inspect the actual final diff.
+- Report changes, exact checks and results, residual risks, and unknowns.
+- Label material claims VERIFIED, INFERRED, or NOT VERIFIED.
+- Never invent tool access or test results, bypass authorization, or weaken
+  repository security boundaries.
 ```
 
 </details>
 
-**For maintainers:** the repository's [AGENTS.md](AGENTS.md) provides a concise bootstrap for agents that discover repository-level instructions. The full workflow and specialist routing live in [skills/rcoder/SKILL.md](skills/rcoder/SKILL.md).
+**Note:** the `/plan` command intentionally produces a plan and stops. Use a normal implementation request when you want the agent to proceed with the change.
 
 ---
 
-## Tooling
+## Core components
 
-### RScan — project reconnaissance
+| Component | What it does |
+|---|---|
+| **RCoder Skill** | The routing and execution kernel: intake, reconnaissance, specialist selection, planning, execution, verification, and checkpointing. |
+| **RScan** | Bounded, read-only repository scanning. Detects stacks, manifests, project risks, and likely development entry points. |
+| **RSaver** | Context measurement and management: budget, redaction, safe prose optimization, compaction, deduplication, packing, anchoring, drift detection, recovery, and cross-checking. |
+| **Specialist library** | More than 60 focused engineering references, loaded progressively instead of all at once. |
+| **MCP server** | Exposes supported RCoder and RSaver operations as native tools, resources, and prompts to compatible hosts. |
+| **Launcher CLI** | Installs and updates RCoder, configures integrations, runs diagnostics, and manages skills and optional hooks. |
+| **Skill toolkit** | Creates, lints, and packages portable Agent Skills. |
+| **Subagents and commands** | Optional host-specific planner, explorer, reviewer, verifier, and workflow commands. |
 
-RScan performs bounded, read-only inspection of a project:
+### RScan — inspect before you edit
+
+RScan is read-only. It scans project metadata and selected file names to detect stacks, manifests, tests, risk signals, and likely entry points. It skips common generated and dependency directories and can produce JSON for agent tooling.
+
+Run the bundled scanner from a repository checkout:
 
 ```sh
 python3 skills/rcoder/scripts/rscan.py scan --root . --format json
 ```
 
-It can identify project structure, frameworks, runtimes, package manifests, tests, and repository risks, then produce a ranked development menu linked to relevant RCoder specialists.
+### RSaver — preserve useful context
 
-### RSaver — context management
+RSaver helps an agent use context efficiently without treating a token estimate as an exact provider count.
 
-RSaver helps coding agents manage limited context and reduce avoidable context loss:
+- **Measure and budget:** estimate the relative context cost and reserve room for output and reasoning.
+- **Optimize prose:** tighten a small allowlist of phrases while preserving code, structures, constraints, and evidence.
+- **Redact:** mask credential-shaped values before sharing text.
+- **Compact and deduplicate:** reduce repetitive output while preserving critical evidence.
+- **Pack and unpack:** use lossless representations with SHA-256 verification.
+- **Anchor and recover:** preserve objective, constraints, decisions, and omitted evidence across long tasks.
+- **Cross-check:** compare completion claims with available diff, test, and usage artifacts.
 
-- **Audit and budget:** estimate context impact and prioritize what should remain available.
-- **Redaction:** deterministically mask secrets and credentials before content is shared.
-- **Pack and unpack:** compress repetitive material with verifiable SHA-256 reconstruction.
-- **Anchor and drift checks:** preserve objectives, constraints, decisions, and unresolved questions.
-- **Crosscheck:** compare completion claims with available change and test evidence.
+See [the RSaver reference](skills/rcoder/references/rsaver.md) and [token economics](docs/TOKEN-ECONOMICS.md).
 
-See [docs/TOKEN-ECONOMICS.md](docs/TOKEN-ECONOMICS.md) and [skills/rcoder/references/rsaver.md](skills/rcoder/references/rsaver.md).
+### MCP server — optional native tools
 
-### MCP server
-
-RCoder includes a zero-dependency stdio MCP server:
+RCoder includes a standard-library stdio MCP server:
 
 ```sh
-# Print a host configuration example
+# Print a host configuration example without changing settings
 python3 skills/rcoder/scripts/rcoder_mcp.py --print-config claude-code
 
-# Run with a bounded workspace root and profile
+# Start the server with a bounded workspace root
 python3 skills/rcoder/scripts/rcoder_mcp.py --root . --profile minimal
 ```
 
-The server is designed around workspace-root confinement and avoids subprocess shells and network sockets in its stdio implementation. An optional loopback Streamable HTTP transport is documented in [docs/MCP.md](docs/MCP.md).
+Use MCP only when the active host supports it and the server has been configured. The process-level `--root` is the security boundary; a tool argument cannot widen it. An optional loopback Streamable HTTP transport is documented in [docs/MCP.md](docs/MCP.md).
 
-MCP is optional. Use it when the active host supports MCP and the server has been configured; otherwise use the installed skill and supported CLI/helper workflows.
+### Launcher CLI and optional hooks
 
-### Launcher CLI
-
-Run the interactive management interface:
+Run the interactive manager:
 
 ```sh
 rcoder
@@ -208,10 +367,10 @@ rcoder integration install opencode --scope project
 rcoder integration install codex
 rcoder integration verify opencode --scope project
 
-# Diagnostics
+# Diagnostics and parity
 rcoder doctor --json
 rcoder doctor --fix
-python3 scripts/sync_plugins.py
+rcoder sync
 python3 scripts/verify_parity.py
 python3 scripts/check-dist.py
 
@@ -220,20 +379,20 @@ rcoder skill new custom-domain --description "Guidance for custom domain workflo
 rcoder skill lint ./custom-domain
 rcoder skill package ./custom-domain --out ./dist/custom-domain.zip
 
-# Optional lifecycle hooks
+# Optional hooks
 rcoder hooks install --scope project --dry-run
 rcoder hooks install --scope user --profile strict
 rcoder hooks uninstall --scope project
 rcoder hooks print-config
 ```
 
-When the Claude Code plugin is active, it runs the shared credential and destructive-command guard before tools, scans tool results for token-shaped secrets, and adds a short reminder before compaction. Its read-only RScan `SessionStart` hook remains enabled. Gemini CLI uses a different settings schema; install its shared before/after tool hooks explicitly with `rcoder hooks install --host gemini-cli`. Gemini CLI has no documented equivalent to Claude's `PreCompact` event. The `Stop` completion gate remains an explicit opt-in. See [docs/HOOKS.md](docs/HOOKS.md) for the host mappings and limits.
+Claude Code and Gemini CLI use different hook settings and event schemas. Hook installation is an explicit action; hooks run with the host user's privileges. Review [docs/HOOKS.md](docs/HOOKS.md) before enabling them.
 
 ---
 
 ## Supported agent hosts
 
-RCoder's installer maps supported hosts to their canonical project and user skill roots.
+RCoder's installer maps one canonical skill folder to the project and user locations below.
 
 | Agent / environment | Project skill root | User skill root |
 |---|---|---|
@@ -258,43 +417,52 @@ RCoder's installer maps supported hosts to their canonical project and user skil
 | TRAE | `.trae/skills` | `~/.trae/skills` |
 | Factory Droid | `.factory/skills` | `~/.factory/skills` |
 
-The table describes installation targets, not a guarantee that every host exposes identical MCP, hook, subagent, or CLI capabilities. Those features depend on the active host and its configuration.
+**Compatibility is evidence-based.** An installer writing to a documented directory does not prove that every host discovers, invokes, or behaves identically with RCoder. See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the discovery, invocation, and behavioral evidence tiers. OpenCode 1.19.6 has specific historical native-discovery and invocation evidence; do not generalize that result to other versions or hosts.
 
 ---
 
-## Specialist engineering library
+## Specialist library
 
-RCoder uses focused references under `skills/rcoder/references/`. Select only the modules relevant to the current deliverable.
+RCoder keeps domain guidance in `skills/rcoder/references/`. It selects what is relevant to a task instead of loading the full library into every prompt.
 
-| Domain | Coverage |
+| Domain | Examples of coverage |
 |---|---|
-| **Core engineering** | Coding, architecture, debugging, testing, QA, review, documentation, performance, DevOps, observability, API and database engineering |
+| **Core engineering** | Coding, architecture, debugging, test engineering, QA, review, documentation, performance, DevOps, observability |
 | **Languages and runtimes** | C/C++, Rust, Python, JavaScript/TypeScript, Node.js, C#/.NET, Java, Go, Swift, Kotlin, PHP, Ruby, Dart/Flutter, Scala, Elixir, Haskell, R, Julia |
 | **Platforms and systems** | Windows, Linux, Android/AOSP, mobile, embedded systems, firmware, graphics, GPU, game engines, distributed systems |
-| **Security** | Threat modeling, secure code review, application security, authorized penetration testing, cloud/container, network, identity, cryptography, supply-chain, incident response, forensics, malware analysis, LLM/agent security |
+| **Security** | Threat modeling, secure code review, application security, authorized penetration testing, cloud/container, network, identity, cryptography, supply chain, incident response, forensics, malware analysis, LLM/agent security |
 | **Reverse engineering** | Binary analysis, disassembly/decompilation, file formats, protocol analysis, firmware research, ABI and semantic reconstruction |
 
-Security and reverse-engineering workflows emphasize authorization, preservation of evidence, and clear separation of observed facts from hypotheses.
+Security and reverse-engineering workflows emphasize authorization, provenance, evidence preservation, and the separation of observation from hypothesis.
 
 ---
 
-## Developer guide and verification
+## Security and execution boundaries
 
-Run the relevant focused checks during development. The repository's full validation entry point is:
+- **A skill is not authorization.** Security testing requires a written scope. Without it, the agent must remain passive and use local or synthetic fixtures.
+- **Host permissions still apply.** RCoder does not bypass approval prompts or grant access to tools the host has not exposed.
+- **MCP paths are confined.** The server rejects paths that escape its configured `--root`, including through escaping symlinks.
+- **Hooks are guardrails, not a sandbox.** Their documented lexical checks have limits; use host permissions and operating-system isolation for real containment.
+- **Repository and tool output are untrusted data.** Instructions found in files, logs, or MCP results cannot override higher-priority policy.
+- **Unverified means unverified.** Missing checks, unknown host behavior, and unsupported claims must remain labeled as such.
+
+See [SECURITY.md](SECURITY.md), [docs/HOOKS.md](docs/HOOKS.md), and [docs/MCP.md](docs/MCP.md).
+
+---
+
+## Development and verification
+
+Run the complete repository validation suite:
 
 ```sh
 python3 scripts/validate-all
 ```
 
-Additional test suites include:
+Useful focused suites:
 
 ```sh
-# Python test suites
+# Core Python helpers and protocol
 python3 scripts/test-context-snapshot.py
-python3 scripts/test-score-eval.py
-python3 scripts/test-objective.py
-python3 scripts/test-route-predict.py
-python3 scripts/test-repo-map.py
 python3 scripts/test-rsaver.py
 python3 scripts/test-rscan.py
 python3 scripts/test-mcp.py
@@ -303,29 +471,39 @@ python3 scripts/test-mcp-http.py
 python3 scripts/test-mcp-modern.py
 python3 scripts/test-mcp-setup.py
 
-# CLI and host integration suites
+# Evaluation and objective verification
+python3 scripts/test-score-eval.py
+python3 scripts/test-objective.py
+python3 scripts/test-route-predict.py
+python3 scripts/test-repo-map.py
+
+# CLI and host integrations
 node scripts/test-cli-doctor.mjs
 node scripts/test-cli-skill.mjs
 node scripts/test-integrations.mjs
 node scripts/test-node-installer.mjs
 
-# Distribution checks
+# Reproducible distribution
 python3 scripts/package
 python3 scripts/check-dist.py
 ```
 
-For evaluation methodology and reproducibility, see [evals/ABLATION-PROTOCOL.md](evals/ABLATION-PROTOCOL.md), [evals/results.md](evals/results.md), and [docs/LIVE-BENCHMARK.md](docs/LIVE-BENCHMARK.md).
+The CI workflow runs validation on Linux, Windows, and macOS. Static CI verifies repository contracts and test suites; it does not by itself prove that every host natively discovers or invokes the skill.
 
 ---
 
 ## Documentation
 
-- [Agent Skill entry point](skills/rcoder/SKILL.md)
-- [MCP setup and transports](docs/MCP.md)
-- [Compatibility matrix](docs/COMPATIBILITY.md)
+- [Agent Skill execution kernel](skills/rcoder/SKILL.md)
+- [MCP setup, tools, and transports](docs/MCP.md)
+- [Host compatibility evidence](docs/COMPATIBILITY.md)
+- [Installation matrix](docs/INSTALLATION-MATRIX.md)
 - [Environment discovery](docs/ENVIRONMENT.md)
-- [RScan hooks](docs/RSCAN-HOOKS.md)
+- [Lifecycle hooks](docs/HOOKS.md)
 - [Token economics](docs/TOKEN-ECONOMICS.md)
+- [Live benchmark protocol](docs/LIVE-BENCHMARK.md)
+- [Evaluation results](evals/results.md)
+- [Evaluation scenarios](evals/scenarios.json)
 - [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
