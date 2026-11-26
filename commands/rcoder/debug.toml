@@ -1,0 +1,13 @@
+description = "Reproduce, isolate, and diagnose a failure with evidence before proposing a fix"
+prompt = """
+Diagnose this failure: $ARGUMENTS
+
+1. Load the `debugging` specialist (and `debugging-advanced` only when the cause looks non-deterministic, concurrent, or toolchain-level). Read repository guidance and `git status` first.
+2. Reproduce the failure with the narrowest command and capture the output. If it cannot be reproduced, say so and record what was tried.
+3. For a deep investigation, delegate to the `rcoder-debugger` subagent, which is read-only. Otherwise investigate inline without editing files.
+4. Rank hypotheses by evidence and test each with the cheapest discriminating observation. Do not install packages, use the network, or change Git state while diagnosing.
+5. Report the reproduction, the hypotheses with their outcomes, the root cause with file and line references, a minimal proposed fix, and the regression test that would catch it. Label claims VERIFIED, INFERRED, or NOT VERIFIED.
+6. Apply the fix only when the user asks for it, then run the reproduction again to confirm.
+
+User request / target arguments: {{args}}
+"""

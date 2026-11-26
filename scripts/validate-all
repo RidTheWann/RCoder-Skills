@@ -3,6 +3,7 @@
 import hashlib
 import json
 import re
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -47,6 +48,20 @@ def parse_frontmatter(path):
     return values, content[end + 5:]
 
 def main():
+    scripts_dir = str(ROOT / "scripts")
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+    try:
+        import sync_plugins
+        synced = sync_plugins.sync_gemini_toml()
+        command_count = len(list((ROOT / "commands").glob("*.md")))
+        check(len(synced) == command_count,
+              "G1: sync_plugins did not compile every command into Gemini CLI TOML")
+        for name, ok in sync_plugins.verify_manifests().items():
+            check(ok, f"G1: required plugin manifest missing: {name}")
+    except (ImportError, OSError, ValueError) as error:
+        check(False, f"G1: single-source plugin sync failed: {error}")
+
     skill_file = SKILL / "SKILL.md"
     check(skill_file.is_file(), "G1: missing skills/rcoder/SKILL.md")
     if not skill_file.is_file():
@@ -133,6 +148,9 @@ def main():
 
     link_pattern = re.compile(r"\]\(([^)]+)\)")
     for markdown in ROOT.rglob("*.md"):
+        if any(part in {".git", "node_modules", ".rcoder"}
+               for part in markdown.relative_to(ROOT).parts):
+            continue
         for raw in link_pattern.findall(read(markdown)):
             target = raw.strip().split()[0].strip("<>")
             if not target or target.startswith(("http://", "https://", "mailto:", "#")):
@@ -299,7 +317,8 @@ def main():
         "skills/rcoder/scripts/rscan_index.py", "scripts/test-cross-platform.py",
         "skills/rcoder/scripts/rsaver_sandbox.py", "skills/rcoder/scripts/rcoder_memory.py",
         "skills/rcoder/scripts/rcoder_swarm.py", "scripts/verify_parity.py",
-        "scripts/verify-parity.py", "scripts/test-autonomous-v3.py",
+        "scripts/verify-parity.py", "scripts/test-autonomous-v3.py", "scripts/sync_plugins.py",
+        "scripts/test-v3-upgrades.py",
         "scripts/score-eval.py", "scripts/test-score-eval.py", "scripts/score-scenarios.py",
         "scripts/test-score-scenarios.py", "scripts/verify-objective.py", "scripts/test-objective.py",
         "scripts/test-tool-probe.py", "skills/rcoder/scripts/tool_probe.py",
