@@ -65,11 +65,12 @@ class TestV116Upgrades(unittest.TestCase):
         self.assertEqual(0, subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "sync_plugins.py"), "--check"],
             capture_output=True, text=True, encoding="utf-8", errors="replace").returncode)
-        canonical_names = sorted(path.name for path in canonical.glob("*.md"))
+        canonical_files = sorted(canonical.glob("*.md"))
+        canonical_names = [path.name for path in canonical_files]
         self.assertEqual(canonical_names, sorted(path.name for path in source.glob("*.md")))
-        self.assertEqual([p.stem + ".toml" for p in canonical.glob("*.md")],
+        self.assertEqual([p.stem + ".toml" for p in canonical_files],
                          sorted(path.name for path in sync_plugins.GEMINI_CMD_DIR.glob("*.toml")))
-        for command in canonical.glob("*.md"):
+        for command in canonical_files:
             generated = source / command.name
             self.assertIn(sync_plugins.MARKDOWN_MARKER, generated.read_text(encoding="utf-8"))
             self.assertEqual(sync_plugins.parse_frontmatter(sync_plugins.read_utf8_lf(generated)),
