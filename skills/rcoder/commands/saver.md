@@ -6,21 +6,21 @@ Manage and optimize context using RSaver.
 
 Operation and target requested by the user: $ARGUMENTS
 
-0. To find where context cost concentrates in an unfamiliar project, call `rsaver_audit` (MCP) or run `python3 scripts/rsaver.py audit --root . --json`; it ranks files by estimated tokens, flags lockfiles, minified or generated files, logs, and data files, and recommends a bounded-read or reduction command for each. Treat its figures as relative estimates.
-0a. Before pasting logs or configs that may contain credentials into context, run `python3 scripts/rsaver.py redact <file> --fail-on-found` (CLI only; it is not an MCP tool because the tool list is size-budgeted). Redaction is best-effort and not recoverable.
-0b. To track cumulative savings across a session, add `--ledger <path>.json` to `compact` or `dedupe`, then run `python3 scripts/rsaver.py ledger report --ledger <path>.json`. The ledger is written only to the path you give.
+0. To find where context cost concentrates in an unfamiliar project, call `rsaver_audit` (MCP) or run `python3 <skill-dir>/scripts/rsaver.py audit --root . --json`; it ranks files by estimated tokens, flags lockfiles, minified or generated files, logs, and data files, and recommends a bounded-read or reduction command for each. Treat its figures as relative estimates.
+0a. Before pasting logs or configs that may contain credentials into context, run `python3 <skill-dir>/scripts/rsaver.py redact <file> --fail-on-found` (CLI only; it is not an MCP tool because the tool list is size-budgeted). Redaction is best-effort and not recoverable.
+0b. To track cumulative savings across a session, add `--ledger <path>.json` to `compact` or `dedupe`, then run `python3 <skill-dir>/scripts/rsaver.py ledger report --ledger <path>.json`. The ledger is written only to the path you give.
 1. For context budgeting or gating before multi-step work:
-   - Call `rsaver_budget` (MCP) or run `python3 scripts/rsaver.py budget --window <N> --json` to divide the window across input, output reserve, and reasoning reserve.
-   - For a structured context envelope, call `rsaver_gate` (MCP) or run `python3 scripts/rsaver.py gate <envelope.json> --json` to keep required items, defer optional history, and verify contiguous cache prefix.
+   - Call `rsaver_budget` (MCP) or run `python3 <skill-dir>/scripts/rsaver.py budget --window <N> --json` to divide the window across input, output reserve, and reasoning reserve.
+   - For a structured context envelope, call `rsaver_gate` (MCP) or run `python3 <skill-dir>/scripts/rsaver.py gate <envelope.json> --json` to keep required items, defer optional history, and verify contiguous cache prefix.
 2. For verbose tool output, test logs, or repeated commands:
-   - Call `rsaver_compact` (MCP) or run `python3 scripts/rsaver.py compact <file> --target-savings 80 --manifest <manifest.json> --verify` to achieve 80%+ token reduction while keeping critical errors, URLs, and hashes verbatim.
-   - For repetitive commands or output blocks, call `rsaver_dedupe` (MCP) or run `python3 scripts/rsaver.py dedupe <file> --blocks` to collapse repeated command runs (90%+ reduction) preserving the first execution and final status verbatim.
-   - For frequently repeated words, phrases, or conversational terms, call `rsaver_dedupe` (MCP) or run `python3 scripts/rsaver.py dedupe <file> --words` (or `rsaver pack --method dict`) to eliminate duplicate word token usage (90-95%+ reduction) via zero-token reference pointers and lossless expansion.
+   - Call `rsaver_compact` (MCP) or run `python3 <skill-dir>/scripts/rsaver.py compact <file> --target-savings 80 --manifest <manifest.json> --verify` to achieve 80%+ token reduction while keeping critical errors, URLs, and hashes verbatim.
+   - For repetitive commands or output blocks, call `rsaver_dedupe` (MCP) or run `python3 <skill-dir>/scripts/rsaver.py dedupe <file> --blocks` to collapse repeated command runs (90%+ reduction) preserving the first execution and final status verbatim.
+   - For frequently repeated words, phrases, or conversational terms, call `rsaver_dedupe` (MCP) or run `python3 <skill-dir>/scripts/rsaver.py dedupe <file> --words` (or `rsaver pack --method dict`) to eliminate duplicate word token usage (90-95%+ reduction) via zero-token reference pointers and lossless expansion.
    - For timestamped/numeric log templates, use `rsaver dedupe <file> --normalize`.
 3. For long sessions showing repetition, constraint loss, or premature completion claims:
-   - Call `rsaver_drift` (MCP) or run `python3 scripts/rsaver.py drift <transcript.txt> --json` to diagnose drift signals.
-   - Call `rsaver_anchor` (MCP) or run `python3 scripts/rsaver.py anchor <state.json>` to build dual-end explicit-ID anchor blocks (`[OBJECTIVE-1]`, `[CONSTRAINT-N]`, `[FACT-N]`, `[NEXT-ACTION]`).
+   - Call `rsaver_drift` (MCP) or run `python3 <skill-dir>/scripts/rsaver.py drift <transcript.txt> --json` to diagnose drift signals.
+   - Call `rsaver_anchor` (MCP) or run `python3 <skill-dir>/scripts/rsaver.py anchor <state.json>` to build dual-end explicit-ID anchor blocks (`[OBJECTIVE-1]`, `[CONSTRAINT-N]`, `[FACT-N]`, `[NEXT-ACTION]`).
 4. For exact evidence recovery and verification:
-   - Call `rsaver_recover` (MCP) or run `python3 scripts/rsaver.py recover --file <file> --range START:END` to inspect original omitted lines without interpretation.
-   - Call `rsaver_verify` (MCP) or run `python3 scripts/rsaver.py verify --manifest <manifest.json>` to confirm that no critical line was lost and range SHA-256 hashes match.
+   - Call `rsaver_recover` (MCP) or run `python3 <skill-dir>/scripts/rsaver.py recover --file <file> --range START:END` to inspect original omitted lines without interpretation.
+   - Call `rsaver_verify` (MCP) or run `python3 <skill-dir>/scripts/rsaver.py verify --manifest <manifest.json>` to confirm that no critical line was lost and range SHA-256 hashes match.
 5. Report: original vs reduced estimates, percentage saved, kept and deferred IDs, and verification status. Never drop required constraints or test failures to save tokens.
