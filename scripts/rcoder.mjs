@@ -93,6 +93,8 @@ Options:
   sync [--json]       Normalize MCP configs, state paths, file modes, and host manifests
   integration <action> <host>  Manage OpenCode, Gemini CLI, Codex, and Claude Code adapters
   skill <new|lint|package>      Author, validate, and package Agent Skills
+  harvest-eval [--run <dir>] [--out <file>] [--limit <n>] [--dry-run] [--json]
+                      Harvest failed eval cases into a redacted regression dataset
   hooks <install|uninstall|print-config>
                                 Manage opt-in Claude Code guard and completion-gate hooks
 
@@ -112,6 +114,32 @@ function parseArgs(args) {
   }
   if (args[0] === 'skill') {
     return { command: 'skill', args: args.slice(1) };
+  }
+  if (args[0] === 'harvest-eval') {
+    const options = {
+      command: 'harvest-eval',
+      run: path.join(PACKAGE_ROOT, 'evals', 'runs', 'v113-live-free-2026-11-19'),
+      out: path.join(PACKAGE_ROOT, 'evals', 'datasets', 'harvested-regressions.json'),
+      limit: 50, dryRun: false, json: false,
+    };
+    for (let i = 1; i < args.length; i += 1) {
+      const arg = args[i];
+      if (arg === '--dry-run') { options.dryRun = true; continue; }
+      if (arg === '--json') { options.json = true; continue; }
+      if (['--run', '--out', '--limit'].includes(arg)) {
+        if (!args[i + 1] || args[i + 1].startsWith('--')) throw new Error(`Missing value for ${arg}`);
+        const value = args[++i];
+        if (arg === '--run') options.run = path.resolve(value);
+        if (arg === '--out') options.out = path.resolve(value);
+        if (arg === '--limit') options.limit = Number(value);
+        continue;
+      }
+      throw new Error(`Unknown harvest-eval option: ${arg}`);
+    }
+    if (!Number.isInteger(options.limit) || options.limit < 1 || options.limit > 500) {
+      throw new Error('harvest-eval --limit must be an integer from 1 to 500');
+    }
+    return options;
   }
   if (args[0] === 'hooks') {
     const action = args[1] || 'print-config';
@@ -812,6 +840,95 @@ function runHooksCommand(action, arguments_) {
   return result.status ?? 1;
 }
 
+function harvestFailures(runDir) {
+  const failures = new Map();
+  if (!existsSync(runDir)) throw new Error(`Eval run directory not found: ${runDir}`);
+  for (const entry of readdirSync(runDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const dir = path.join(runDir, entry.name);
+    const evidencePath = path.join(dir, 'evidence.json');
+    if (!existsSync(evidencePath)) continue;
+    const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
+    const invalidPath = path.join(dir, 'invalid-cases.json');
+    const invalid = existsSync(invalidPath) ? JSON.parse(readFileSync(invalidPath, 'utf8')) : {};
+    for (const variant of ['with', 'without']) {
+      const cases = evidence[variant] || {};
+      const listed = new Set(invalid[variant] || []);
+      for (const [caseId, record] of Object.entries(cases)) {
+        if (!record || typeof record !== 'object') continue;
+        const signals = [];
+        if (record.valid === false) signals.push(`invalid_reason: ${record.invalid_reason || 'unknown'}`);
+        if (listed.has(caseId)) signals.push('listed_in_invalid_cases');
+        if ((record.tool_errors || 0) > 0) signals.push(`tool_errors: ${record.tool_errors}`);
+        if (!signals.length) continue;
+        const key = `${variant}:${caseId}`;
+        if (failures.has(key)) continue;
+        failures.set(key, {
+          case_id: caseId,
+          variant,
+          source: path.relative(PACKAGE_ROOT, dir).split(path.sep).join('/'),
+          failure_signals: signals,
+          observation: record,
+        });
+      }
+    }
+  }
+  return [...failures.values()].sort((a, b) => a.case_id.localeCompare(b.case_id));
+}
+
+function runHarvestEval(options) {
+  const python = findPython();
+  if (!python) {
+    console.error('RCoder harvest-eval requires Python 3. Install Python 3 or set it on PATH.');
+    return 127;
+  }
+  const failures = harvestFailures(options.run).slice(0, options.limit);
+  const scriptDir = path.join(SOURCE, 'scripts').split(path.sep).join('/');
+  const redactorCode = 'import sys; sys.path.insert(0, ' + JSON.stringify(scriptDir) +
+    '); from rsaver_guard import ReversibleRedactor; red, count = ReversibleRedactor().redact(sys.stdin.read()); ' +
+    'sys.stdout.write(red + "\\n[rcoder:redactions=" + str(count) + "]")';
+  let redactions = 0;
+  const cases = failures.map((failure) => {
+    const raw = JSON.stringify(failure, null, 2);
+    const result = spawnSync(python.exe, [...python.pre, '-c', redactorCode], {
+      input: raw, encoding: 'utf8', timeout: 15000, windowsHide: true,
+      maxBuffer: 4000000,
+    });
+    if (result.error) throw new Error(`Secret redaction failed: ${result.error.message}`);
+    if (result.status !== 0) throw new Error(`Secret redaction failed: ${(result.stderr || '').trim()}`);
+    const text = result.stdout || '';
+    const match = /\[rcoder:redactions=(\d+)\]\s*$/.exec(text);
+    if (match) redactions += Number(match[1]);
+    const redacted = text.replace(/\s*\[rcoder:redactions=\d+\]\s*$/, '').trimEnd();
+    return {
+      id: `harvested-${failure.variant}-${failure.case_id}`,
+      source_run: failure.source,
+      source_case: failure.case_id,
+      failure_signals: failure.failure_signals,
+      tags: ['regression', 'harvested', failure.variant],
+      redacted_evidence: redacted,
+    };
+  });
+  const payload = {
+    schema_version: 1,
+    tool: 'RCoder',
+    command: 'harvest-eval',
+    source_run: path.relative(PACKAGE_ROOT, options.run).split(path.sep).join('/'),
+    redaction_count: redactions,
+    cases,
+  };
+  const serialized = JSON.stringify(payload, null, 2) + '\n';
+  if (!options.dryRun) {
+    const outDir = path.dirname(options.out);
+    mkdirSync(outDir, { recursive: true });
+    writeFileSync(options.out, serialized, 'utf8');
+  }
+  if (options.json) process.stdout.write(serialized);
+  else console.log(`RCoder harvest-eval: ${cases.length} regression case(s), ${redactions} redaction(s)` +
+    `${options.dryRun ? ' (dry run, not written)' : ` -> ${path.relative(PACKAGE_ROOT, options.out)}`}`);
+  return 0;
+}
+
 function findPython() {
   // A candidate must actually run: the Microsoft Store "python.exe" stub is on PATH but cannot execute scripts.
   for (const [exe, pre] of [['python3', []], ['python', []], ['py', ['-3']]]) {
@@ -1279,6 +1396,8 @@ try {
     process.exitCode = runIntegration(options);
   } else if (options.command === 'skill') {
     process.exitCode = runSkillCommand(options.args);
+  } else if (options.command === 'harvest-eval') {
+    process.exitCode = runHarvestEval(options);
   } else if (options.command === 'hooks') {
     process.exitCode = runHooksCommand(options.action, options);
   } else if (options.help) {

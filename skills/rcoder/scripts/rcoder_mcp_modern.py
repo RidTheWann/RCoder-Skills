@@ -34,6 +34,27 @@ ERR_METHOD_NOT_FOUND = -32601
 ERR_INTERNAL = -32603
 LEGACY_NOT_FOUND = -32002
 CACHE_SCOPE = "private"
+COMMANDS_DIR = core.SKILL_DIR.parents[1] / "commands"
+PROMPT_PREFIX = "rcoder_cmd_"
+ELICITATION_METHOD = "elicitation/create"
+DESTRUCTIVE_PATH_RE = re.compile(
+    r"(?i)(auth|credential|secret|token|migration|schema|delete|remove|drop)"
+)
+LIVE_RESOURCES = {
+    "rcoder://repo/map": (
+        "repo-map", "Repository symbol map",
+        "PageRank-ranked bounded symbol map produced by repo_map.py.", "text/markdown",
+    ),
+    "rcoder://memory/recall": (
+        "memory-recall", "Episodic memory recall",
+        "Recent decisions, fixes, invariants, and FTS5 recall from rcoder_memory.py.",
+        "application/json",
+    ),
+    "rcoder://capsule/latest": (
+        "capsule-latest", "Latest context capsule",
+        "Bounded path and Git snapshot produced by context_snapshot.py.", "text/markdown",
+    ),
+}
 TTL_MS = {
     "server/discover": 3_600_000, "tools/list": 3_600_000, "prompts/list": 3_600_000,
     "resources/templates/list": 3_600_000, "resources/list": 60_000, "resources/read": 60_000,
@@ -193,6 +214,162 @@ def read_skill_file(uri: str) -> dict:
         return {"uri": uri, "mimeType": mime, "blob": b64encode(data).decode("ascii")}
 
 
+# ---------------------------------------------------------------- live resources
+
+def _parse_command_md(md_path: Path) -> tuple[str, str]:
+    text = md_path.read_text(encoding="utf-8")
+    desc = f"Run RCoder {md_path.stem} workflow"
+    body = text
+    if text.startswith("---"):
+        parts = text.split("---", 2)
+        if len(parts) == 3:
+            frontmatter, body = parts[1], parts[2].strip()
+            match = re.search(r'^description:\s*["\']?(.+?)["\']?\s*$', frontmatter, re.M)
+            if match:
+                desc = match.group(1).strip()
+    return desc, body.strip()
+
+
+def _command_parser():
+    script_dir = Path(__file__).resolve().parents[3] / "scripts"
+    if script_dir.is_dir() and str(script_dir) not in sys.path:
+        sys.path.insert(0, str(script_dir))
+    try:
+        from sync_plugins import parse_command_md
+        return parse_command_md
+    except ImportError:
+        return _parse_command_md
+
+
+def client_supports_elicitation(params: dict) -> bool:
+    meta = params.get("_meta")
+    if not isinstance(meta, dict):
+        return False
+    capabilities = meta.get("capabilities")
+    return isinstance(capabilities, dict) and "elicitation" in capabilities
+
+
+def destructive_gate(params: dict) -> dict | None:
+    if not client_supports_elicitation(params) or params.get("name") != "rcoder_apply_verify":
+        return None
+    arguments = params.get("arguments")
+    if not isinstance(arguments, dict) or bool(arguments.get("confirm_destructive")):
+        return None
+    edits = arguments.get("edits")
+    if not isinstance(edits, list):
+        return None
+    sensitive = sorted({
+        str(edit.get("path", "")) for edit in edits
+        if isinstance(edit, dict) and DESTRUCTIVE_PATH_RE.search(str(edit.get("path", "")))
+    })
+    if not sensitive:
+        return None
+    message = (
+        "The requested edits touch sensitive code paths: " + ", ".join(sensitive) +
+        ". Confirm the exact diff before RCoder applies it."
+    )
+    return {
+        "content": [{"type": "text", "text": message}],
+        "isError": True,
+        "structuredContent": {
+            "ok": False,
+            "error": {
+                "code": "CONFIRMATION_REQUIRED",
+                "message": message,
+                "recovery_hint": (
+                    "Review the diff, then repeat tools/call with confirm_destructive=true "
+                    "after elicitation/create returns an acceptance."
+                ),
+            },
+            "elicitation": {
+                "method": ELICITATION_METHOD,
+                "params": {
+                    "message": message,
+                    "requestedSchema": {
+                        "type": "object",
+                        "properties": {
+                            "confirm": {"type": "boolean", "description": "Apply the reviewed diff."}
+                        },
+                        "required": ["confirm"],
+                    },
+                    "sensitive_paths": sensitive,
+                },
+            },
+        },
+    }
+
+
+def live_resources() -> list:
+    return [
+        {"uri": uri, "name": name, "title": title, "description": description, "mimeType": mime}
+        for uri, (name, title, description, mime) in LIVE_RESOURCES.items()
+    ]
+
+
+def read_live_resource(uri: str) -> dict:
+    meta = LIVE_RESOURCES.get(uri)
+    if meta is None:
+        raise core.RpcError(ERR_INVALID_PARAMS, f"unknown live resource: {uri}")
+    if uri in ("rcoder://repo/map", "rcoder://capsule/latest"):
+        script, arguments = (
+            ("repo_map.py", ["--root", str(core.State.root), "--budget", "2048", "--format", "default"])
+            if uri == "rcoder://repo/map" else
+            ("context_snapshot.py", [str(core.State.root), "--max-paths", "80"])
+        )
+        code, stdout, stderr = core.run_helper(script, arguments)
+        if code != 0:
+            raise core.RpcError(ERR_INVALID_PARAMS, f"{script} failed: {stderr.strip()}")
+        text = stdout
+    else:
+        from rcoder_memory import RCoderMemoryStore
+        store = RCoderMemoryStore(core.State.root)
+        text = json.dumps(
+            {
+                "tool": "RCoder",
+                "resource": "memory/recall",
+                "episodes": store.recent(10),
+                "recall": store.recall_for_context(query=core.State.root.name, limit=6),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    return {"uri": uri, "mimeType": meta[3], "text": core.clip(text)}
+
+
+def command_prompts() -> dict:
+    if not COMMANDS_DIR.is_dir():
+        return {}
+    parser = _command_parser()
+    prompts = {}
+    for md_file in sorted(COMMANDS_DIR.glob("*.md")):
+        name = f"{PROMPT_PREFIX}{md_file.stem}"
+        description, _ = parser(md_file)
+        prompts[name] = {
+            "name": name,
+            "description": description,
+            "arguments": [{
+                "name": "args",
+                "description": "Arguments or target for the RCoder command.",
+                "required": False,
+            }],
+        }
+    return prompts
+
+
+def build_command_prompt(name: str, arguments: dict) -> dict | None:
+    prompts = command_prompts()
+    if name not in prompts:
+        return None
+    md_file = COMMANDS_DIR / f"{name[len(PROMPT_PREFIX):]}.md"
+    _, body = _command_parser()(md_file)
+    value = str(arguments.get("args", "")).strip() if isinstance(arguments, dict) else ""
+    text = body.replace("$ARGUMENTS", value or "(no arguments supplied)")
+    return {
+        "description": prompts[name]["description"],
+        "messages": [{"role": "user", "content": {"type": "text", "text": text}}],
+    }
+
+
 # -------------------------------------------------------------------- protocol
 
 def server_info() -> dict:
@@ -214,10 +391,50 @@ def modern_result(method: str, params: dict) -> dict:
         result = skills_list(params)
     elif method == "skills/get":
         result = skills_get(params)
+    elif method == "tools/call":
+        blocked = destructive_gate(params)
+        if blocked is not None:
+            return blocked
+        if client_supports_elicitation(params) and isinstance(params.get("arguments"), dict) \
+                and "confirm_destructive" in params["arguments"]:
+            params = dict(params)
+            params["arguments"] = {
+                key: value for key, value in params["arguments"].items()
+                if key != "confirm_destructive"
+            }
+        previous = core.State.protocol
+        core.State.protocol = MODERN_PROTOCOL
+        try:
+            return core.handle(method, params)
+        finally:
+            core.State.protocol = previous
+    elif method == "resources/list":
+        return contract.paginate_result(
+            method, {"resources": live_resources() + core.resource_index()}, params
+        )
+    elif method == "prompts/list":
+        prompts = list(command_prompts().values())
+        prompts.extend({"name": key, **value} for key, value in core.PROMPTS.items())
+        return contract.paginate_result(method, {"prompts": prompts}, params)
+    elif method == "prompts/get":
+        name = params.get("name")
+        if isinstance(name, str) and name.startswith(PROMPT_PREFIX):
+            built = build_command_prompt(name, params.get("arguments") or {})
+            if built is None:
+                raise core.RpcError(ERR_INVALID_PARAMS, f"unknown prompt: {name}")
+            return built
+        previous = core.State.protocol
+        core.State.protocol = MODERN_PROTOCOL
+        try:
+            return core.handle(method, params)
+        finally:
+            core.State.protocol = previous
     else:
         uri = params.get("uri")
         if method == "resources/read" and isinstance(uri, str) and uri.startswith("skill://"):
             result = {"contents": [read_skill_file(uri)]}
+        elif method == "resources/read" and isinstance(uri, str) and uri in LIVE_RESOURCES:
+            result = {"contents": [read_live_resource(uri)]}
         else:
             previous = core.State.protocol
             core.State.protocol = MODERN_PROTOCOL  # unlocks titles and structuredContent in core
