@@ -53,20 +53,18 @@ def main():
         sys.path.insert(0, scripts_dir)
     try:
         import sync_plugins
-        synced = sync_plugins.sync_gemini_toml()
-        skill_prompts = sync_plugins.sync_skill_command_prompts()
-        command_count = len(list((ROOT / "commands").glob("*.md")))
+        synced = sync_plugins.sync_gemini_toml(check=True)
+        generated_commands = sync_plugins.sync_command_markdown(check=True)
+        command_count = len(list((SKILL / "commands").glob("*.md")))
         check(len(synced) == command_count,
-              "G1: sync_plugins did not compile every command into Gemini CLI TOML")
-        check(len(skill_prompts) == command_count,
-              "G1: sync_plugins did not bundle every MCP command prompt in the skill tree")
-        for command in (ROOT / "commands").glob("*.md"):
-            copy = SKILL / "commands" / command.name
-            check(copy.is_file() and copy.read_bytes() == command.read_bytes(),
-                  f"G1: skill-only MCP prompt differs from package command source: {command.name}")
+              "G1: sync_plugins did not compile every canonical command into Gemini CLI TOML")
+        check(len(generated_commands) == command_count,
+              "G1: generated host Markdown differs from the canonical skill command set")
+        check(all((SKILL / "commands" / name).is_file() for name in generated_commands),
+              "G1: canonical skill command source is incomplete")
         for name, ok in sync_plugins.verify_manifests().items():
             check(ok, f"G1: required plugin manifest missing: {name}")
-    except (ImportError, OSError, ValueError) as error:
+    except (ImportError, OSError, ValueError, RuntimeError) as error:
         check(False, f"G1: single-source plugin sync failed: {error}")
 
     skill_file = SKILL / "SKILL.md"
@@ -82,6 +80,8 @@ def main():
     check(isinstance(meta.get("description"), str) and 1 <= len(meta["description"]) <= 1024,
           "G1: description length must be 1..1024")
     check(len(read(skill_file).splitlines()) <= 300, "G1: SKILL.md exceeds 300 lines")
+    check(0 < len(read(skill_file).encode("utf-8")) < 4096,
+          "G9: SKILL.md routing kernel must remain below 4 KiB")
     check(bool(body.strip()), "G1: empty skill instructions")
     check(f'version: "{version}"' in read(skill_file), "G7: skill version metadata differs")
 
@@ -328,7 +328,7 @@ def main():
         "scripts/score-eval.py", "scripts/test-score-eval.py", "scripts/score-scenarios.py",
         "scripts/test-score-scenarios.py", "scripts/verify-objective.py", "scripts/test-objective.py",
         "scripts/test-tool-probe.py", "skills/rcoder/scripts/tool_probe.py",
-        "scripts/check-dist.py", "scripts/test-mcp.py", "scripts/rcoder-mcp.py",
+        "scripts/check-dist.py", "scripts/test-package-hygiene.py", "scripts/test-mcp.py", "scripts/rcoder-mcp.py",
         "skills/rcoder/scripts/rcoder_mcp.py", "skills/rcoder/scripts/rcoder_mcp_modern.py",
         "skills/rcoder/scripts/rcoder_mcp_http.py", "scripts/test-mcp-modern.py",
         "install.ps1", "launcher/RCoder.ps1", "launcher/McpSetup.ps1", "targets.json",

@@ -6,10 +6,24 @@ import stat
 import zipfile
 
 ROOT = Path(__file__).resolve().parent.parent
-SKILL = ROOT / 'skills' / 'rcoder'
-DIST = ROOT / 'dist'
-VERSION = '1.16.0'
+SKILL = ROOT / "skills" / "rcoder"
+DIST = ROOT / "dist"
+VERSION = "1.16.0"
 FIXED_TIME = (2026, 1, 1, 0, 0, 0)
+EXCLUDED_DIRS = {
+    ".git", ".mcp-live-test", "dist", "__pycache__", ".venv", "venv",
+    "node_modules", ".pytest_cache", ".mypy_cache", "target", "build",
+}
+
+
+def is_excluded(relative: Path) -> bool:
+    parts = relative.parts
+    if any(part in EXCLUDED_DIRS for part in parts):
+        return True
+    if len(parts) >= 4 and parts[0] == "evals" and parts[1] == "runs" and parts[3] == "raw":
+        return True
+    return bool(parts and parts[-1].lower().endswith(".err"))
+
 
 def add_file(archive, path, archive_name):
     info = zipfile.ZipInfo(archive_name, date_time=FIXED_TIME)
@@ -19,51 +33,54 @@ def add_file(archive, path, archive_name):
     info.external_attr = (stat.S_IFREG | (0o755 if executable else 0o644)) << 16
     archive.writestr(info, path.read_bytes(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
 
+
 def add_dir(archive, base, prefix):
-    for path in sorted(item for item in base.rglob('*') if item.is_file()):
-        if any(part in {'.git', 'dist', '__pycache__', '.venv', 'venv', 'node_modules', '.pytest_cache', '.mypy_cache', 'target', 'build'} for part in path.relative_to(base).parts):
+    for path in sorted(item for item in base.rglob("*") if item.is_file()):
+        relative = path.relative_to(base)
+        if is_excluded(relative):
             continue
-        add_file(archive, path, f'{prefix}/{path.relative_to(base).as_posix()}')
+        add_file(archive, path, f"{prefix}/{relative.as_posix()}")
+
 
 def main():
-    if not (SKILL / 'SKILL.md').is_file():
-        raise SystemExit('Missing skills/rcoder/SKILL.md')
+    if not (SKILL / "SKILL.md").is_file():
+        raise SystemExit("Missing skills/rcoder/SKILL.md")
     DIST.mkdir(exist_ok=True)
     packages = [
-        (f'rcoder-v{VERSION}.skill.zip', [(SKILL, 'rcoder')]),
-        (f'rcoder-v{VERSION}.claude-plugin.zip', [(ROOT / '.claude-plugin', '.claude-plugin'), (ROOT / '.mcp.json', '.mcp.json'), (ROOT / 'launcher' / 'rcoder-mcp.mjs', 'launcher/rcoder-mcp.mjs'), (ROOT / 'commands', 'commands'), (ROOT / 'agents', 'agents'), (ROOT / 'hooks', 'hooks'), (SKILL.parent, 'skills'), (ROOT / 'LICENSE', 'LICENSE'), (ROOT / 'README.md', 'README.md')]),
-        (f'rcoder-v{VERSION}.agent-plugin.zip', [(ROOT / 'plugin.json', 'plugin.json'), (ROOT / 'mcp.json', 'mcp.json'), (ROOT / 'launcher' / 'rcoder-mcp.mjs', 'launcher/rcoder-mcp.mjs'), (SKILL.parent, 'skills'), (ROOT / 'LICENSE', 'LICENSE'), (ROOT / 'README.md', 'README.md')]),
-        (f'rcoder-v{VERSION}.codex-plugin.zip', [(ROOT / 'plugin.json', 'plugin.json'), (ROOT / '.codex-plugin', '.codex-plugin'), (ROOT / '.mcp.json', '.mcp.json'), (ROOT / 'launcher' / 'rcoder-mcp.mjs', 'launcher/rcoder-mcp.mjs'), (SKILL.parent, 'skills'), (ROOT / 'LICENSE', 'LICENSE'), (ROOT / 'README.md', 'README.md')]),
-        (f'rcoder-v{VERSION}.gemini-extension.zip', [(ROOT / 'gemini-extension.json', 'gemini-extension.json'), (ROOT / 'GEMINI.md', 'GEMINI.md'), (ROOT / 'commands' / 'rcoder', 'commands/rcoder'), (ROOT / 'launcher' / 'rcoder-mcp.mjs', 'launcher/rcoder-mcp.mjs'), (SKILL.parent, 'skills')]),
+        (f"rcoder-v{VERSION}.skill.zip", [(SKILL, "rcoder")]),
+        (f"rcoder-v{VERSION}.claude-plugin.zip", [(ROOT / ".claude-plugin", ".claude-plugin"), (ROOT / ".mcp.json", ".mcp.json"), (ROOT / "launcher" / "rcoder-mcp.mjs", "launcher/rcoder-mcp.mjs"), (ROOT / "commands", "commands"), (ROOT / "agents", "agents"), (ROOT / "hooks", "hooks"), (SKILL.parent, "skills"), (ROOT / "LICENSE", "LICENSE"), (ROOT / "README.md", "README.md")]),
+        (f"rcoder-v{VERSION}.agent-plugin.zip", [(ROOT / "plugin.json", "plugin.json"), (ROOT / "mcp.json", "mcp.json"), (ROOT / "launcher" / "rcoder-mcp.mjs", "launcher/rcoder-mcp.mjs"), (SKILL.parent, "skills"), (ROOT / "LICENSE", "LICENSE"), (ROOT / "README.md", "README.md")]),
+        (f"rcoder-v{VERSION}.codex-plugin.zip", [(ROOT / "plugin.json", "plugin.json"), (ROOT / ".codex-plugin", ".codex-plugin"), (ROOT / ".mcp.json", ".mcp.json"), (ROOT / "launcher" / "rcoder-mcp.mjs", "launcher/rcoder-mcp.mjs"), (SKILL.parent, "skills"), (ROOT / "LICENSE", "LICENSE"), (ROOT / "README.md", "README.md")]),
+        (f"rcoder-v{VERSION}.gemini-extension.zip", [(ROOT / "gemini-extension.json", "gemini-extension.json"), (ROOT / "GEMINI.md", "GEMINI.md"), (ROOT / "commands" / "rcoder", "commands/rcoder"), (ROOT / "launcher" / "rcoder-mcp.mjs", "launcher/rcoder-mcp.mjs"), (SKILL.parent, "skills")]),
     ]
     checksums = []
     for filename, items in packages:
         output = DIST / filename
-        with zipfile.ZipFile(output, 'w') as archive:
+        with zipfile.ZipFile(output, "w") as archive:
             for base, prefix in items:
                 if base.is_dir():
                     add_dir(archive, base, prefix)
                 elif base.is_file():
                     add_file(archive, base, prefix)
                 else:
-                    raise SystemExit(f'Missing package input: {base}')
+                    raise SystemExit(f"Missing package input: {base}")
         digest = hashlib.sha256(output.read_bytes()).hexdigest()
-        checksums.append(f'{digest}  {filename}')
-        print(f'created {output.relative_to(ROOT)} ({output.stat().st_size} bytes, sha256 {digest})')
-    source_name = f'rcoder-v{VERSION}-source.zip'
-    source_output = DIST / source_name
-    with zipfile.ZipFile(source_output, 'w') as archive:
-        for path in sorted(item for item in ROOT.rglob('*') if item.is_file()):
+        checksums.append(f"{digest}  {filename}")
+        print(f"created {output.relative_to(ROOT)} ({output.stat().st_size} bytes, sha256 {digest})")
+    source_output = DIST / f"rcoder-v{VERSION}-source.zip"
+    with zipfile.ZipFile(source_output, "w") as archive:
+        for path in sorted(item for item in ROOT.rglob("*") if item.is_file()):
             relative = path.relative_to(ROOT)
-            if any(part in {'.git', 'dist', '__pycache__', '.venv', 'venv', 'node_modules', '.pytest_cache', '.mypy_cache', 'target', 'build'} for part in relative.parts):
+            if is_excluded(relative):
                 continue
-            add_file(archive, path, f'rcoder/{relative.as_posix()}')
+            add_file(archive, path, f"rcoder/{relative.as_posix()}")
     digest = hashlib.sha256(source_output.read_bytes()).hexdigest()
-    checksums.append(f'{digest}  {source_name}')
-    print(f'created {source_output.relative_to(ROOT)} ({source_output.stat().st_size} bytes, sha256 {digest})')
-    (DIST / 'SHA256SUMS').write_text('\n'.join(checksums) + '\n', encoding='utf-8')
-    print('created dist/SHA256SUMS')
+    checksums.append(f"{digest}  {source_output.name}")
+    print(f"created {source_output.relative_to(ROOT)} ({source_output.stat().st_size} bytes, sha256 {digest})")
+    (DIST / "SHA256SUMS").write_text("\n".join(checksums) + "\n", encoding="utf-8")
+    print("created dist/SHA256SUMS")
     return 0
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     raise SystemExit(main())
