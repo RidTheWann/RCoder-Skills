@@ -107,7 +107,7 @@ jobs:
       - name: Node installer and terminal launcher simulations
         run: node scripts/test-node-installer.mjs
       - name: Cross-platform parity verifier
-        run: python scripts/verify-parity.py
+        run: python scripts/verify_parity.py
       - name: Phase 2 cross-platform synchronization tests
         run: python scripts/test-cross-platform.py -v
       - name: Phase 1 upgrade regression tests

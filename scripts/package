@@ -13,6 +13,7 @@ FIXED_TIME = (2026, 1, 1, 0, 0, 0)
 EXCLUDED_DIRS = {
     ".git", ".mcp-live-test", "dist", "__pycache__", ".venv", "venv",
     "node_modules", ".pytest_cache", ".mypy_cache", "target", "build",
+    ".ssh", ".aws", ".gnupg", ".kube",
 }
 
 
@@ -22,7 +23,20 @@ def is_excluded(relative: Path) -> bool:
         return True
     if len(parts) >= 4 and parts[0] == "evals" and parts[1] == "runs" and parts[3] == "raw":
         return True
-    return bool(parts and parts[-1].lower().endswith(".err"))
+    if not parts:
+        return False
+    name = parts[-1].lower()
+    if name.startswith(".env") or name in {
+        ".npmrc", ".pypirc", ".netrc", ".git-credentials", ".ds_store",
+        "credentials", "credentials.json", "secrets.json", "secrets.yaml", "secrets.yml",
+        "secrets.toml", "terraform.tfstate", ".htpasswd", ".dockercfg",
+    }:
+        return True
+    if name.endswith((".pem", ".key", ".p12", ".pfx", ".jks", ".keystore", ".kdbx", ".err")):
+        return True
+    if name.startswith("service-account") and name.endswith(".json"):
+        return True
+    return False
 
 
 def add_file(archive, path, archive_name):

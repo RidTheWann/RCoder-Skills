@@ -53,17 +53,18 @@ def main():
         sys.path.insert(0, scripts_dir)
     try:
         import sync_plugins
-        synced = sync_plugins.sync_gemini_toml(check=True)
-        generated_commands = sync_plugins.sync_command_markdown(check=True)
-        command_count = len(list((SKILL / "commands").glob("*.md")))
-        check(len(synced) == command_count,
-              "G1: sync_plugins did not compile every canonical command into Gemini CLI TOML")
-        check(len(generated_commands) == command_count,
-              "G1: generated host Markdown differs from the canonical skill command set")
-        check(all((SKILL / "commands" / name).is_file() for name in generated_commands),
-              "G1: canonical skill command source is incomplete")
-        for name, ok in sync_plugins.verify_manifests().items():
-            check(ok, f"G1: required plugin manifest missing: {name}")
+        import subprocess
+        synced = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "sync_plugins.py"), "--check"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+        )
+        check(synced.returncode == 0,
+              "G1: sync_plugins --check must report command mirrors and manifests in sync\n" + synced.stdout + synced.stderr)
+        canonical = sorted(p.stem for p in (SKILL / "commands").glob("*.md"))
+        check(all((COMMANDS_DIR := ROOT / "commands" / "rcoder" / f"{slug}.toml").is_file() for slug in canonical),
+              "G1: every canonical command must have a Gemini CLI TOML mirror")
+        missing = [str(p.relative_to(ROOT)) for p in sync_plugins.REQUIRED_MANIFESTS if not p.is_file()]
+        check(not missing, "G1: required plugin manifest missing: " + ", ".join(missing))
     except (ImportError, OSError, ValueError, RuntimeError) as error:
         check(False, f"G1: single-source plugin sync failed: {error}")
 
@@ -324,7 +325,7 @@ def main():
         "skills/rcoder/scripts/rscan_index.py", "scripts/test-cross-platform.py",
         "skills/rcoder/scripts/rsaver_sandbox.py", "skills/rcoder/scripts/rcoder_memory.py",
         "skills/rcoder/scripts/rcoder_swarm.py", "scripts/verify_parity.py",
-        "scripts/verify-parity.py", "scripts/test-autonomous-v3.py", "scripts/sync_plugins.py",
+        "scripts/test-autonomous-v3.py", "scripts/sync_plugins.py",
         "scripts/score-eval.py", "scripts/test-score-eval.py", "scripts/score-scenarios.py",
         "scripts/test-score-scenarios.py", "scripts/verify-objective.py", "scripts/test-objective.py",
         "scripts/test-tool-probe.py", "skills/rcoder/scripts/tool_probe.py",
@@ -519,8 +520,8 @@ def main():
     hooks_file = ROOT / "hooks" / "hooks.json"
     check(hooks_file.is_file(), "G8: plugin hooks/hooks.json missing (D-019)")
     hook_events = load_json(hooks_file).get("hooks", {}) if hooks_file.is_file() else {}
-    check(set(hook_events) == {"SessionStart"},
-          "G8: the plugin may ship only a SessionStart hook; blocking or tool-event hooks are forbidden (D-019)")
+    check(set(hook_events) == {"SessionStart", "PreToolUse", "PostToolUse", "PreCompact"},
+          "G8: plugin hook events must match the reviewed Claude lifecycle set (D-019)")
     for entry in hook_events.get("SessionStart", []):
         check(entry.get("matcher") == "startup", "G8: the plugin hook must match startup only")
         for hook in entry.get("hooks", []):
@@ -532,13 +533,30 @@ def main():
                   "G8: the plugin hook may only run the bundled read-only rscan scan")
             check(not re.search(r"(?i)\b(curl|wget|rm|sudo|eval|install)\b", command),
                   "G8: the plugin hook command contains a forbidden program")
-    opt_in_hooks = ROOT / "skills" / "rcoder" / "scripts" / "rcoder_hooks.py"
-    check(opt_in_hooks.is_file(), "G8: opt-in hook handler rcoder_hooks.py missing (D-021)")
-    check("rcoder_hooks" not in read(hooks_file),
-          "G8: the bundled hooks.json must not enable the opt-in handlers; they are installed explicitly (D-021)")
+    lifecycle_handlers = ROOT / "skills" / "rcoder" / "scripts" / "rcoder_hooks.py"
+    handler_source = read(lifecycle_handlers) if lifecycle_handlers.is_file() else ""
+    check(bool(handler_source) and all(token in handler_source for token in
+          ("def decide_tool", "def post_tool_context", "def pre_compact_instructions")),
+          "G8: shared Claude/Gemini lifecycle handler is incomplete (D-019/D-021)")
+    expected_hook_handlers = {
+        "PreToolUse": ("guard", "Read|Edit|Write|MultiEdit|NotebookEdit|Grep|Bash"),
+        "PostToolUse": ("post-tool", ".*"),
+        "PreCompact": ("pre-compact", "manual|auto"),
+    }
+    for event, (phase, matcher) in expected_hook_handlers.items():
+        entries = hook_events.get(event, [])
+        check(len(entries) == 1 and entries[0].get("matcher") == matcher,
+              f"G8: {event} matcher must match the reviewed host configuration")
+        handlers = entries[0].get("hooks", []) if entries else []
+        command = handlers[0].get("command", "") if handlers else ""
+        check(len(handlers) == 1 and handlers[0].get("type") == "command"
+              and handlers[0].get("timeout") == 10 and phase in command
+              and "skills/rcoder/scripts/rcoder_hooks.py" in command,
+              f"G8: {event} must invoke the bundled {phase} handler with a bounded timeout")
     check("hooks/**" in package.get("files", []), "G8: the npm package must ship the hooks directory")
-    check("D-021" in read(ROOT / "docs" / "DECISIONS.md") and (ROOT / "docs" / "HOOKS.md").is_file(),
-          "G8: D-021 and docs/HOOKS.md must document the opt-in hooks")
+    check("D-019" in read(ROOT / "docs" / "DECISIONS.md") and "D-021" in read(ROOT / "docs" / "DECISIONS.md")
+          and (ROOT / "docs" / "HOOKS.md").is_file(),
+          "G8: D-019/D-021 and docs/HOOKS.md must document lifecycle hook behavior")
     check("'hooks'" in read(ROOT / "scripts" / "package"),
           "G8: the Claude plugin archive must include the hooks directory")
     check("mcp" in package.get("keywords", []), "G8: npm keywords should include mcp")

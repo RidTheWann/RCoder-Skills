@@ -4,6 +4,11 @@ RCoder follows Semantic Versioning.
 
 ## [Unreleased]
 
+### Added
+- Deterministic SSOT command and manifest synchronization with byte-exact LF checks; one unified parity gate validates generated Markdown/TOML, TOML syntax, manifest versions, contract JSON, SKILL references, and cross-platform path/line-ending rules.
+- Release hygiene checks for required runtime files, sensitive-file/test-artifact exclusions, token-shaped secrets, archive completeness, and package checksums.
+- Shared Claude Code/Gemini CLI lifecycle hook policy: bundled Claude tool guard, post-tool secret warning, compaction reminder, and host-specific Gemini before/after tool settings.
+
 ### Fixed
 - Addressed all 13 P2 findings from the Codex review of PR #28: wrapper options with operands and broad `git add` pathspecs are now denied by the guard; `doctor --fix` uses a valid array join and stores a package-root launcher for user-scope host configs; `rcoder_impact_test` selects a command for the detected Go/JS/Rust/Python stack; lesson sanitization redacts AWS keys and credential assignments; handoff capsules are described as checksums rather than signatures and lease claims are serialized with a lock; brace skeletons retain imports and module-scope lines; drift paths preserve leading dots; the edit sandbox rejects absolute paths outside the root and rolls back on `KeyboardInterrupt`; and the symbol index extracts JS/TS/Go/Rust symbols.
 

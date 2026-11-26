@@ -8,7 +8,7 @@ Thank you for improving RCoder. This repository is a portable engineering skill,
 - **Smallest correct change.** Keep a pull request to one purpose. Do not refactor unrelated code.
 - **Evidence over assertion.** Never claim a check passed unless you ran it and saw the result. Label statements VERIFIED, INFERRED, or NOT VERIFIED. Native host discovery and live model behavior stay NOT VERIFIED until observed.
 - **No third-party runtime dependencies** in installers, helpers, or the MCP server. Use the standard library.
-- **Least privilege.** Plugin subagents never get file-editing tools, the security reviewer has no shell, slash commands do not pre-approve tools, and the bundled `hooks/hooks.json` stays SessionStart-only (decisions D-018, D-019, D-021 in `docs/DECISIONS.md`).
+- **Least privilege.** Plugin subagents never get file-editing tools, the security reviewer has no shell, slash commands do not pre-approve tools, and bundled hooks stay local, bounded, and limited to the reviewed Claude lifecycle events (decisions D-018, D-019, D-021 in `docs/DECISIONS.md`).
 - **Keep versions in sync.** A version bump must touch `skills/rcoder/SKILL.md`, `skills/rcoder/contracts/rcoder-v2.json`, `package.json`, `plugin.json`, `gemini-extension.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.codex-plugin/plugin.json`, `scripts/package`, and `CHANGELOG.md` together. `scripts/validate-all` enforces this.
 
 ## Where things live

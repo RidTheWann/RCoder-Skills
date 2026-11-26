@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -61,15 +62,18 @@ class TestV116Upgrades(unittest.TestCase):
             self.assertIn(name, prompts)
         source = ROOT / "commands"
         canonical = ROOT / "skills" / "rcoder" / "commands"
-        self.assertEqual(sync_plugins.sync_command_markdown(check=True),
-                         sorted(path.name for path in canonical.glob("*.md")))
-        self.assertEqual(sync_plugins.sync_gemini_toml(check=True),
-                         sorted(path.stem + ".toml" for path in canonical.glob("*.md")))
+        self.assertEqual(0, subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "sync_plugins.py"), "--check"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace").returncode)
+        canonical_names = sorted(path.name for path in canonical.glob("*.md"))
+        self.assertEqual(canonical_names, sorted(path.name for path in source.glob("*.md")))
+        self.assertEqual([p.stem + ".toml" for p in canonical.glob("*.md")],
+                         sorted(path.name for path in sync_plugins.GEMINI_CMD_DIR.glob("*.toml")))
         for command in canonical.glob("*.md"):
             generated = source / command.name
-            self.assertIn(sync_plugins.GENERATED_MARKER, generated.read_text(encoding="utf-8"))
-            self.assertEqual(sync_plugins.parse_command_md(generated),
-                             sync_plugins.parse_command_md(command))
+            self.assertIn(sync_plugins.MARKDOWN_MARKER, generated.read_text(encoding="utf-8"))
+            self.assertEqual(sync_plugins.parse_frontmatter(sync_plugins.read_utf8_lf(generated)),
+                             sync_plugins.parse_frontmatter(sync_plugins.read_utf8_lf(command)))
 
     def test_version_and_default_eval_data_are_packaged(self) -> None:
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))

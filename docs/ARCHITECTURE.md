@@ -70,7 +70,7 @@ Multiple selections are deduplicated by resolved destination so hosts sharing a 
 - Security testing and dynamic binary analysis require explicit authorization and isolated environments.
 - Static checks do not impersonate native host activation or live model evaluation.
 - The MCP server is read-only, dependency-free, root-confined, shell-free, network-free, and bounded in time and output; it never grants authorization.
-- No hook is installed or shipped by default; automatic session-start behavior is opt-in.
+- The Claude Code plugin ships bounded local lifecycle hooks for tool guarding, post-tool secret warnings, compaction context, and the read-only session-start scan. Gemini tool hooks remain an explicit settings install; native host behavior is tracked separately from static configuration.
 
 ## Distribution
 

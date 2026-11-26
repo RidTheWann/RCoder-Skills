@@ -63,7 +63,7 @@ class TestAutonomousPhase3(unittest.TestCase):
             store = EpisodicLessonStore(workspace)
             record = store.record_lesson(
                 symptom="WinError 32 SQLite file locked during Windows test cleanup",
-                root_cause="Unclosed sqlite3.connect() using token sk-proj-secret1234567890abcd",
+                root_cause="Unclosed sqlite3.connect() using token EXAMPLE_TOKEN_PLACEHOLDER",
                 verified_fix="Wrap sqlite3.connect() in contextlib.closing()",
                 related_files=[r"skills\rcoder\scripts\rscan_index.py"],
                 tags=["windows", "sqlite"],
@@ -255,7 +255,7 @@ class TestV3Architecture(unittest.TestCase):
             episode = store.record(
                 "fix",
                 "sqlite locked on Windows",
-                "wrap connect in closing, token sk-proj-secret1234567890abcd",
+                "wrap connect in closing, token EXAMPLE_TOKEN_PLACEHOLDER",
                 [r"skills\rcoder\scripts\rscan_index.py"],
                 ["sqlite3.connect"],
             )
@@ -301,10 +301,10 @@ class TestV3Architecture(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             md = Path(temporary) / "demo.md"
             md.write_text('---\ndescription: "Demo workflow"\n---\nBody $ARGUMENTS\n', encoding="utf-8")
-            description, body = sync_plugins.parse_command_md(md)
-            self.assertEqual("Demo workflow", description)
-            self.assertEqual("Body $ARGUMENTS", body)
-        self.assertEqual('a\\"b', sync_plugins.toml_escape('a"b'))
+            metadata, body = sync_plugins.parse_frontmatter(sync_plugins.read_utf8_lf(md))
+            self.assertEqual("Demo workflow", metadata["description"])
+            self.assertEqual("Body $ARGUMENTS\n", body)
+        self.assertEqual('a\\"b', sync_plugins.escape_toml_basic('a"b'))
         commands = sorted(path.stem for path in (ROOT / "commands").glob("*.md"))
         tomls = sorted(path.stem for path in sync_plugins.GEMINI_CMD_DIR.glob("*.toml"))
         self.assertEqual(commands, tomls)

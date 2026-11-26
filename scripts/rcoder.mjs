@@ -147,7 +147,7 @@ function parseArgs(args) {
       throw new Error('hooks action must be install, uninstall, or print-config');
     }
     const options = { command: 'hooks', action, scope: 'project', root: process.cwd(),
-                      homeDir: HOME, dryRun: false };
+                      homeDir: HOME, host: 'claude-code', dryRun: false };
     for (let i = 2; i < args.length; i += 1) {
       const arg = args[i];
       if (arg === '--dry-run') { options.dryRun = true; continue; }
@@ -159,6 +159,7 @@ function parseArgs(args) {
         if (arg === '--home-dir') options.homeDir = value;
         if (arg === '--profile') options.profile = value;
         if (arg === '--only') options.only = value;
+        if (arg === '--host') options.host = value;
         if (arg === '--host') options.host = value;
         continue;
       }
@@ -825,7 +826,7 @@ function runHooksCommand(action, arguments_) {
   const passthrough = [];
   const settings_flags = [['--scope', arguments_.scope], ['--root', arguments_.root],
                           ['--home', arguments_.homeDir], ['--profile', arguments_.profile],
-                          ['--only', arguments_.only]];
+                          ['--only', arguments_.only], ['--host', arguments_.host]];
   for (const [flag, value] of action === 'print-config' ? [['--host', arguments_.host]] : settings_flags) {
     if (value) passthrough.push(flag, value);
   }

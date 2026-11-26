@@ -1,11 +1,15 @@
-# Opt-in hooks: guard and completion gate
+# Lifecycle hooks across Claude Code and Gemini CLI
 
-RCoder ships two optional Claude Code hook handlers in `skills/rcoder/scripts/rcoder_hooks.py` (repository wrapper: `scripts/rcoder-hooks.py`). They are **not enabled** by installing the skill or the plugin. The bundled `hooks/hooks.json` still contains only the read-only `SessionStart` hook (D-019); these handlers are a separate, deliberate choice (D-021).
+RCoder uses one standard-library handler at `skills/rcoder/scripts/rcoder_hooks.py` (the repository entry point `scripts/rcoder-hooks.py` forwards to it). Host event names and output schemas differ, so the same policy is rendered through host-specific hook entries.
 
 | Handler | Event | What it does |
 |---|---|---|
-| `guard` | `PreToolUse` | Denies reading, searching, or writing credential files; denies catastrophic commands; asks before force pushes and before piping a download into an interpreter |
-| `stop-gate` | `Stop` | Blocks a stop once when a turn edited code, claimed completion, ran no check, and gave no evidence labels |
+| `guard` | Claude `PreToolUse`; Gemini `BeforeTool` | Denies credential access, credential staging, and catastrophic commands; asks for review before force pushes and remote-script execution |
+| `post-tool` | Claude `PostToolUse`; Gemini `AfterTool` | Adds context when tool output contains a token-shaped secret |
+| `pre-compact` | Claude `PreCompact` | Adds a short handoff reminder to the compaction summary |
+| `stop-gate` | Claude `Stop` | Blocks once when a turn edited code, claimed completion, ran no check, and gave no evidence labels |
+
+The Claude plugin runs `SessionStart`, `PreToolUse`, `PostToolUse`, and `PreCompact` from `hooks/hooks.json`. The `Stop` gate remains available through the explicit CLI installer. Gemini CLI uses `.gemini/settings.json`; install its documented before/after tool events separately. Gemini has no documented `PreCompact` or `Stop` equivalent, so those handlers are unavailable there.
 
 ## Enable
 
@@ -16,9 +20,11 @@ python3 skills/rcoder/scripts/rcoder_hooks.py install                  # project
 python3 skills/rcoder/scripts/rcoder_hooks.py install --scope user     # user: ~/.claude/settings.json
 python3 skills/rcoder/scripts/rcoder_hooks.py install --only guard --profile strict
 python3 skills/rcoder/scripts/rcoder_hooks.py uninstall
+python3 skills/rcoder/scripts/rcoder_hooks.py print-config --host gemini-cli
+python3 skills/rcoder/scripts/rcoder_hooks.py install --host gemini-cli --scope project
 ```
 
-The installed `rcoder` command exposes the same actions, so you do not need to remember the script path:
+The installed `rcoder` command exposes the same Claude Code settings actions. For Gemini CLI, invoke the skill handler directly with `--host gemini-cli`.
 
 ```sh
 rcoder hooks print-config
@@ -40,7 +46,7 @@ Profile `standard` (default):
 
 Profile `strict` adds **ask** for `sudo`/`doas`, `rm -rf`, `git reset --hard`, `git clean -f`, `npm|pnpm|yarn publish`, `terraform|tofu apply|destroy`, `kubectl delete`, and destructive SQL (`DROP`, `TRUNCATE`).
 
-A denial returns `permissionDecision: "deny"` with a reason that tells the model what to do instead. It does not stop the session.
+A Claude denial returns `permissionDecision: "deny"`; Gemini receives its documented top-level `decision: "deny"` and `reason`. Gemini's published hook schema does not define an interactive permission prompt, so an action classified as `ask` is denied with a request for user review before retrying.
 
 ## Completion gate
 
@@ -56,11 +62,12 @@ The default gate is heuristic and stays opt-in. Set `RCODER_STRICT_STOP=1` in th
 - **Guardrail, not sandbox.** The command analysis is lexical. `python -c "open('.env')"`, constructed or obfuscated names, and variable expansion are not detected. Use host permission rules and OS-level isolation for real containment.
 - **Heuristic gate.** The completion gate depends on the transcript layout and on phrasing, so it can miss a claim or flag a harmless one.
 - **Deterministic and local.** The handlers use no network, subprocess, or dynamic code; `scripts/test-hooks.py` checks this with an AST scan.
-- **Host evidence.** Checked on 2026-11-24 against the Claude Code hooks reference (read directly): the `PreToolUse` output object `hookSpecificOutput` with `hookEventName` and `permissionDecision` plus `permissionDecisionReason` (the reference lists `allow`, `deny`, `ask`, and `defer`; RCoder emits only `deny` and `ask`); exact-name matcher lists written with `|`; hook `timeout` in seconds; exit code 0 with JSON for structured control; top-level `decision: "block"` with `reason` for `Stop` and `SubagentStop`; and `stop_hook_active` as a documented input field (read in the `SubagentStop` example). Rule behavior and payload shapes are VERIFIED locally by `scripts/test-hooks.py`.
-- **NOT VERIFIED.** The `Stop` section itself and its `stop_hook_active` text were not read (the page was truncated); the `MultiEdit` tool name did not appear in the part of the reference that was read (an unknown name in a matcher never matches, so it is harmless); the transcript line layout in current releases (the reference recommends `last_assistant_message` on `Stop` instead of reading the transcript, which this gate does not yet use); shell quoting of the interpreter path on Windows hosts (`install` writes `"<python>" "<script>" <handler>`); loading by a live Claude Code session; and any effect on model outcomes.
-- **Not covered.** The host also exposes a `PowerShell` tool. The guard inspects only `Bash` commands, and the `PowerShell` input shape was not checked, so PowerShell commands are not guarded. Other hosts are not supported.
+- **Host contract evidence.** Claude's current hook reference documents `PreToolUse` decisions, `PostToolUse` context, and plain-stdout `PreCompact` instructions. Gemini CLI's current hook reference documents `BeforeTool`/`AfterTool`, top-level deny output, `additionalContext`, and millisecond timeouts. The local regression test checks both output shapes. These are documentation and local payload checks, not proof that either host loaded the plugin or settings.
+- **NOT VERIFIED.** Native discovery and invocation in live Claude Code or Gemini CLI; shell quoting and interpreter fallback on every supported Windows host; token redaction in all host-specific response formats; Gemini's current undocumented `ask` support; and any effect on model outcomes.
+- **Not covered.** The handler does not guard Claude's `PowerShell` tool or arbitrary tools that use unknown argument shapes. Gemini `Stop` and compaction events have no documented equivalent in the checked hook reference.
 
 ## Sources
 
 - Claude Code hooks: https://code.claude.com/docs/en/hooks
 - Claude Code hook guide: https://code.claude.com/docs/en/hooks-guide/
+- Gemini CLI hook reference: https://github.com/google-gemini/gemini-cli/blob/main/docs/hooks/reference.md

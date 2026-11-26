@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Opt-in Claude Code hook handlers for RCoder (standard library only).
+"""Cross-client lifecycle hook handlers for Claude Code and Gemini CLI (stdlib only).
 
-Two handlers are provided. Neither is enabled by installing the skill or the plugin.
+The Claude Code plugin enables the guard, post-tool warning, and compaction reminder. Gemini CLI
+uses its own settings schema to enable the shared tool guard and post-tool warning.
 
-* ``guard`` is a ``PreToolUse`` handler. It refuses credential files, catastrophic commands, and
-  staging secrets, and asks before force pushes and piping a download into an interpreter.
-* ``stop-gate`` is a ``Stop`` handler. It asks once for evidence when a turn edited code and
-  claimed completion without running any check or labelling its evidence.
+* ``guard`` refuses credential files, catastrophic commands, and staging secrets, and asks before
+  force pushes and piping a download into an interpreter.
+* ``post-tool`` warns when tool output contains a token-shaped secret.
+* ``pre-compact`` reminds the model to preserve task state before Claude Code compaction.
+* ``stop-gate`` asks once for evidence when a turn edited code and claimed completion without a
+  check or evidence label.
 
 Both fail open: a malformed event, an unreadable transcript, or an internal error allows the
 action and prints nothing. The handlers never spawn processes, open sockets, or write files. Only
@@ -29,7 +32,7 @@ MAX_STDIN = 1_000_000
 TAIL_BYTES = 262_144
 HOOK_TIMEOUT = 10
 PROFILES = ("standard", "strict")
-HANDLERS = ("guard", "stop-gate")
+HANDLERS = ("guard", "post-tool", "pre-compact", "stop-gate")
 DISABLE_ENV = "RCODER_HOOKS_DISABLE"
 STRICT_STOP_ENV = "RCODER_STRICT_STOP"
 POLICY_PATH = Path(".rcoder") / "policy.json"
@@ -41,6 +44,10 @@ SECRET_NAME_RE = re.compile(
     r"^(terraform|secrets?)\.tfvars$|^\.htpasswd$|^\.dockercfg$)"
 )
 TEMPLATE_RE = re.compile(r"(?i)^\.env\.(example|sample|template|dist|defaults?)$")
+SECRET_REDACT_PATTERN = re.compile(
+    r"(?:gh[pousr]_[A-Za-z0-9_]{30,}|github_pat_[A-Za-z0-9_]{30,}|"
+    r"sk-[A-Za-z0-9_-]{24,}|AIza[0-9A-Za-z_-]{35})"
+)
 SECRET_DIRS = {".ssh", ".aws", ".gnupg", ".kube"}
 FILE_TOOLS = {"Read": "file_path", "Edit": "file_path", "Write": "file_path", "MultiEdit": "file_path",
               "NotebookEdit": "notebook_path", "Grep": "path"}
@@ -357,10 +364,15 @@ def decide_tool(event: dict, profile: str = "standard") -> tuple[str, str] | Non
         "read": "Read", "edit": "Edit", "write": "Write",
         "multiedit": "MultiEdit", "notebookedit": "NotebookEdit",
         "grep": "Grep", "bash": "Bash", "shell": "Bash",
+        "read_file": "Read", "write_file": "Write", "replace": "Edit",
+        "edit_file": "Edit", "run_shell_command": "Bash",
     }
     tool = aliases.get(tool.lower(), tool)
-    if "file_path" not in tool_input and isinstance(tool_input.get("filePath"), str):
-        tool_input = {**tool_input, "file_path": tool_input["filePath"]}
+    if "file_path" not in tool_input:
+        for key in ("filePath", "absolute_path", "target_file", "target"):
+            if isinstance(tool_input.get(key), str):
+                tool_input = {**tool_input, "file_path": tool_input[key]}
+                break
     if "notebook_path" not in tool_input and isinstance(tool_input.get("notebookPath"), str):
         tool_input = {**tool_input, "notebook_path": tool_input["notebookPath"]}
     if "path" not in tool_input and isinstance(tool_input.get("filePath"), str):
@@ -382,13 +394,39 @@ def decide_tool(event: dict, profile: str = "standard") -> tuple[str, str] | Non
     return None
 
 
-def render_tool_decision(decision: tuple[str, str]) -> str:
+def render_tool_decision(decision: tuple[str, str], event_name: str = "PreToolUse") -> str:
     kind, reason = decision
     guidance = ("Use a template such as .env.example or ask the user for the non-secret values."
                 if kind == "deny" and "credential" in reason else "")
     text = f"RCoder guard: {reason}." + (f" {guidance}" if guidance else "")
+    if event_name == "BeforeTool":
+        # Gemini's published hook contract documents allow/deny, not a permission prompt.
+        if kind == "ask":
+            text += " Ask the user to review and approve this action before retrying it."
+        return json.dumps({"decision": "deny", "reason": text})
     return json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": kind,
                                               "permissionDecisionReason": text}})
+
+
+def render_context(message: str, event_name: str) -> str:
+    output = {"additionalContext": f"[RCoder Hook] {message}"}
+    if event_name == "PostToolUse":
+        output["hookEventName"] = event_name
+    return json.dumps({"hookSpecificOutput": output})
+
+
+def post_tool_context(event: dict) -> str | None:
+    raw_out = json.dumps(event.get("tool_response") or event.get("output") or "")
+    if SECRET_REDACT_PATTERN.search(raw_out):
+        return ("Potential secret token detected in tool output. Do NOT echo raw credentials into responses "
+                "or capsules.")
+    return None
+
+
+def pre_compact_instructions() -> str:
+    return ("Context compaction imminent: preserve the current objective, modified files, and verification "
+            "state in a concise handoff. Use the RCoder context capsule template when available; redact "
+            "secrets. Do not claim checks that have not run.")
 
 
 # ------------------------------------------------------------------------- stop gate
@@ -580,12 +618,30 @@ def _command_for(handler: str, profile: str) -> str:
     return base + (f" --profile {profile}" if handler == "guard" and profile != "standard" else "")
 
 
-def build_entries(only: tuple[str, ...], profile: str) -> dict[str, dict]:
+def build_entries(only: tuple[str, ...], profile: str, host: str = "claude-code") -> dict[str, dict]:
     entries: dict[str, dict] = {}
+    if host not in {"claude-code", "gemini-cli"}:
+        raise ValueError(f"unsupported hook host: {host}")
+    if host == "gemini-cli" and set(only) - {"guard", "post-tool"}:
+        raise ValueError("Gemini CLI supports only guard and post-tool hooks; it has no documented Stop or PreCompact event")
     if "guard" in only:
-        entries["PreToolUse"] = {
-            "matcher": "Read|Edit|Write|MultiEdit|NotebookEdit|Grep|Bash",
-            "hooks": [{"type": "command", "command": _command_for("guard", profile), "timeout": HOOK_TIMEOUT}]}
+        event = "PreToolUse" if host == "claude-code" else "BeforeTool"
+        matcher = ("Read|Edit|Write|MultiEdit|NotebookEdit|Grep|Bash" if host == "claude-code" else
+                   "read_file|write_file|replace|edit_file|run_shell_command")
+        timeout = HOOK_TIMEOUT if host == "claude-code" else HOOK_TIMEOUT * 1000
+        entries[event] = {"matcher": matcher,
+                          "hooks": [{"type": "command", "command": _command_for("guard", profile),
+                                     "timeout": timeout}]}
+    if "post-tool" in only:
+        event = "PostToolUse" if host == "claude-code" else "AfterTool"
+        timeout = HOOK_TIMEOUT if host == "claude-code" else HOOK_TIMEOUT * 1000
+        entries[event] = {"matcher": ".*",
+                          "hooks": [{"type": "command", "command": _command_for("post-tool", profile),
+                                     "timeout": timeout}]}
+    if "pre-compact" in only:
+        entries["PreCompact"] = {"matcher": "manual|auto",
+                                 "hooks": [{"type": "command", "command": _command_for("pre-compact", profile),
+                                            "timeout": HOOK_TIMEOUT}]}
     if "stop-gate" in only:
         entries["Stop"] = {"hooks": [{"type": "command", "command": _command_for("stop-gate", profile),
                                       "timeout": HOOK_TIMEOUT}]}
@@ -601,8 +657,11 @@ def _has_handler(event_entries: list, handler: str) -> bool:
     return False
 
 
-def settings_path(scope: str, root: Path, home: Path) -> Path:
-    return (root if scope == "project" else home) / ".claude" / "settings.json"
+def settings_path(scope: str, root: Path, home: Path, host: str = "claude-code") -> Path:
+    if host not in {"claude-code", "gemini-cli"}:
+        raise ValueError(f"unsupported hook host: {host}")
+    settings_dir = ".claude" if host == "claude-code" else ".gemini"
+    return (root if scope == "project" else home) / settings_dir / "settings.json"
 
 
 def _load_settings(path: Path) -> dict:
@@ -638,12 +697,21 @@ def _write_settings(path: Path, data: dict) -> str | None:
     return backup
 
 
-def install(path: Path, only: tuple[str, ...], profile: str, dry_run: bool) -> tuple[str, list[str]]:
+def _handler_for_event(event: str) -> str:
+    return {
+        "PreToolUse": "guard", "BeforeTool": "guard",
+        "PostToolUse": "post-tool", "AfterTool": "post-tool",
+        "PreCompact": "pre-compact", "Stop": "stop-gate",
+    }.get(event, "")
+
+
+def install(path: Path, only: tuple[str, ...], profile: str, dry_run: bool,
+            host: str = "claude-code") -> tuple[str, list[str]]:
     data = _load_settings(path)
     hooks = data.setdefault("hooks", {})
     added: list[str] = []
-    for event, entry in build_entries(only, profile).items():
-        handler = "guard" if event == "PreToolUse" else "stop-gate"
+    for event, entry in build_entries(only, profile, host).items():
+        handler = _handler_for_event(event)
         bucket = hooks.setdefault(event, [])
         if not isinstance(bucket, list):
             raise ValueError(f"hooks.{event} in {path} is not a list; left untouched")
@@ -714,19 +782,23 @@ def _read_event() -> dict | None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="rcoder_hooks.py", description=__doc__.split("\n\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
-    guard = sub.add_parser("guard", help="PreToolUse handler; reads one event as JSON on stdin")
+    guard = sub.add_parser("guard", help="Claude PreToolUse / Gemini BeforeTool handler")
     guard.add_argument("--profile", choices=PROFILES, default="standard")
+    sub.add_parser("post-tool", help="Claude PostToolUse / Gemini AfterTool secret warning")
+    sub.add_parser("pre-compact", help="Claude PreCompact handoff reminder")
     sub.add_parser("stop-gate", help="Stop handler; reads one event as JSON on stdin")
-    for name, text in (("print-config", "print a Claude Code settings snippet"),
-                       ("install", "merge the hooks into a Claude Code settings file"),
-                       ("uninstall", "remove RCoder hooks from a Claude Code settings file")):
+    for name, text in (("print-config", "print host-specific lifecycle hook settings"),
+                       ("install", "merge hooks into a host settings file"),
+                       ("uninstall", "remove RCoder hooks from a host settings file")):
         cmd = sub.add_parser(name, help=text)
         if name != "uninstall":
             cmd.add_argument("--profile", choices=PROFILES, default="standard")
-            cmd.add_argument("--only", type=_only, default=HANDLERS, help="comma list: guard,stop-gate")
+            cmd.add_argument("--only", type=_only, default=None,
+                             help="comma list: guard,post-tool,pre-compact,stop-gate")
         if name == "print-config":
-            cmd.add_argument("--host", default="claude-code")
+            cmd.add_argument("--host", choices=("claude-code", "gemini-cli"), default="claude-code")
         else:
+            cmd.add_argument("--host", choices=("claude-code", "gemini-cli"), default="claude-code")
             cmd.add_argument("--scope", choices=("project", "user"), default="project")
             cmd.add_argument("--root", default=".", help="project root for project scope")
             cmd.add_argument("--home", default=None, help="override the home directory for user scope")
@@ -736,7 +808,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    if args.command in {"guard", "stop-gate"}:
+    if args.command in {"guard", "post-tool", "pre-compact", "stop-gate"}:
         if os.environ.get(DISABLE_ENV) == "1":
             return 0
         try:
@@ -746,7 +818,15 @@ def main(argv: list[str] | None = None) -> int:
             if args.command == "guard":
                 decision = decide_tool(event, args.profile)
                 if decision:
-                    print(render_tool_decision(decision))
+                    event_name = event.get("hook_event_name")
+                    print(render_tool_decision(decision, event_name if isinstance(event_name, str) else "PreToolUse"))
+            elif args.command == "post-tool":
+                message = post_tool_context(event)
+                if message:
+                    event_name = event.get("hook_event_name")
+                    print(render_context(message, event_name if isinstance(event_name, str) else "PostToolUse"))
+            elif args.command == "pre-compact":
+                print(pre_compact_instructions())
             else:
                 reason = decide_stop(event)
                 if reason:
@@ -755,17 +835,22 @@ def main(argv: list[str] | None = None) -> int:
             print(f"rcoder_hooks: ignored internal error: {type(exc).__name__}", file=sys.stderr)
         return 0
     if args.command == "print-config":
-        if args.host != "claude-code":
-            print(f"rcoder_hooks: host '{args.host}' is not supported; only claude-code has documented "
-                  "PreToolUse and Stop hooks. Other hosts are NOT VERIFIED.", file=sys.stderr)
+        selected = args.only or (("guard", "post-tool") if args.host == "gemini-cli" else HANDLERS)
+        try:
+            entries = build_entries(selected, args.profile, args.host)
+        except ValueError as exc:
+            print(f"rcoder_hooks: {exc}", file=sys.stderr)
             return 2
-        print(json.dumps({"hooks": {event: [entry] for event, entry in
-                                    build_entries(args.only, args.profile).items()}}, indent=2))
+        print(json.dumps({"hooks": {event: [entry] for event, entry in entries.items()}}, indent=2))
         return 0
-    path = settings_path(args.scope, Path(args.root).resolve(), Path(args.home) if args.home else Path.home())
+    path = settings_path(args.scope, Path(args.root).resolve(),
+                         Path(args.home) if args.home else Path.home(), args.host)
     try:
-        message, _ = (install(path, args.only, args.profile, args.dry_run) if args.command == "install"
-                      else uninstall(path, args.dry_run))
+        if args.command == "install":
+            selected = args.only or (("guard", "post-tool") if args.host == "gemini-cli" else HANDLERS)
+            message, _ = install(path, selected, args.profile, args.dry_run, args.host)
+        else:
+            message, _ = uninstall(path, args.dry_run)
     except (ValueError, OSError) as exc:
         print(f"rcoder_hooks: {exc}", file=sys.stderr)
         return 2
