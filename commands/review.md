@@ -1,6 +1,7 @@
 ---
 description: Adversarial review of the current change with evidence-labelled findings
 argument-hint: [branch, diff range, or files]
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 ---
 Review the following change adversarially: $ARGUMENTS (default: the uncommitted diff plus untracked files).
 
@@ -8,4 +9,3 @@ Review the following change adversarially: $ARGUMENTS (default: the uncommitted 
 2. Inspect the actual diff and untracked or generated files. Check behavior preservation, edge cases, failure paths, security, accessibility, compatibility, and test adequacy.
 3. Report findings by severity, each with file and line evidence and a label of VERIFIED, INFERRED, or NOT VERIFIED.
 4. List checks that could not be run and why. Do not edit files unless the user asks.
-

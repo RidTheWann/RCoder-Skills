@@ -1,3 +1,4 @@
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 description = "Produce a scoped implementation plan with acceptance criteria before changing code"
 prompt = """
 Plan this change without implementing it: $ARGUMENTS

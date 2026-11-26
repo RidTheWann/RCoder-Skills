@@ -1,3 +1,4 @@
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 description = "Budget context, prune verbose output, detect drift, or recover evidence using RSaver"
 prompt = """
 Manage and optimize context using RSaver.
