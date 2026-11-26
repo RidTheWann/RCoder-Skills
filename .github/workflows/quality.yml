@@ -76,6 +76,10 @@ jobs:
         run: python scripts/test-installer-menus.py
       - name: Opt-in hook handlers (guard, completion gate, settings merge)
         run: python scripts/test-hooks.py
+      - name: OpenCode lifecycle middleware regression
+        run: node scripts/test-opencode-plugin.mjs
+      - name: Release archive hygiene regression
+        run: python scripts/test-package-hygiene.py
       - name: MCP server syntax and host configuration snippets
         shell: bash
         run: |
