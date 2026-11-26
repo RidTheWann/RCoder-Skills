@@ -107,7 +107,7 @@ export const RCoderPlugin = async ({ directory }) => ({
     if (!Array.isArray(output.system) || !existsSync(skillFile)) return;
     const textOf = (item) => typeof item === 'string' ? item : (item && item.text) || '';
     if (!output.system.some((item) => textOf(item).startsWith('RCoder:'))) {
-      output.system.push('RCoder: The project includes the RCoder Agent Skill at .opencode/skills/rcoder/SKILL.md. Read its routing instructions and only the relevant specialist reference. Use RCoder MCP tools when available; preserve project policy and verify changes with evidence.');
+      output.system.push(`RCoder: The selected Agent Skill is at ${skillFile}. Read that exact file's routing instructions and only the relevant specialist reference. Use RCoder MCP tools when available; preserve project policy and verify changes with evidence.`);
     }
     if (output.system.some((item) => textOf(item).startsWith('RScan:'))) return;
     try {
