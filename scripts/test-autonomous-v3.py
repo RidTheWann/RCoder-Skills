@@ -16,10 +16,12 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import rcoder_hooks  # noqa: E402
 import rcoder_mcp  # noqa: E402
+import rcoder_mcp_modern as modern  # noqa: E402
 import rsaver_guard  # noqa: E402
 import rsaver_sandbox  # noqa: E402
-from rcoder_memory import EpisodicLessonStore, _sanitize  # noqa: E402
-from rcoder_swarm import SwarmCoordinator  # noqa: E402
+import sync_plugins  # noqa: E402
+from rcoder_memory import EpisodicLessonStore, RCoderMemoryStore, _sanitize  # noqa: E402
+from rcoder_swarm import RCoderSwarm, SwarmCoordinator, SwarmTask  # noqa: E402
 from rscan_index import IncrementalRepoIndex  # noqa: E402
 from rsaver_sandbox import transactional_apply_and_verify  # noqa: E402
 from verify_parity import audit_cross_platform_parity  # noqa: E402
@@ -244,6 +246,100 @@ class TestCodexReviewFixes(unittest.TestCase):
             index.sync_files(["main.go", "lib.js"])
             self.assertEqual("main.go", index.find_symbol("Serve")[0]["path"])
             self.assertEqual("lib.js", index.find_symbol("fetchData")[0]["path"])
+
+
+class TestV3Architecture(unittest.TestCase):
+    def test_fts5_memory_records_recalls_and_redacts(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            store = RCoderMemoryStore(Path(temporary))
+            episode = store.record(
+                "fix",
+                "sqlite locked on Windows",
+                "wrap connect in closing, token sk-proj-secret1234567890abcd",
+                [r"skills\rcoder\scripts\rscan_index.py"],
+                ["sqlite3.connect"],
+            )
+            hits = store.recall_for_context("sqlite locked windows", ["rscan_index.py"])
+            self.assertEqual(1, len(hits))
+            self.assertNotIn("sk-proj-", hits[0]["summary"])
+            self.assertEqual(["skills/rcoder/scripts/rscan_index.py"], hits[0]["files"])
+            self.assertEqual(episode, store.recent(1)[0]["id"])
+            with self.assertRaises(ValueError):
+                store.record("unknown", "x", "y")
+
+    def test_dag_swarm_verifier_gate_and_blackboard(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            swarm = RCoderSwarm(Path(temporary))
+            tasks = [
+                SwarmTask("a", "rcoder-explorer", "explore"),
+                SwarmTask("b", "rcoder-reviewer", "review", depends_on=["a"]),
+                SwarmTask("c", "rcoder-planner", "plan", depends_on=["a"]),
+            ]
+
+            def runner(task, exec_root, context):
+                return {"ok": True, "saw_a": "task:a" in context["blackboard"]}
+
+            result = swarm.execute(tasks, runner)
+            self.assertEqual(3, result["waves"])
+            self.assertEqual(["a", "b", "c", "gate-verify"],
+                             [item["task_id"] for item in result["tasks"]])
+            self.assertTrue(all(item["status"] == "completed" for item in result["tasks"]))
+            self.assertIn("task:a", result["blackboard"])
+
+    def test_invalid_swarm_graphs_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            swarm = RCoderSwarm(Path(temporary))
+            with self.assertRaises(ValueError):
+                swarm._build_waves([SwarmTask("x", "rcoder-explorer", "x", depends_on=["missing"])])
+            with self.assertRaises(ValueError):
+                swarm._build_waves([
+                    SwarmTask("x", "rcoder-explorer", "x", depends_on=["y"]),
+                    SwarmTask("y", "rcoder-planner", "y", depends_on=["x"]),
+                ])
+
+    def test_plugin_compiler_frontmatter_and_toml_parity(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            md = Path(temporary) / "demo.md"
+            md.write_text('---\ndescription: "Demo workflow"\n---\nBody $ARGUMENTS\n', encoding="utf-8")
+            description, body = sync_plugins.parse_command_md(md)
+            self.assertEqual("Demo workflow", description)
+            self.assertEqual("Body $ARGUMENTS", body)
+        self.assertEqual('a\\"b', sync_plugins.toml_escape('a"b'))
+        commands = sorted(path.stem for path in (ROOT / "commands").glob("*.md"))
+        tomls = sorted(path.stem for path in sync_plugins.GEMINI_CMD_DIR.glob("*.toml"))
+        self.assertEqual(commands, tomls)
+
+    def test_modern_live_resources_and_command_prompts(self) -> None:
+        rcoder_mcp.State.root = ROOT
+        resources = modern.modern_result("resources/list", {})["resources"]
+        uris = {item["uri"] for item in resources}
+        self.assertTrue({
+            "rcoder://repo/map", "rcoder://memory/recall", "rcoder://capsule/latest"
+        } <= uris)
+        commands = modern.command_prompts()
+        self.assertEqual(13, len(commands))
+        prompts = modern.modern_result("prompts/list", {})["prompts"]
+        self.assertTrue(any(item["name"].startswith(modern.PROMPT_PREFIX) for item in prompts))
+        built = modern.modern_result(
+            "prompts/get", {"name": "rcoder_cmd_scan", "arguments": {"args": "auth module"}}
+        )
+        self.assertIn("auth module", built["messages"][0]["content"]["text"])
+
+    def test_destructive_gate_is_capability_opt_in(self) -> None:
+        rcoder_mcp.State.root = ROOT
+        args = {"edits": [{"path": "src/auth/login.py", "old_text": "a", "new_text": "b"}]}
+        with mock.patch.object(rcoder_mcp, "handle", return_value={"content": [], "isError": False}) as handle:
+            plain = modern.modern_result("tools/call", {"name": "rcoder_apply_verify", "arguments": args,
+                "_meta": {modern.META_VERSION: modern.MODERN_PROTOCOL}})
+            handle.assert_called_once()
+        self.assertFalse(plain.get("isError"))
+        meta = {modern.META_VERSION: modern.MODERN_PROTOCOL, "capabilities": {"elicitation": {}}}
+        blocked = modern.modern_result("tools/call", {"name": "rcoder_apply_verify", "arguments": args,
+            "_meta": meta})
+        self.assertTrue(blocked["isError"])
+        self.assertEqual("CONFIRMATION_REQUIRED", blocked["structuredContent"]["error"]["code"])
+        self.assertEqual(modern.ELICITATION_METHOD,
+                         blocked["structuredContent"]["elicitation"]["method"])
 
 
 def rcoder_swarm_source() -> str:

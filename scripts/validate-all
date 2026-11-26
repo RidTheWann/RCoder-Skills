@@ -318,7 +318,6 @@ def main():
         "skills/rcoder/scripts/rsaver_sandbox.py", "skills/rcoder/scripts/rcoder_memory.py",
         "skills/rcoder/scripts/rcoder_swarm.py", "scripts/verify_parity.py",
         "scripts/verify-parity.py", "scripts/test-autonomous-v3.py", "scripts/sync_plugins.py",
-        "scripts/test-v3-upgrades.py",
         "scripts/score-eval.py", "scripts/test-score-eval.py", "scripts/score-scenarios.py",
         "scripts/test-score-scenarios.py", "scripts/verify-objective.py", "scripts/test-objective.py",
         "scripts/test-tool-probe.py", "skills/rcoder/scripts/tool_probe.py",
