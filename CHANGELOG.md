@@ -7,6 +7,18 @@ RCoder follows Semantic Versioning.
 ### Fixed
 - Addressed all 13 P2 findings from the Codex review of PR #28: wrapper options with operands and broad `git add` pathspecs are now denied by the guard; `doctor --fix` uses a valid array join and stores a package-root launcher for user-scope host configs; `rcoder_impact_test` selects a command for the detected Go/JS/Rust/Python stack; lesson sanitization redacts AWS keys and credential assignments; handoff capsules are described as checksums rather than signatures and lease claims are serialized with a lock; brace skeletons retain imports and module-scope lines; drift paths preserve leading dots; the edit sandbox rejects absolute paths outside the root and rolls back on `KeyboardInterrupt`; and the symbol index extracts JS/TS/Go/Rust symbols.
 
+## [1.16.0] - 2026-11-26
+
+### Added
+- Read-only MCP tools `rcoder_parity_audit` (multi-host plugin manifest parity, dual `.md`/`.toml` slash-command parity, LF line endings, and case-collision safety) and `rcoder_runtime_profile` (OS, architecture, Python/Node availability, Android Termux + `glibc-runner` (`grun`) environment, and `.rcoder/` episodic/lease state).
+- Modern MCP (`2026-07-28`) live resources `rcoder://parity/matrix` and `rcoder://runtime/profile` for live plugin parity and runtime telemetry.
+- Three read-only specialist subagents (`rcoder-architect`, `rcoder-mcp-auditor`, `rcoder-router`) and three dual-format slash commands (`mcp-inspect`, `context-pack`, `parity-sync`).
+- Cross-platform runtime detector `detect_runtime_environment()` and skill-only command prompt sources.
+- Regression suite `scripts/test-v116-upgrades.py`.
+
+### Changed
+- Product version bumped from 1.15.0 to 1.16.0 across the skill, package, plugin manifests, contract, and packager.
+
 ## [1.15.0] - 2026-11-26
 
 ### Added
