@@ -41,10 +41,10 @@ JS_FUNCTION_RE = re.compile(
     r"\b(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]{1,})\s*\("
 )
 JS_CLASS_RE = re.compile(r"\bclass\s+([A-Za-z_$][\w$]{1,})")
-GO_FUNC_RE = re.compile(r"^func\s+(?:\([^)]*\)\s*)?([A-Za-z_]\w*)\s*\(", re.MULTILINE)
-GO_STRUCT_RE = re.compile(r"^type\s+([A-Za-z_]\w*)\s+struct\b", re.MULTILINE)
-RUST_FN_RE = re.compile(r"^(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?fn\s+([A-Za-z_]\w*)\s*\(", re.MULTILINE)
-RUST_STRUCT_RE = re.compile(r"^(?:pub(?:\([^)]*\))?\s+)?struct\s+([A-Za-z_]\w*)", re.MULTILINE)
+GO_FUNC_RE = re.compile(r"^[ \t]*func\s+(?:\([^)]*\)\s*)?([A-Za-z_]\w*)\s*\(", re.MULTILINE)
+GO_STRUCT_RE = re.compile(r"^[ \t]*type\s+([A-Za-z_]\w*)\s+struct\b", re.MULTILINE)
+RUST_FN_RE = re.compile(r"^[ \t]*(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?fn\s+([A-Za-z_]\w*)\s*\(", re.MULTILINE)
+RUST_STRUCT_RE = re.compile(r"^[ \t]*(?:pub(?:\([^)]*\))?\s+)?struct\s+([A-Za-z_]\w*)", re.MULTILINE)
 
 
 def _extract_heuristic_symbols(source: str, suffix: str) -> list[dict[str, Any]]:
