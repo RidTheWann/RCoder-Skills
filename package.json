@@ -1,6 +1,6 @@
 {
   "name": "rcoder",
-  "version": "1.15.0",
+  "version": "1.16.0",
   "description": "A portable, model-agnostic software engineering, cybersecurity, and reverse-engineering skill manager.",
   "license": "MIT",
   "repository": {
@@ -15,6 +15,7 @@
     "skills/rcoder/**",
     "scripts/rcoder.mjs",
     "scripts/package",
+    "evals/**",
     "targets.json",
     "launcher/RCoder.ps1",
     "launcher/McpSetup.ps1",

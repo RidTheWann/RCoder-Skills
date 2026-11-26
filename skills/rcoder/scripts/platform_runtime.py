@@ -96,3 +96,72 @@ def normalize_portable_mcp_config(config: dict[str, Any]) -> dict[str, Any]:
         new_servers[name] = item
     updated["mcpServers"] = new_servers
     return updated
+
+
+def detect_runtime_environment(workspace_root: Path | None = None) -> dict[str, Any]:
+    """Return normalized cross-platform runtime telemetry (Linux, Windows, macOS, Termux)."""
+    import platform
+
+    root = (workspace_root or Path.cwd()).resolve(strict=False)
+    is_termux = bool(os.environ.get("TERMUX_VERSION")) or "com.termux" in str(
+        os.environ.get("PREFIX", "")
+    )
+    system_name = platform.system().lower()
+    runtime_id = "android-termux" if is_termux else system_name
+    grun_bin = shutil.which("grun")
+    node_bin = shutil.which("node")
+    py_cmd = resolve_python_command()
+
+    rcoder_dir = root / ".rcoder"
+    lessons_count = 0
+    lessons_file = rcoder_dir / "lessons.jsonl"
+    if lessons_file.is_file():
+        try:
+            lessons_count = sum(
+                1 for line in lessons_file.read_text(encoding="utf-8", errors="replace").splitlines()
+                if line.strip()
+            )
+        except OSError:
+            lessons_count = 0
+
+    active_leases = 0
+    leases_file = rcoder_dir / "leases.json"
+    if leases_file.is_file():
+        try:
+            import json as _json
+            import time as _time
+            raw_leases = _json.loads(leases_file.read_text(encoding="utf-8"))
+            if isinstance(raw_leases, dict):
+                now = _time.time()
+                active_leases = sum(
+                    1 for meta in raw_leases.values()
+                    if isinstance(meta, dict) and float(meta.get("expires_at", 0)) > now
+                )
+        except Exception:  # noqa: BLE001
+            active_leases = 0
+
+    stack_markers = [
+        marker for marker in (
+            "package.json", "pyproject.toml", "requirements.txt", "Cargo.toml", "go.mod",
+            "plugin.json", "gemini-extension.json", ".claude-plugin/plugin.json",
+            ".codex-plugin/plugin.json", ".opencode/plugins/rcoder.js",
+        )
+        if (root / marker).exists()
+    ]
+
+    return {
+        "runtime": runtime_id,
+        "os": system_name,
+        "arch": platform.machine(),
+        "python_version": platform.python_version(),
+        "python_resolved": bool(py_cmd),
+        "node_available": bool(node_bin),
+        "is_termux": is_termux,
+        "glibc_runner_available": bool(grun_bin),
+        "stack_markers": stack_markers,
+        "rcoder_state": {
+            "initialized": rcoder_dir.is_dir(),
+            "lessons_count": lessons_count,
+            "active_leases": active_leases,
+        },
+    }

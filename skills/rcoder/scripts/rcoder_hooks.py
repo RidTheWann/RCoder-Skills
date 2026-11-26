@@ -57,7 +57,7 @@ WRAPPERS = {"sudo", "env", "command", "nohup", "time", "nice", "exec", "builtin"
 WRAPPER_VALUE_FLAGS = {
     "-u", "--user", "-g", "--group", "-h", "--host", "-p", "--port",
     "-C", "--chdir", "-D", "--chroot", "-a", "--apparmor-profile",
-    "-t", "--target-type", "-T", "--command-timeout", "-P", "--preserve-env",
+    "-t", "--target-type", "-T", "--command-timeout",
 }
 CATASTROPHIC_TARGETS = {"/", "/*", "~", "~/", "~/*", "$home", "$home/", "${home}", "${home}/", "/etc", "/usr",
                         "/bin", "/sbin", "/boot", "/lib", "/var", "/home", "/root", "/opt"}
@@ -296,8 +296,19 @@ def analyze_command(command: str, profile: str = "standard", _depth: int = 0) ->
                 if sub == "add":
                     broad_flag = any(token in {"-A", "--all", "-a", "--"} for token in rest)
                     broad_operand = any(operand in {".", "./", "*", "**"} for operand in operands)
-                    explicit = any(operand not in {".", "./", "*", "**"} for operand in operands)
-                    if (broad_flag or broad_operand) and not explicit:
+                    def is_exclusion_pathspec(value: str) -> bool:
+                        if value.startswith(":!") or value.startswith(":^"):
+                            return True
+                        if value.startswith(":(exclude)") or value.startswith(":(exclude,):"):
+                            return True
+                        if value.startswith(":(exclude,top)") or value.startswith(":(exclude,icase)"):
+                            return True
+                        return False
+
+                    path_operands = [item for item in operands if not is_exclusion_pathspec(item)]
+                    explicit = any(operand not in {".", "./", "*", "**"} for operand in path_operands)
+                    exclusion_only = bool(operands) and not path_operands
+                    if exclusion_only or ((broad_flag or broad_operand) and not explicit):
                         return "deny", "git add with a broad pathspec can stage credential files; stage explicit paths"
                 for operand in operands:
                     why = secret_reason(operand.rsplit(":", 1)[-1] if sub != "add" else operand)
@@ -330,11 +341,31 @@ def analyze_command(command: str, profile: str = "standard", _depth: int = 0) ->
 
 
 def decide_tool(event: dict, profile: str = "standard") -> tuple[str, str] | None:
-    """Decide for one PreToolUse event. Unknown shapes are allowed."""
-    tool = event.get("tool_name")
+    """Decide for supported host tool events. Unknown shapes are allowed."""
+    tool = event.get("tool_name") or event.get("tool") or event.get("toolName")
     tool_input = event.get("tool_input")
+    if not isinstance(tool_input, dict):
+        output = event.get("output")
+        tool_input = output.get("args") if isinstance(output, dict) else None
     if not isinstance(tool, str) or not isinstance(tool_input, dict):
         return None
+
+    # OpenCode uses lower-case tool names and camelCase paths (for example
+    # input.tool="read", output.args.filePath=".env"). Normalize them into
+    # the same contract used by Claude Code hooks before applying the policy.
+    aliases = {
+        "read": "Read", "edit": "Edit", "write": "Write",
+        "multiedit": "MultiEdit", "notebookedit": "NotebookEdit",
+        "grep": "Grep", "bash": "Bash", "shell": "Bash",
+    }
+    tool = aliases.get(tool.lower(), tool)
+    if "file_path" not in tool_input and isinstance(tool_input.get("filePath"), str):
+        tool_input = {**tool_input, "file_path": tool_input["filePath"]}
+    if "notebook_path" not in tool_input and isinstance(tool_input.get("notebookPath"), str):
+        tool_input = {**tool_input, "notebook_path": tool_input["notebookPath"]}
+    if "path" not in tool_input and isinstance(tool_input.get("filePath"), str):
+        tool_input = {**tool_input, "path": tool_input["filePath"]}
+
     if tool in FILE_TOOLS:
         path = tool_input.get(FILE_TOOLS[tool])
         if isinstance(path, str) and path:

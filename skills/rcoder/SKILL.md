@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Optional bundled helpers need a Python 3 interpreter. The optional MCP server (scripts/rcoder_mcp.py) needs a host that can launch stdio MCP servers."
 metadata:
   author: RidTheWann
-  version: "1.15.0"
+  version: "1.16.0"
 ---
 
 # RCoder

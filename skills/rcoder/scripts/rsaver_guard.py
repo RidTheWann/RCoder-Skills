@@ -42,6 +42,13 @@ SECRET_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
             r"""['"]([^'"\n]{12,})['"]"""
         ),
     ),
+    (
+        "BEARER_ASSIGNMENT_UNQUOTED",
+        re.compile(
+            r"(?i)\b(?:api[_-]?key|secret|token|password|passwd|pwd)\b\s*[:=]\s*"
+            r"([^\s,'\";#}]{12,})"
+        ),
+    ),
 ]
 
 HIGH_ENTROPY_CANDIDATE_RE = re.compile(r"""['"]([A-Za-z0-9+/=_-]{24,})['"]""")

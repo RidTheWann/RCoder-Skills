@@ -35,6 +35,7 @@ try {
   assert(existsSync(featureManifest), install);
   assert.match(readFileSync(plugin, 'utf8'), /experimental\.chat\.system\.transform/);
   assert.match(readFileSync(plugin, 'utf8'), /RCoder:/);
+  assert.match(readFileSync(plugin, 'utf8'), /selected Agent Skill is at \${skillFile}/);
 
   const verify = run(['integration', 'verify', 'opencode', '--scope', 'project',
     '--root', project, '--home-dir', home]);

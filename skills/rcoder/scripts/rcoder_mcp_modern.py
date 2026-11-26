@@ -34,7 +34,8 @@ ERR_METHOD_NOT_FOUND = -32601
 ERR_INTERNAL = -32603
 LEGACY_NOT_FOUND = -32002
 CACHE_SCOPE = "private"
-COMMANDS_DIR = core.SKILL_DIR.parents[1] / "commands"
+COMMANDS_DIR = core.SKILL_DIR / "commands"
+PACKAGE_COMMANDS_DIR = core.SKILL_DIR.parents[1] / "commands"
 PROMPT_PREFIX = "rcoder_cmd_"
 ELICITATION_METHOD = "elicitation/create"
 DESTRUCTIVE_PATH_RE = re.compile(
@@ -53,6 +54,14 @@ LIVE_RESOURCES = {
     "rcoder://capsule/latest": (
         "capsule-latest", "Latest context capsule",
         "Bounded path and Git snapshot produced by context_snapshot.py.", "text/markdown",
+    ),
+    "rcoder://parity/matrix": (
+        "parity-matrix", "Plugin parity matrix",
+        "Live multi-host manifest, slash-command, line-ending, and case-collision audit.", "application/json",
+    ),
+    "rcoder://runtime/profile": (
+        "runtime-profile", "Runtime environment profile",
+        "Live OS, architecture, language-runtime, Termux/grun, and RCoder state telemetry.", "application/json",
     ),
 }
 TTL_MS = {
@@ -253,7 +262,7 @@ def destructive_gate(params: dict) -> dict | None:
     if not client_supports_elicitation(params) or params.get("name") != "rcoder_apply_verify":
         return None
     arguments = params.get("arguments")
-    if not isinstance(arguments, dict) or bool(arguments.get("confirm_destructive")):
+    if not isinstance(arguments, dict):
         return None
     edits = arguments.get("edits")
     if not isinstance(edits, list):
@@ -277,8 +286,9 @@ def destructive_gate(params: dict) -> dict | None:
                 "code": "CONFIRMATION_REQUIRED",
                 "message": message,
                 "recovery_hint": (
-                    "Review the diff, then repeat tools/call with confirm_destructive=true "
-                    "after elicitation/create returns an acceptance."
+                    "A caller-supplied confirm_destructive flag is not proof of user consent. "
+                    "This server cannot bind a client elicitation response to this exact edit set; "
+                    "apply sensitive edits through a host-mediated approval flow or split out the safe changes."
                 ),
             },
             "elicitation": {
@@ -310,6 +320,12 @@ def read_live_resource(uri: str) -> dict:
     meta = LIVE_RESOURCES.get(uri)
     if meta is None:
         raise core.RpcError(ERR_INVALID_PARAMS, f"unknown live resource: {uri}")
+    if uri == "rcoder://parity/matrix":
+        text = json.dumps(core.tool_parity_audit({"root": "."}), ensure_ascii=False, indent=2)
+        return {"uri": uri, "mimeType": meta[3], "text": core.clip(text)}
+    if uri == "rcoder://runtime/profile":
+        text = json.dumps(core.tool_runtime_profile({"root": "."}), ensure_ascii=False, indent=2)
+        return {"uri": uri, "mimeType": meta[3], "text": core.clip(text)}
     if uri in ("rcoder://repo/map", "rcoder://capsule/latest"):
         script, arguments = (
             ("repo_map.py", ["--root", str(core.State.root), "--budget", "2048", "--format", "default"])
@@ -337,11 +353,12 @@ def read_live_resource(uri: str) -> dict:
 
 
 def command_prompts() -> dict:
-    if not COMMANDS_DIR.is_dir():
+    source_dir = COMMANDS_DIR if COMMANDS_DIR.is_dir() else PACKAGE_COMMANDS_DIR
+    if not source_dir.is_dir():
         return {}
     parser = _command_parser()
     prompts = {}
-    for md_file in sorted(COMMANDS_DIR.glob("*.md")):
+    for md_file in sorted(source_dir.glob("*.md")):
         name = f"{PROMPT_PREFIX}{md_file.stem}"
         description, _ = parser(md_file)
         prompts[name] = {
@@ -360,7 +377,8 @@ def build_command_prompt(name: str, arguments: dict) -> dict | None:
     prompts = command_prompts()
     if name not in prompts:
         return None
-    md_file = COMMANDS_DIR / f"{name[len(PROMPT_PREFIX):]}.md"
+    source_dir = COMMANDS_DIR if COMMANDS_DIR.is_dir() else PACKAGE_COMMANDS_DIR
+    md_file = source_dir / f"{name[len(PROMPT_PREFIX):]}.md"
     _, body = _command_parser()(md_file)
     value = str(arguments.get("args", "")).strip() if isinstance(arguments, dict) else ""
     text = body.replace("$ARGUMENTS", value or "(no arguments supplied)")

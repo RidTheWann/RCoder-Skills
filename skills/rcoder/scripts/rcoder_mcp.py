@@ -768,7 +768,7 @@ def tool_read_symbol(args):
     }
 
 
-def _detected_test_command(root: Path, tests: list[str]) -> str:
+def _detected_test_command(root: Path, tests: list[str]) -> str | None:
     if (root / "go.mod").is_file():
         return "go test ./..."
     if (root / "Cargo.toml").is_file():
@@ -776,16 +776,29 @@ def _detected_test_command(root: Path, tests: list[str]) -> str:
     package_file = root / "package.json"
     if package_file.is_file():
         try:
-            scripts = json.loads(package_file.read_text(encoding="utf-8")).get("scripts", {})
-            if isinstance(scripts, dict) and "test" in scripts:
+            package = json.loads(package_file.read_text(encoding="utf-8"))
+            scripts = package.get("scripts", {})
+            if isinstance(scripts, dict) and isinstance(scripts.get("test"), str) and scripts["test"].strip():
                 return "npm test"
-            return "npm run test"
+            dependencies = {
+                **(package.get("dependencies", {}) if isinstance(package.get("dependencies", {}), dict) else {}),
+                **(package.get("devDependencies", {}) if isinstance(package.get("devDependencies", {}), dict) else {}),
+            }
+            if "vitest" in dependencies:
+                return "npx --no-install vitest run"
+            if "jest" in dependencies:
+                return "npx --no-install jest --runInBand"
+            if "mocha" in dependencies:
+                return "npx --no-install mocha"
+            return None
         except (OSError, ValueError):
-            return "npm test"
-    if tests and all(str(item).endswith((".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs")) for item in tests):
-        return "npm test"
-    command = "python3 -m pytest -q"
-    return command + (" " + " ".join(tests) if tests else "")
+            return None
+    if tests and all(str(item).endswith((".py",)) for item in tests):
+        command = "python3 -m pytest -q"
+        return command + (" " + " ".join(tests) if tests else "")
+    if tests and all(str(item).endswith((".js", ".mjs", ".cjs")) for item in tests):
+        return "node --test " + " ".join(tests)
+    return "python3 -m pytest -q" if not tests else None
 
 
 def tool_impact_test(args):
@@ -826,8 +839,9 @@ def tool_impact_test(args):
         "changed_files": changed,
         "impacted_modules": blast["impacted_modules"],
         "recommended_tests": tests,
-        "required_verification": command,
-        "note": "Run this command before the stop gate accepts completion.",
+        "required_verification": command or "No runnable test command was detected; identify and run the project's test runner before completion.",
+        "verification_command_available": bool(command),
+        "note": "Run the detected command before the stop gate accepts completion; if unavailable, identify the project test runner explicitly.",
     }
 
 
@@ -848,18 +862,28 @@ def tool_recall(args):
 
 
 def tool_learn(args):
-    from rcoder_memory import EpisodicLessonStore
+    from rcoder_memory import EpisodicLessonStore, RCoderMemoryStore
 
     root = _selected_root(args)
+    symptom = str(args["symptom"])
+    root_cause = str(args["root_cause"])
+    verified_fix = str(args["verified_fix"])
+    related_files = args.get("related_files") or []
+    tags = args.get("tags") or []
     result = EpisodicLessonStore(root).record_lesson(
-        symptom=str(args["symptom"]),
-        root_cause=str(args["root_cause"]),
-        verified_fix=str(args["verified_fix"]),
-        related_files=args.get("related_files") or [],
-        tags=args.get("tags") or [],
+        symptom=symptom,
+        root_cause=root_cause,
+        verified_fix=verified_fix,
+        related_files=related_files,
+        tags=tags,
+    )
+    memory_id = RCoderMemoryStore(root).record(
+        "fix", symptom,
+        f"Root cause: {root_cause}\nVerified fix: {verified_fix}\nTags: {', '.join(str(tag) for tag in tags)}",
+        files=related_files,
     )
     return {"ok": True, "tool": "rcoder_learn", "version": product_version(),
-            "root": str(root), **result}
+            "root": str(root), "memory_id": memory_id, **result}
 
 
 def tool_handoff(args):
@@ -891,6 +915,68 @@ def tool_apply_verify(args):
     result = transactional_apply_and_verify(root, args["edits"], verify_cmd or None, timeout)
     return {"ok": bool(result.get("ok")), "tool": "rcoder_apply_verify",
             "version": product_version(), "root": str(root), **result}
+
+
+def tool_parity_audit(args):
+    """Read-only cross-platform plugin manifest, dual-command, and filesystem parity audit."""
+    root = resolve_in_root(args.get("root", "."), must_exist=True)
+    if not root.is_dir():
+        root = root.parent
+    manifests = [
+        "plugin.json", "gemini-extension.json", ".claude-plugin/plugin.json",
+        ".claude-plugin/marketplace.json", ".codex-plugin/plugin.json",
+        ".agents/plugins/marketplace.json", ".opencode/plugins/rcoder.js",
+        "hooks/hooks.json", "mcp.json", ".mcp.json",
+    ]
+    manifest_status = {rel: (root / rel).is_file() for rel in manifests}
+    md_dir = root / "commands"
+    toml_dir = root / "commands" / "rcoder"
+    md_cmds = sorted(p.stem for p in md_dir.glob("*.md")) if md_dir.is_dir() else []
+    toml_cmds = sorted(p.stem for p in toml_dir.glob("*.toml")) if toml_dir.is_dir() else []
+    missing_toml = sorted(set(md_cmds) - set(toml_cmds))
+    missing_md = sorted(set(toml_cmds) - set(md_cmds))
+    skip_dirs = {".git", "node_modules", "__pycache__", ".venv", "venv", ".rcoder", "dist"}
+    lf_exts = {".py", ".sh", ".mjs", ".js", ".json", ".md", ".toml", ".yml", ".yaml"}
+    crlf_files: list[str] = []
+    case_collisions: list[str] = []
+    lower_seen: dict[str, str] = {}
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = sorted(d for d in dirnames if d not in skip_dirs)
+        for fname in sorted(filenames):
+            full = Path(dirpath) / fname
+            rel = full.relative_to(root).as_posix()
+            low = rel.lower()
+            if low in lower_seen and lower_seen[low] != rel:
+                case_collisions.append(f"{rel} <-> {lower_seen[low]}")
+            lower_seen[low] = rel
+            if full.suffix.lower() in lf_exts:
+                try:
+                    if b"\r\n" in full.read_bytes():
+                        crlf_files.append(rel)
+                except OSError:
+                    pass
+    healthy = (
+        all(manifest_status.values()) and not missing_toml and not missing_md
+        and not crlf_files and not case_collisions
+    )
+    return {
+        "ok": True, "tool": "rcoder_parity_audit", "version": product_version(),
+        "root": str(root), "healthy": healthy, "manifests": manifest_status,
+        "commands": {"md_count": len(md_cmds), "toml_count": len(toml_cmds),
+                     "missing_toml": missing_toml, "missing_md": missing_md},
+        "filesystem": {"crlf_leaks": crlf_files[:25], "case_collisions": case_collisions[:25]},
+    }
+
+
+def tool_runtime_profile(args):
+    """Read-only cross-platform runtime and Termux/glibc-runner environment profile."""
+    from platform_runtime import detect_runtime_environment
+    root = resolve_in_root(args.get("root", "."), must_exist=True)
+    if not root.is_dir():
+        root = root.parent
+    profile = detect_runtime_environment(root)
+    return {"ok": True, "tool": "rcoder_runtime_profile", "version": product_version(),
+            "root": str(root), **profile}
 
 
 def schema(properties, required=None):
@@ -1102,6 +1188,12 @@ TOOLS = [
                                    "maxItems": 50},
              "notes": {"type": "string", "maxLength": 4000}, "root": ROOT_PROP},
             ["from_agent", "to_agent", "objective"]), tool_handoff),
+    ("rcoder_parity_audit", "Audit cross-host plugin parity",
+     "Read-only audit of multi-host plugin manifests, dual .md/.toml commands, LF line endings, and case safety.",
+     schema({"root": ROOT_PROP}), tool_parity_audit),
+    ("rcoder_runtime_profile", "Inspect cross-platform runtime",
+     "Read-only detection of OS, architecture, Python/Node availability, Termux/grun runtime, and .rcoder state.",
+     schema({"root": ROOT_PROP}), tool_runtime_profile),
     ("rcoder_apply_verify", "Apply and verify edits atomically",
      "Apply exact-match multi-file edits, run the verification command, and roll back every file on syntax or test failure.",
      schema({"edits": {"type": "array", "minItems": 1, "maxItems": 50,

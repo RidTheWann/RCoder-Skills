@@ -22,8 +22,8 @@ INLINE_SECRET_RE = re.compile(
     r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})"
 )
 ASSIGNMENT_SECRET_RE = re.compile(
-    r"(?i)\b(?:api[_-]?key|secret|token|password|passwd|pwd)\b\s*[:=]\s*"
-    r"['\"]([^'\"\n]{8,})['\"]"
+    r"(?i)(\b(?:api[_-]?key|secret|token|password|passwd|pwd)\b\s*[:=]\s*)"
+    r"(?:'([^'\n]*)'|\"([^\"\n]*)\"|([^\s,;#]+))"
 )
 
 
@@ -35,9 +35,16 @@ def _sanitize(text: str) -> str:
     cleaned = text.replace("\r\n", "\n").strip()
     cleaned = PRIVATE_KEY_RE.sub("[REDACTED_SECRET]", cleaned)
     cleaned = INLINE_SECRET_RE.sub("[REDACTED_SECRET]", cleaned)
-    return ASSIGNMENT_SECRET_RE.sub(
-        lambda match: match.group(0).replace(match.group(1), "[REDACTED_SECRET]"), cleaned
-    )
+    def redact_assignment(match: re.Match[str]) -> str:
+        if match.group(2) is not None:
+            value = "'[REDACTED_SECRET]'"
+        elif match.group(3) is not None:
+            value = '"[REDACTED_SECRET]"'
+        else:
+            value = "[REDACTED_SECRET]"
+        return match.group(1) + value
+
+    return ASSIGNMENT_SECRET_RE.sub(redact_assignment, cleaned)
 
 
 class EpisodicLessonStore:

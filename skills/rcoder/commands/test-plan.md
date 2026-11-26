@@ -1,0 +1,11 @@
+---
+description: Design a risk-based test plan and the narrowest verification commands for a change
+argument-hint: [change, feature, or diff to test]
+---
+Design the test plan for: $ARGUMENTS
+
+1. Load the `testing-qa` specialist, and `test-engineering` only when a property-based, fuzz, or contract harness is the deliverable. Read the existing test layout, runner configuration, and CI before proposing anything.
+2. List the behaviors that changed and rank them by risk: data loss, security, compatibility, concurrency, and user-visible regressions first.
+3. For each risk, name the test level (unit, integration, contract, end to end), the case including at least one failure path or boundary, and the exact command that runs it. Reuse existing fixtures and conventions.
+4. State what cannot be tested here and why, and what evidence would substitute for it.
+5. Mark each planned check VERIFIED only after it has run and its output was observed; planned checks are NOT VERIFIED until then. Do not weaken or delete an existing test to make the plan pass.

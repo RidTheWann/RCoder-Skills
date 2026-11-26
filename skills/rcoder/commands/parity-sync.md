@@ -1,0 +1,11 @@
+---
+description: Synchronize Gemini TOML commands and verify cross-platform plugin and filesystem parity
+argument-hint: [optional target host or check]
+---
+Synchronize and verify multi-host plugin artifacts across Linux, Windows, macOS, and Termux.
+
+Target requested by the user (may be empty): $ARGUMENTS
+
+1. Run `python3 scripts/sync_plugins.py` to compile `commands/*.md` into `commands/rcoder/*.toml` and verify required plugin manifests.
+2. Run `python3 scripts/verify_parity.py` and `rcoder_parity_audit` to check for case collisions, CRLF line-ending leaks, or hardcoded machine-specific paths.
+3. Report exact command results and any remaining drift. Label claims VERIFIED, INFERRED, or NOT VERIFIED.
