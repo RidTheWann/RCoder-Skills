@@ -951,7 +951,7 @@ def tool_parity_audit(args):
             lower_seen[low] = rel
             if full.suffix.lower() in lf_exts:
                 try:
-                    if b"\\r\\n" in full.read_bytes():
+                    if b"\r\n" in full.read_bytes():
                         crlf_files.append(rel)
                 except OSError:
                     pass
