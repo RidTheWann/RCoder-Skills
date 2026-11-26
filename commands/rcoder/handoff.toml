@@ -1,3 +1,4 @@
+# AUTO-GENERATED — DO NOT EDIT DIRECTLY
 description = "Write a context capsule so a long task can continue in a fresh session"
 prompt = """
 Write a context capsule for this objective: $ARGUMENTS
