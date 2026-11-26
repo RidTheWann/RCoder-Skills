@@ -32,24 +32,52 @@ class SwarmCoordinator:
 
     @contextlib.contextmanager
     def _lease_lock(self, timeout_sec: float = 5.0):
+        """Serialize lease read/check/write with an OS lock, not a stale PID lockfile.
+
+        The lock file is intentionally persistent: unlinking a locked inode can let a
+        second process create and lock a replacement while the first still owns the
+        original. Advisory locks are released by the OS if the process exits.
+        """
         lock_path = self.leases_path.with_suffix(".lock")
         lock_path.parent.mkdir(parents=True, exist_ok=True)
-        if lock_path.exists() and time.time() - lock_path.stat().st_mtime > 60:
-            lock_path.unlink(missing_ok=True)
-        deadline = time.time() + timeout_sec
-        while True:
-            try:
-                descriptor = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-                break
-            except FileExistsError:
-                if time.time() >= deadline:
-                    raise RuntimeError("timed out acquiring the file-lease lock")
-                time.sleep(0.02)
+        descriptor = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
+        deadline = time.monotonic() + timeout_sec
+        locked = False
         try:
+            if os.name == "nt":
+                import msvcrt
+                if os.fstat(descriptor).st_size == 0:
+                    os.write(descriptor, b"0")
+                while not locked:
+                    try:
+                        os.lseek(descriptor, 0, os.SEEK_SET)
+                        msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
+                        locked = True
+                    except OSError:
+                        if time.monotonic() >= deadline:
+                            raise RuntimeError("timed out acquiring the file-lease lock")
+                        time.sleep(0.02)
+            else:
+                import fcntl
+                while not locked:
+                    try:
+                        fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        locked = True
+                    except BlockingIOError:
+                        if time.monotonic() >= deadline:
+                            raise RuntimeError("timed out acquiring the file-lease lock")
+                        time.sleep(0.02)
             yield
         finally:
+            if locked:
+                if os.name == "nt":
+                    import msvcrt
+                    os.lseek(descriptor, 0, os.SEEK_SET)
+                    msvcrt.locking(descriptor, msvcrt.LK_UNLCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(descriptor, fcntl.LOCK_UN)
             os.close(descriptor)
-            lock_path.unlink(missing_ok=True)
 
     def _read_leases(self, now: float) -> dict[str, dict[str, Any]]:
         if not self.leases_path.exists():
@@ -242,13 +270,35 @@ class WorktreeManager:
         return wt_path if proc.returncode == 0 else None
 
     def collect_diff(self, wt_path: Path) -> str:
-        proc = subprocess.run(
-            ["git", "diff"],
-            cwd=str(wt_path),
-            capture_output=True,
-            text=True,
+        listed = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard", "-z"],
+            cwd=str(wt_path), capture_output=True, check=False,
         )
-        return proc.stdout if proc.returncode == 0 else ""
+        if listed.returncode != 0:
+            return ""
+        untracked = [item.decode("utf-8", errors="surrogateescape")
+                     for item in listed.stdout.split(b"\0") if item]
+        intent_added = False
+        try:
+            if untracked:
+                staged = subprocess.run(
+                    ["git", "add", "--intent-to-add", "--", *untracked],
+                    cwd=str(wt_path), capture_output=True, text=True, check=False,
+                )
+                if staged.returncode != 0:
+                    return ""
+                intent_added = True
+            proc = subprocess.run(
+                ["git", "diff", "--binary", "--no-ext-diff"],
+                cwd=str(wt_path), capture_output=True, text=True, check=False,
+            )
+            return proc.stdout if proc.returncode == 0 else ""
+        finally:
+            if intent_added:
+                subprocess.run(
+                    ["git", "reset", "--quiet", "--", *untracked],
+                    cwd=str(wt_path), capture_output=True, text=True, check=False,
+                )
 
     def remove(self, wt_path: Path) -> None:
         if not wt_path.exists():
@@ -306,16 +356,20 @@ class RCoderSwarm:
         runner: Callable[[SwarmTask, Path, Dict[str, Any]], Dict[str, Any]],
         require_verifier: bool = True,
     ) -> Dict[str, Any]:
-        if require_verifier and not any(task.agent == "rcoder-verifier" for task in tasks):
-            leaf_ids = [task.task_id for task in tasks]
-            tasks = list(tasks) + [
-                SwarmTask(
+        if require_verifier:
+            verifier_tasks = [task for task in tasks if task.agent == "rcoder-verifier"]
+            if not verifier_tasks:
+                verifier_tasks = [SwarmTask(
                     task_id="gate-verify",
                     agent="rcoder-verifier",
                     objective="Verify all swarm outputs, diffs, and invariant checks.",
-                    depends_on=leaf_ids,
-                )
-            ]
+                    depends_on=[task.task_id for task in tasks],
+                )]
+                tasks = list(tasks) + verifier_tasks
+            else:
+                work_ids = {task.task_id for task in tasks if task.agent != "rcoder-verifier"}
+                for verifier in verifier_tasks:
+                    verifier.depends_on = sorted(set(verifier.depends_on) | work_ids)
 
         run_id = hashlib.sha256(
             f"{time.time_ns()}-{len(tasks)}".encode("utf-8")
