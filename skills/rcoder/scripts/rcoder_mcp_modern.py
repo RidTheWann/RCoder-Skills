@@ -55,6 +55,14 @@ LIVE_RESOURCES = {
         "capsule-latest", "Latest context capsule",
         "Bounded path and Git snapshot produced by context_snapshot.py.", "text/markdown",
     ),
+    "rcoder://parity/matrix": (
+        "parity-matrix", "Plugin parity matrix",
+        "Live multi-host manifest, slash-command, line-ending, and case-collision audit.", "application/json",
+    ),
+    "rcoder://runtime/profile": (
+        "runtime-profile", "Runtime environment profile",
+        "Live OS, architecture, language-runtime, Termux/grun, and RCoder state telemetry.", "application/json",
+    ),
 }
 TTL_MS = {
     "server/discover": 3_600_000, "tools/list": 3_600_000, "prompts/list": 3_600_000,
@@ -312,6 +320,12 @@ def read_live_resource(uri: str) -> dict:
     meta = LIVE_RESOURCES.get(uri)
     if meta is None:
         raise core.RpcError(ERR_INVALID_PARAMS, f"unknown live resource: {uri}")
+    if uri == "rcoder://parity/matrix":
+        text = json.dumps(core.tool_parity_audit({"root": "."}), ensure_ascii=False, indent=2)
+        return {"uri": uri, "mimeType": meta[3], "text": core.clip(text)}
+    if uri == "rcoder://runtime/profile":
+        text = json.dumps(core.tool_runtime_profile({"root": "."}), ensure_ascii=False, indent=2)
+        return {"uri": uri, "mimeType": meta[3], "text": core.clip(text)}
     if uri in ("rcoder://repo/map", "rcoder://capsule/latest"):
         script, arguments = (
             ("repo_map.py", ["--root", str(core.State.root), "--budget", "2048", "--format", "default"])
