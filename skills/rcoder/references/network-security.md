@@ -60,3 +60,8 @@ Use configuration review, protocol tests, authorized packet captures, certificat
 
 ## Output format
 Topology · scope · exposure · protocol controls · evidence · untested paths.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Use configuration review, protocol tests, authorized packet captures, certificate tests, and scoped non-disruptive validation.
+- **Anti-Patterns**: Default-allow firewalls; plaintext management protocols
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

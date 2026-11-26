@@ -61,3 +61,8 @@ Run migrations against clean and prior-version fixtures, concurrency tests, quer
 
 ## Output format
 Schema changes · migration order · locks/downtime · recovery · query measurements · privacy.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run migrations against clean and prior-version fixtures, concurrency tests, query-plan checks, data-consistency tests, and recovery drills when relevant.
+- **Anti-Patterns**: Manual production schema edits; unbounded ETL
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

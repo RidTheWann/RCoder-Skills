@@ -78,3 +78,8 @@ Run the injection corpus against the real deployment configuration in a sandbox 
 
 ## Output format
 System and data-flow summary · triad mapping per session · findings ranked by impact and exploitability with the blocking control · required design changes in order · tests run with observed results · residual risk · items NOT VERIFIED.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run the injection corpus against the real deployment configuration in a sandbox with a fake network sink; assert that no unapproved tool call executes and no data reaches the sink.
+- **Anti-Patterns**: "The model is instructed to ignore malicious text" presented as a boundary.; One agent with broad tools, full data access, and open web access.
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

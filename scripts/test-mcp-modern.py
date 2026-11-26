@@ -24,6 +24,7 @@ META = {"io.modelcontextprotocol/protocolVersion": MODERN,
         "io.modelcontextprotocol/clientInfo": {"name": "test", "version": "0"},
         "io.modelcontextprotocol/clientCapabilities": {}}
 SERVER_INFO_KEY = "io.modelcontextprotocol/serverInfo"
+MUTATING_TOOLS = {"rcoder_apply_verify", "rcoder_learn"}
 LEGACY_INIT = {"jsonrpc": "2.0", "id": 0, "method": "initialize",
                "params": {"protocolVersion": "2025-06-18", "capabilities": {},
                           "clientInfo": {"name": "test", "version": "0"}}}
@@ -103,8 +104,10 @@ def main():
         listing = by_id[1]["result"]
         assert listing["tools"] == by_id[2]["result"]["tools"], "tools/list order must be deterministic"
         assert listing["resultType"] == "complete" and listing["ttlMs"] > 0 and listing["cacheScope"]
-        assert listing["tools"] and all(tool.get("title") and tool["annotations"]["readOnlyHint"] is True
-                                        for tool in listing["tools"])
+        assert listing["tools"] and all(
+            tool.get("title") and tool["annotations"]["readOnlyHint"] is (tool["name"] not in MUTATING_TOOLS)
+            for tool in listing["tools"]
+        )
         call = by_id[3]["result"]
         assert call["resultType"] == "complete" and "structuredContent" in call and not call.get("isError")
         assert call["_meta"][SERVER_INFO_KEY]["name"] == "rcoder"

@@ -95,6 +95,13 @@ def main():
             check(len(text) >= 25, f"G1: {module.name} {name} body is empty or boilerplate")
         check("## Output format" in content and "## Verification" in content,
               f"G1: {module.name} missing output or verification contract")
+        diagnostics = bodies.get("## Executable Verification & Failure Diagnostics", "")
+        check(bool(diagnostics), f"G1: {module.name} missing executable verification footer")
+        for label in ("- **Verify**:", "- **Anti-Patterns**:", "- **Failure Diagnostics**:"):
+            check(label in diagnostics, f"G1: {module.name} verification footer lacks {label}")
+        check("->" in diagnostics, f"G1: {module.name} failure diagnostics lacks a symptom -> cause -> action chain")
+        check(not re.search(r"<[A-Z][A-Za-z /-]{2,40}>", diagnostics),
+              f"G1: {module.name} verification footer contains an unfilled placeholder")
     for required in (
         "programming-languages.md", "systems-programming.md", "polyglot-ecosystems.md",
         "python-engineering.md", "javascript-typescript.md", "dotnet-java-engineering.md",
@@ -285,7 +292,14 @@ def main():
         "scripts/test-node-installer.mjs", "scripts/test-installers.sh",
         "scripts/test-installers.ps1",         "scripts/test-context-snapshot.py", "scripts/rsaver.py",
         "skills/rcoder/scripts/rsaver.py", "scripts/test-rsaver.py",
+        "skills/rcoder/scripts/rsaver_guard.py",
         "scripts/rscan.py", "skills/rcoder/scripts/rscan.py", "scripts/test-rscan.py",
+        "skills/rcoder/scripts/rscan_graph.py", "scripts/test-v2-upgrades.py",
+        ".gitattributes", "skills/rcoder/scripts/platform_runtime.py",
+        "skills/rcoder/scripts/rscan_index.py", "scripts/test-cross-platform.py",
+        "skills/rcoder/scripts/rsaver_sandbox.py", "skills/rcoder/scripts/rcoder_memory.py",
+        "skills/rcoder/scripts/rcoder_swarm.py", "scripts/verify_parity.py",
+        "scripts/verify-parity.py", "scripts/test-autonomous-v3.py",
         "scripts/score-eval.py", "scripts/test-score-eval.py", "scripts/score-scenarios.py",
         "scripts/test-score-scenarios.py", "scripts/verify-objective.py", "scripts/test-objective.py",
         "scripts/test-tool-probe.py", "skills/rcoder/scripts/tool_probe.py",
@@ -307,6 +321,13 @@ def main():
         "GEMINI.md", ".mcp.json", "mcp.json", ".agents/plugins/marketplace.json"
     ):
         check((ROOT / required).is_file(), f"G1: required installer/test file missing: {required}")
+
+    attributes = read(ROOT / ".gitattributes")
+    check("* text=auto eol=lf" in attributes and "*.ps1 text eol=crlf" in attributes,
+          "G1: .gitattributes must lock LF scripts and CRLF PowerShell files")
+    parity_source = read(ROOT / "scripts" / "verify_parity.py")
+    check(all(token in parity_source for token in ("CASE_COLLISION", "CRLF_LEAK", "HARDCODED_OS_PATH")),
+          "G1: parity linter must detect case collisions, CRLF leaks, and absolute paths")
 
     check(portable.get("version") == version, "G7: portable plugin version mismatch")
     check(portable.get("name") == "rcoder", "G1: portable plugin name mismatch")

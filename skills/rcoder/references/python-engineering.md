@@ -60,3 +60,8 @@ Run pinned formatters, linters, type checkers, unit tests, package builds, and p
 
 ## Output format
 Python/runtime versions · packaging/API changes · exact checks · dependency risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run pinned formatters, linters, type checkers, unit tests, package builds, and project security scans.
+- **Anti-Patterns**: Mutable default arguments; wildcard imports in libraries
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

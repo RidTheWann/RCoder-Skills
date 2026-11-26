@@ -64,3 +64,8 @@ Repeat key findings with independent tools/reference behavior; use minimal fixtu
 
 ## Output format
 Sample hash · scope · architecture · tools · confirmed behavior · hypotheses/confidence · reproduction · limitations · unresolved items.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Repeat key findings with independent tools/reference behavior; use minimal fixtures and differential tests; state unconfirmed claims explicitly.
+- **Anti-Patterns**: Guessing register effects from names; trusting size fields without bounds checks
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

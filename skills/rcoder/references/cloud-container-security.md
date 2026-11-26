@@ -60,3 +60,8 @@ Run IaC plans, policy-as-code, image checks, cluster config tests, and least-pri
 
 ## Output format
 Provider/scope · risks · controls · plan evidence · deployment gates · shared-responsibility gaps.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run IaC plans, policy-as-code, image checks, cluster config tests, and least-privilege reviews in non-production first.
+- **Anti-Patterns**: Privileged containers by default; wildcard IAM policies
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

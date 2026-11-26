@@ -104,3 +104,8 @@ For a concrete run, assert: the selection record names only existing modules; ev
 
 ## Output format
 Selection record: task classification · candidate modules · selected modules · primary specialist · supporting specialists with responsibilities · verifier · reason per selection · ordinal confidence with evidence · unselected alternatives and why · required verification · handoff dependencies · detected tool fallbacks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: For a concrete run, assert: the selection record names only existing modules; every scored positive trigger has a non-empty set; the primary is unique; helper modules are not primary; no selection is helper-only; the cross-domain composition rules match the request; and the independent verifier i...
+- **Anti-Patterns**: Loading every specialist "just in case" or listing a module merely because the router mentions it.; Selecting only the task-facing module for a cross-domain task and dropping the framing base.
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> python3 scripts/verify-objective.py --predictions <run>/WITH.jsonl --output <run>/OBJECTIVE.jsonl --definitions <run>/definitions.json.

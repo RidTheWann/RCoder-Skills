@@ -3,9 +3,7 @@
     "rcoder": {
       "command": "node",
       "args": [
-        "${CLAUDE_PLUGIN_ROOT}/launcher/rcoder-mcp.mjs",
-        "--root",
-        "${CLAUDE_PLUGIN_ROOT}"
+        "launcher/rcoder-mcp.mjs"
       ]
     }
   }

@@ -62,3 +62,8 @@ Use version/help checks, official docs, reproducible tests, and final readback. 
 
 ## Output format
 Claim · source/command · observed result · status · confidence · remaining verification.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Use version/help checks, official docs, reproducible tests, and final readback.
+- **Anti-Patterns**: Citing a source without accessing it; mixing evidence labels
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

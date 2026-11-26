@@ -25,6 +25,46 @@ const FEATURES = [
   { id: 'rscan', label: 'RScan', description: 'Read-only project scan with ranked development options at session start' }
 ];
 const FEATURE_IDS = new Set(FEATURES.map((feature) => feature.id));
+const WRAPPER_FILES = [
+  ['scripts/rscan.py', 'skills/rcoder/scripts/rscan.py'],
+  ['scripts/rsaver.py', 'skills/rcoder/scripts/rsaver.py'],
+  ['scripts/repo-map.py', 'skills/rcoder/scripts/repo_map.py'],
+  ['scripts/rcoder-mcp.py', 'skills/rcoder/scripts/rcoder_mcp.py'],
+  ['scripts/rcoder-hooks.py', 'skills/rcoder/scripts/rcoder_hooks.py']
+];
+const MCP_TEMPLATES = {
+  '.mcp.json': {
+    mcpServers: {
+      rcoder: {
+        command: 'node',
+        args: ['launcher/rcoder-mcp.mjs']
+      }
+    }
+  },
+  'mcp.json': {
+    $schema: 'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json',
+    mcpServers: {
+      rcoder: {
+        type: 'stdio',
+        command: 'node',
+        args: ['launcher/rcoder-mcp.mjs'],
+        cwd: '${PLUGIN_ROOT}'
+      }
+    }
+  }
+};
+const HOOK_TEMPLATE = {
+  hooks: {
+    SessionStart: [{
+      matcher: 'startup',
+      hooks: [{
+        type: 'command',
+        command: 'python3 "${CLAUDE_PLUGIN_ROOT}/skills/rcoder/scripts/rscan.py" scan --root "${CLAUDE_PROJECT_DIR:-.}" --hook claude || python "${CLAUDE_PLUGIN_ROOT}/skills/rcoder/scripts/rscan.py" scan --root "${CLAUDE_PROJECT_DIR:-.}" --hook claude',
+        timeout: 15
+      }]
+    }]
+  }
+};
 
 function usage() {
   console.log(`RCoder ${VERSION}
@@ -48,7 +88,9 @@ Options:
   --mcp <mode>        MCP server setup after install: none (default) | show (print config) | install (set up automatically)
   --help              Show this help
   --version           Show version
-  doctor [--json]     Check runtime, manifest parity, shared contract, and MCP files
+  doctor [--json] [--fix]
+                      Check runtime, manifest parity, shared contract, and MCP files; repair safe drift
+  sync [--json]       Normalize MCP configs, state paths, file modes, and host manifests
   integration <action> <host>  Manage OpenCode, Gemini CLI, Codex, and Claude Code adapters
   skill <new|lint|package>      Author, validate, and package Agent Skills
   hooks <install|uninstall|print-config>
@@ -59,9 +101,14 @@ After installation, open a new terminal and type rcoder.`);
 
 function parseArgs(args) {
   if (args[0] === 'doctor') {
-    const unknown = args.slice(1).filter((item) => item !== '--json');
+    const unknown = args.slice(1).filter((item) => item !== '--json' && item !== '--fix');
     if (unknown.length) throw new Error(`Unknown doctor option: ${unknown.join(' ')}`);
-    return { command: 'doctor', json: args.includes('--json') };
+    return { command: 'doctor', json: args.includes('--json'), fix: args.includes('--fix') };
+  }
+  if (args[0] === 'sync') {
+    const unknown = args.slice(1).filter((item) => item !== '--json');
+    if (unknown.length) throw new Error(`Unknown sync option: ${unknown.join(' ')}`);
+    return { command: 'sync', json: args.includes('--json') };
   }
   if (args[0] === 'skill') {
     return { command: 'skill', args: args.slice(1) };
@@ -249,16 +296,319 @@ function doctorReport() {
     add('mcp:stdio', contract.mcp?.transports?.stdio?.enabled === true ? 'PASS' : 'FAIL', 'stdio transport declaration');
     add('mcp:streamable-http', contract.mcp?.transports?.streamable_http?.enabled === true ? 'PASS' : 'FAIL', 'Streamable HTTP transport declaration');
   }
+  for (const [relative] of WRAPPER_FILES) {
+    const result = doctorWrapperCheck(relative);
+    add(`wrapper:${relative}`, result.ok ? 'PASS' : 'FAIL', result.detail);
+  }
+  for (const relative of Object.keys(MCP_TEMPLATES)) {
+    const result = doctorMcpCheck(relative);
+    add(`mcp:paths:${relative}`, result.ok ? 'PASS' : 'FAIL', result.detail);
+  }
+  const hooksCheck = doctorHooksCheck();
+  add('hooks:registration', hooksCheck.ok ? 'PASS' : 'FAIL', hooksCheck.detail);
+  const syncIssues = syncValidation();
+  add('sync:validation', syncIssues.length ? 'FAIL' : 'PASS',
+      syncIssues.length ? syncIssues.join('; ') : 'host manifests and targets are synchronized');
   const ok = checks.every((item) => item.status !== 'FAIL');
   return { tool: 'RCoder doctor', version: VERSION, ok, checks };
 }
 
-function runDoctor(jsonMode) {
+function doctorWrapperCheck(relative) {
+  const target = path.join(PACKAGE_ROOT, relative);
+  if (!existsSync(target)) {
+    return { ok: true, detail: 'wrapper is not bundled in this install; check skipped' };
+  }
+  try {
+    const text = readFileSync(target, 'utf8');
+    const canonical = WRAPPER_FILES.find(([name]) => name === relative)?.[1] || '';
+    const delegates = /runpy\.run_path\s*\(/.test(text) && text.includes(path.basename(canonical));
+    return { ok: delegates, detail: delegates ? 'canonical runpy delegation' : 'wrapper does not delegate to the bundled CLI' };
+  } catch (error) {
+    return { ok: false, detail: error.message };
+  }
+}
+
+function doctorMcpCheck(relative) {
+  try {
+    const config = JSON.parse(readFileSync(path.join(PACKAGE_ROOT, relative), 'utf8'));
+    const entry = config.mcpServers?.rcoder;
+    if (!entry) return { ok: false, detail: 'missing rcoder server entry' };
+    const args = Array.isArray(entry.args) ? entry.args : [];
+    const launcher = args.find((item) => typeof item === 'string' && item.endsWith('launcher/rcoder-mcp.mjs'));
+    if (!launcher) return { ok: false, detail: 'missing launcher/rcoder-mcp.mjs argument' };
+    const resolve = (value) => value.replace(/\$\{[^}]+\}/g, PACKAGE_ROOT);
+    const launcherPath = path.resolve(PACKAGE_ROOT, resolve(launcher));
+    if (!existsSync(launcherPath)) return { ok: false, detail: `launcher does not exist: ${launcherPath}` };
+    const rootIndex = args.indexOf('--root');
+    if (rootIndex >= 0) {
+      const rootValue = args[rootIndex + 1];
+      if (typeof rootValue !== 'string') return { ok: false, detail: '--root has no path value' };
+      const rootPath = resolve(rootValue);
+      if (!existsSync(rootPath)) return { ok: false, detail: `--root does not exist: ${rootPath}` };
+    }
+    return { ok: true, detail: 'launcher and --root resolve' };
+  } catch (error) {
+    return { ok: false, detail: error.message };
+  }
+}
+
+function doctorHooksCheck() {
+  const hooksTarget = path.join(PACKAGE_ROOT, 'hooks', 'hooks.json');
+  if (!existsSync(hooksTarget)) {
+    return { ok: true, detail: 'hook configuration is not bundled in this install; check skipped' };
+  }
+  try {
+    const config = JSON.parse(readFileSync(hooksTarget, 'utf8'));
+    const commands = [];
+    for (const groups of Object.values(config.hooks || {})) {
+      for (const group of Array.isArray(groups) ? groups : []) {
+        for (const hook of group.hooks || []) if (typeof hook.command === 'string') commands.push(hook.command);
+      }
+    }
+    const ok = commands.some((command) => command.includes('rscan.py') && command.includes('--hook claude'));
+    return { ok, detail: ok ? 'SessionStart RScan hook registered' : 'SessionStart RScan hook is missing' };
+  } catch (error) {
+    return { ok: false, detail: error.message };
+  }
+}
+
+const PATH_KEY_RE = /(?:^|[_-])(?:path|paths|file|files|target|targets|claim|claims|reference|references|source|destination|artifact|artifacts|capsule|module|modules)(?:[_-]|$)/i;
+
+function normalizePortablePath(value) {
+  let text = String(value).replace(/\\/g, '/');
+  text = text.replace(/^\.\//, '');
+  if (/^[A-Za-z]:\/?\/?/.test(text)) {
+    const marker = text.search(/\/(?:rcoder|skills|src|dist)\//i);
+    if (marker >= 0) text = text.slice(marker + 1);
+  }
+  return text;
+}
+
+function normalizeJsonPaths(value, key = '') {
+  if (typeof value === 'string') {
+    const looksPath = PATH_KEY_RE.test(key) || value.includes('\\') || value.startsWith('./') ||
+      /\.(?:py|js|mjs|ts|json|md|db|sqlite)$/i.test(value);
+    return looksPath ? normalizePortablePath(value) : value;
+  }
+  if (Array.isArray(value)) return value.map((item) => normalizeJsonPaths(item, key));
+  if (value && typeof value === 'object') {
+    const result = {};
+    for (const [childKey, childValue] of Object.entries(value)) {
+      result[childKey] = normalizeJsonPaths(childValue, childKey);
+    }
+    return result;
+  }
+  return value;
+}
+
+function syncValidation() {
+  const issues = [];
+  for (const relative of ['.claude-plugin/plugin.json', '.codex-plugin/plugin.json',
+                          'gemini-extension.json', 'plugin.json']) {
+    try {
+      const data = JSON.parse(readFileSync(path.join(PACKAGE_ROOT, relative), 'utf8'));
+      if (data.version && data.version !== VERSION) issues.push(`${relative} version is ${data.version}`);
+    } catch (error) {
+      issues.push(`${relative} is unreadable: ${error.message}`);
+    }
+  }
+  try {
+    const catalog = JSON.parse(readFileSync(path.join(PACKAGE_ROOT, 'targets.json'), 'utf8'));
+    if (!Array.isArray(catalog.targets) || catalog.targets.length === 0) {
+      issues.push('targets.json has no targets');
+    }
+  } catch (error) {
+    issues.push(`targets.json is unreadable: ${error.message}`);
+  }
+  for (const relative of ['targets.json', '.claude-plugin/plugin.json', '.codex-plugin/plugin.json',
+                          '.opencode/plugins/rcoder.js', 'gemini-extension.json', '.mcp.json', 'mcp.json']) {
+    if (!existsSync(path.join(PACKAGE_ROOT, relative))) issues.push(`missing ${relative}`);
+  }
+  return issues;
+}
+
+function performSync() {
+  const fixes = [];
+  const record = (id, status, detail) => fixes.push({ id, status, detail });
+  for (const [relative, template] of Object.entries(MCP_TEMPLATES)) {
+    const target = path.join(PACKAGE_ROOT, relative);
+    const content = JSON.stringify(template, null, 2) + '\n';
+    let current = null;
+    try { current = readFileSync(target, 'utf8'); } catch { }
+    if (current === content) record(`sync:mcp:${relative}`, 'SKIP', 'already portable');
+    else {
+      writeFileSync(target, content, 'utf8');
+      record(`sync:mcp:${relative}`, 'FIXED', 'wrote portable node-shim MCP config');
+    }
+  }
+  const stateTargets = [path.join(PACKAGE_ROOT, '.rcoder', 'state.json')];
+  const capsules = path.join(PACKAGE_ROOT, '.rcoder', 'capsules');
+  if (existsSync(capsules)) {
+    for (const name of readdirSync(capsules)) {
+      if (name.endsWith('.json')) stateTargets.push(path.join(capsules, name));
+    }
+  }
+  for (const target of stateTargets) {
+    if (!existsSync(target)) continue;
+    let data = null;
+    try { data = JSON.parse(readFileSync(target, 'utf8')); }
+    catch (error) { record(`sync:paths:${path.relative(PACKAGE_ROOT, target)}`, 'SKIP', `not strict JSON: ${error.message}`); continue; }
+    const content = JSON.stringify(normalizeJsonPaths(data), null, 2) + '\n';
+    let current = '';
+    try { current = readFileSync(target, 'utf8'); } catch { }
+    if (current === content) record(`sync:paths:${path.relative(PACKAGE_ROOT, target)}`, 'SKIP', 'already canonical POSIX');
+    else {
+      writeFileSync(target, content, 'utf8');
+      record(`sync:paths:${path.relative(PACKAGE_ROOT, target)}`, 'FIXED', 'normalized paths to POSIX');
+    }
+  }
+  if (process.platform !== 'win32') {
+    for (const relative of ['scripts/install.sh', 'scripts/validate-all', 'launcher/rcoder-mcp.mjs']) {
+      const target = path.join(PACKAGE_ROOT, relative);
+      if (!existsSync(target)) continue;
+      try {
+        if (statSync(target).mode & 0o111) record(`sync:mode:${relative}`, 'SKIP', 'already executable');
+        else {
+          chmodSync(target, 0o755);
+          record(`sync:mode:${relative}`, 'FIXED', 'set executable mode 0755');
+        }
+      } catch (error) {
+        record(`sync:mode:${relative}`, 'FAIL', error.message);
+      }
+    }
+  }
+  const issues = syncValidation();
+  record('sync:validation', issues.length ? 'FAIL' : 'PASS',
+         issues.length ? issues.join('; ') : 'host manifests and targets are synchronized');
+  return { fixes, issues };
+}
+
+function runSync(jsonMode) {
+  const result = performSync();
+  const report = {
+    tool: 'RCoder sync', version: VERSION, ok: result.issues.length === 0,
+    fixes: result.fixes, issues: result.issues,
+  };
+  if (jsonMode) console.log(JSON.stringify(report, null, 2));
+  else {
+    console.log(`RCoder sync — ${report.version}`);
+    for (const item of report.fixes) console.log(`${item.status.padEnd(5)} ${item.id}: ${item.detail}`);
+    console.log(`\n${report.ok ? 'Cross-platform configuration synchronized.' : 'Synchronization found issues.'}`);
+  }
+  return report.ok ? 0 : 1;
+}
+
+function wrapperSource(canonical) {
+  const parts = canonical.split('/').map((part) => `"${part}"`).join(' / ');
+  return `#!/usr/bin/env python3
+"""Repository-root wrapper for the canonical RCoder CLI bundled with the skill."""
+import runpy
+from pathlib import Path
+
+CANONICAL = Path(__file__).resolve().parent.parent / ${parts}
+
+
+def main() -> None:
+    runpy.run_path(str(CANONICAL), run_name="__main__")
+
+
+if __name__ == "__main__":
+    main()
+`;
+}
+
+function repairHostMcpConfigs(record) {
+  const target = path.join(HOME, '.claude.json');
+  if (!existsSync(target)) return;
+  let config;
+  try { config = JSON.parse(readFileSync(target, 'utf8')); }
+  catch (error) { record(`host:${target}`, 'SKIP', `not strict JSON, left untouched: ${error.message}`); return; }
+  const entry = config.mcpServers?.rcoder;
+  if (!entry || typeof entry !== 'object') { record(`host:${target}`, 'SKIP', 'no rcoder entry'); return; }
+  const before = JSON.stringify(config);
+  const joined = ' '.join([String(entry.command || ''), ...(Array.isArray(entry.args) ? entry.args.map(String) : [])]);
+  if (/rcoder[-_]mcp/.test(joined)) {
+    entry.command = 'node';
+    entry.args = ['launcher/rcoder-mcp.mjs'];
+    delete entry.cwd;
+  }
+  if (JSON.stringify(config) === before) { record(`host:${target}`, 'SKIP', 'already portable'); return; }
+  writeFileSync(target, JSON.stringify(config, null, 2) + '\n', 'utf8');
+  record(`host:${target}`, 'FIXED', 'normalized rcoder entry to portable node shim');
+}
+
+function applyDoctorFixes() {
+  const fixes = [];
+  const record = (id, status, detail) => fixes.push({ id, status, detail });
+  const synced = performSync();
+  for (const item of synced.fixes) fixes.push(item);
+  for (const [relative, canonical] of WRAPPER_FILES) {
+    const target = path.join(PACKAGE_ROOT, relative);
+    const source = wrapperSource(canonical);
+    if (existsSync(target) && doctorWrapperCheck(relative).ok) {
+      record(`wrapper:${relative}`, 'SKIP', 'already healthy');
+      continue;
+    }
+    mkdirSync(path.dirname(target), { recursive: true });
+    writeFileSync(target, source, { encoding: 'utf8', mode: 0o755 });
+    try { chmodSync(target, 0o755); } catch { }
+    record(`wrapper:${relative}`, 'FIXED', 'wrote canonical wrapper');
+  }
+  for (const [relative, template] of Object.entries(MCP_TEMPLATES)) {
+    const target = path.join(PACKAGE_ROOT, relative);
+    const content = JSON.stringify(template, null, 2) + '\n';
+    if (doctorMcpCheck(relative).ok) { record(`mcp:${relative}`, 'SKIP', 'already healthy'); continue; }
+    writeFileSync(target, content, 'utf8');
+    record(`mcp:${relative}`, 'FIXED', 'wrote canonical MCP config');
+  }
+  const hooksTarget = path.join(PACKAGE_ROOT, 'hooks', 'hooks.json');
+  const hooksMissing = !existsSync(hooksTarget);
+  let hooks = null;
+  try { hooks = JSON.parse(readFileSync(hooksTarget, 'utf8')); } catch { hooks = null; }
+  if (!hooks || typeof hooks !== 'object') hooks = JSON.parse(JSON.stringify(HOOK_TEMPLATE));
+  hooks.hooks = hooks.hooks && typeof hooks.hooks === 'object' ? hooks.hooks : {};
+  const starts = Array.isArray(hooks.hooks.SessionStart) ? hooks.hooks.SessionStart : [];
+  const registered = starts.some((group) => (group.hooks || []).some(
+    (hook) => typeof hook.command === 'string' && hook.command.includes('rscan.py')
+  ));
+  if (!registered) {
+    hooks.hooks.SessionStart = [...starts, ...HOOK_TEMPLATE.hooks.SessionStart];
+  }
+  if (hooksMissing || !registered || !doctorHooksCheck().ok) {
+    mkdirSync(path.dirname(hooksTarget), { recursive: true });
+    writeFileSync(hooksTarget, JSON.stringify(hooks, null, 2) + '\n', 'utf8');
+    record('hooks:registration', 'FIXED', 'registered SessionStart RScan hook');
+  } else {
+    record('hooks:registration', 'SKIP', 'already registered');
+  }
+  repairHostMcpConfigs(record);
+  const sums = path.join(PACKAGE_ROOT, 'dist', 'SHA256SUMS');
+  if (existsSync(sums)) {
+    const python = findPython();
+    if (!python) record('dist:verify', 'FAIL', 'Python 3 unavailable for scripts/check-dist.py');
+    else {
+      const result = spawnSync(python.exe, [...python.pre, path.join(PACKAGE_ROOT, 'scripts', 'check-dist.py')], {
+        cwd: PACKAGE_ROOT, encoding: 'utf8', windowsHide: true
+      });
+      record('dist:verify', result.status === 0 ? 'PASS' : 'FAIL',
+             (result.stderr || result.stdout || 'scripts/check-dist.py failed').trim());
+    }
+  }
+  return fixes;
+}
+
+function runDoctor(jsonMode, fixMode = false) {
+  const fixes = fixMode ? applyDoctorFixes() : [];
   const report = doctorReport();
+  if (fixMode) report.fixes = fixes;
   if (jsonMode) console.log(JSON.stringify(report, null, 2));
   else {
     console.log(`RCoder doctor — ${report.version}`);
     for (const item of report.checks) console.log(`${item.status.padEnd(4)} ${item.id}: ${item.detail}`);
+    if (fixMode) {
+      console.log('\nRepairs:');
+      for (const item of fixes) console.log(`${item.status.padEnd(5)} ${item.id}: ${item.detail}`);
+    }
     console.log(`\n${report.ok ? 'Environment checks passed.' : 'Environment checks found failures.'}`);
   }
   return report.ok ? 0 : 1;
@@ -921,7 +1271,9 @@ async function runInteractive(options) {
 try {
   const options = parseArgs(process.argv.slice(2));
   if (options.command === 'doctor') {
-    process.exitCode = runDoctor(options.json);
+    process.exitCode = runDoctor(options.json, options.fix);
+  } else if (options.command === 'sync') {
+    process.exitCode = runSync(options.json);
   } else if (options.command === 'integration') {
     process.exitCode = runIntegration(options);
   } else if (options.command === 'skill') {

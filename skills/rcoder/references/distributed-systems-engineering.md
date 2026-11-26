@@ -60,3 +60,8 @@ Run failure injection, contract tests, replay/recovery tests, load tests, and co
 
 ## Output format
 Topology · failure model · consistency/delivery guarantees · recovery evidence · operational risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run failure injection, contract tests, replay/recovery tests, load tests, and consistency checks across replicas.
+- **Anti-Patterns**: Distributed locks without leases; retry storms without jitter
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

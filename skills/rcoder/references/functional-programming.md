@@ -60,3 +60,8 @@ Run formatter/type checker, unit/property tests, state-machine tests, and integr
 
 ## Output format
 State model · purity/effect boundaries · invariants · verification evidence.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run formatter/type checker, unit/property tests, state-machine tests, and integration tests for effect adapters.
+- **Anti-Patterns**: Deep point-free chains that obscure intent; swallowing errors in stream operators
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

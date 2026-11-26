@@ -61,3 +61,8 @@ Repeat targeted suites when flakiness is involved; run the narrow set first and 
 
 ## Output format
 Test strategy · risk coverage · deterministic controls · runtime · known gaps · exact results.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Repeat targeted suites when flakiness is involved; run the narrow set first and the documented gate second.
+- **Anti-Patterns**: One giant integration test for every case; mocking the unit under test
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

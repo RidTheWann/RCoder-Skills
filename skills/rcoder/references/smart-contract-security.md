@@ -62,3 +62,8 @@ Run pinned compiler tests, invariant/fuzz suites, static analysis, storage-layou
 
 ## Output format
 Chain/compiler/scope · assets and trust model · prioritized findings with evidence · invariant tests · remediation · residual risk.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run pinned compiler tests, invariant/fuzz suites, static analysis, storage-layout comparison, and authorized fork simulations; disclose untested chains and oracle states.
+- **Anti-Patterns**: Unbounded approvals without review; unprotected initializer
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

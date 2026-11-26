@@ -98,3 +98,8 @@ Re-run the capability probes after any host or agent upgrade. For performance cl
 
 ## Output format
 Profile selected and why · observed capabilities and unknowns · specialists loaded · delegation decisions · exact verification commands/results · evidence labels (VERIFIED / INFERRED / NOT VERIFIED) · residual risks · next action.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Re-run the capability probes after any host or agent upgrade.
+- **Anti-Patterns**: Hardcoding "this model needs short prompts" or "that model handles long documents" without a benchmark.; Treating a high reasoning setting as evidence of a capability.
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

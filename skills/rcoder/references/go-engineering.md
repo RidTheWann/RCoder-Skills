@@ -60,3 +60,8 @@ Run gofmt, go vet, go test ./..., race-enabled tests, target builds, and benchma
 
 ## Output format
 Module impact · concurrency ownership · cancellation · checks · race results · benchmark deltas.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run gofmt, go vet, go test ./..., race-enabled tests, target builds, and benchmarks for performance changes.
+- **Anti-Patterns**: `context.Background()` inside request handlers; swallowing errors with `_ =`
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

@@ -31,6 +31,8 @@ HOOK_TIMEOUT = 10
 PROFILES = ("standard", "strict")
 HANDLERS = ("guard", "stop-gate")
 DISABLE_ENV = "RCODER_HOOKS_DISABLE"
+STRICT_STOP_ENV = "RCODER_STRICT_STOP"
+POLICY_PATH = Path(".rcoder") / "policy.json"
 
 SECRET_NAME_RE = re.compile(
     r"(?i)(^\.env(\..*)?$|^id_(rsa|dsa|ecdsa|ed25519)(\.pub)?$|\.(pem|key|p12|pfx|jks|keystore|kdbx)$|"
@@ -376,6 +378,102 @@ def read_transcript_tail(path: str) -> list[dict]:
     return entries
 
 
+def _workspace_from_event(event: dict) -> Path:
+    for candidate in (event.get("cwd"), os.environ.get("CLAUDE_PROJECT_DIR")):
+        if isinstance(candidate, str) and candidate.strip():
+            path = Path(candidate).expanduser()
+            if path.is_dir():
+                return path.resolve()
+    return Path.cwd().resolve()
+
+
+def _policy(workspace: Path) -> dict:
+    path = workspace / POLICY_PATH
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _strict_stop_enabled(workspace: Path, policy: dict | None = None) -> bool:
+    environment = os.environ.get(STRICT_STOP_ENV, "").strip()
+    if environment == "1":
+        return True
+    if environment == "0":
+        return False
+    policy = policy if policy is not None else _policy(workspace)
+    return policy.get("strict_stop") is True or policy.get("stop_gate") == "strict"
+
+
+def _relative_claims(edited: list[str], workspace: Path) -> list[str]:
+    claims: list[str] = []
+    for item in edited:
+        path = Path(item).expanduser()
+        try:
+            resolved = path.resolve() if path.is_absolute() else (workspace / path).resolve()
+            claims.append(resolved.relative_to(workspace).as_posix())
+        except (OSError, ValueError):
+            continue
+    return claims
+
+
+def _last_verification_exit_code(entries: list[dict]) -> int | None:
+    commands: dict[str, str] = {}
+    last: int | None = None
+    for entry in entries:
+        for block in _blocks(entry):
+            if block.get("type") == "tool_use" and block.get("name") == "Bash":
+                payload = block.get("input") if isinstance(block.get("input"), dict) else {}
+                command = payload.get("command")
+                if isinstance(command, str) and CHECK_RE.search(command) and block.get("id"):
+                    commands[str(block["id"])] = command
+            elif block.get("type") == "tool_result":
+                tool_id = block.get("tool_use_id")
+                if not isinstance(tool_id, str) or tool_id not in commands:
+                    continue
+                content = block.get("content")
+                text = " ".join(
+                    part.get("text", "") for part in content if isinstance(part, dict)
+                ) if isinstance(content, list) else str(content or "")
+                if block.get("is_error") is True or re.search(r"(?i)\bexit code\s*[:=]?\s*[1-9]\d*\b", text):
+                    last = 1
+                else:
+                    last = 0
+    return last
+
+
+def evaluate_stop_gate(workspace: Path, state: dict) -> str | None:
+    """Opt-in strict stop gate; returns a block reason or ``None``."""
+    workspace = Path(workspace).resolve()
+    if not _strict_stop_enabled(workspace):
+        return None
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from rsaver_guard import crosscheck_git_drift
+    except ImportError:
+        return None
+
+    targets = [str(item) for item in state.get("target_files", []) if isinstance(item, str)]
+    claims = [str(item) for item in state.get("claimed_files", []) if isinstance(item, str)]
+    drift = crosscheck_git_drift(workspace, targets, claims)
+    problems: list[str] = []
+    if drift["untouched_targets"]:
+        problems.append("objective targets not modified: " + ", ".join(drift["untouched_targets"]))
+    if drift["unverified_claims"]:
+        problems.append("claimed edits absent from git status: " + ", ".join(drift["unverified_claims"]))
+    exit_code = state.get("last_verification_exit_code")
+    if isinstance(exit_code, int) and exit_code != 0:
+        problems.append(f"last recorded verification command exited {exit_code}")
+    if not problems:
+        return None
+    return (
+        "RCoder strict stop gate (RCODER_STRICT_STOP=1 or .rcoder/policy.json): "
+        + "; ".join(problems)
+        + ". Reconcile the objective, run the verification command, and retry the stop."
+    )
+
+
 def decide_stop(event: dict, entries: list[dict] | None = None) -> str | None:
     """Return a block reason, or ``None`` to let the session stop."""
     if event.get("stop_hook_active"):
@@ -410,6 +508,19 @@ def decide_stop(event: dict, entries: list[dict] | None = None) -> str | None:
                 "test, lint, or build command ran and no evidence labels were given. Run the narrowest relevant "
                 "check, or restate the result with VERIFIED, INFERRED, or NOT VERIFIED labels and the exact "
                 "commands that ran.")
+
+    workspace = _workspace_from_event(event)
+    policy = _policy(workspace)
+    if _strict_stop_enabled(workspace, policy):
+        targets = event.get("target_files") or policy.get("target_files") or []
+        state = {
+            "target_files": [item for item in targets if isinstance(item, str)],
+            "claimed_files": _relative_claims(edited, workspace),
+            "last_verification_exit_code": _last_verification_exit_code(entries),
+        }
+        reason = evaluate_stop_gate(workspace, state)
+        if reason:
+            return reason
     return None
 
 

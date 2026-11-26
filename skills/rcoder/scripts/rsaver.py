@@ -21,6 +21,12 @@ import zlib
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+try:  # Optional companion module; core RSaver commands remain standalone.
+    from rsaver_guard import ReversibleRedactor, compress_skeleton, crosscheck_git_drift
+except ImportError:  # pragma: no cover - packaging guard
+    ReversibleRedactor = compress_skeleton = crosscheck_git_drift = None
+
 VERSION = "1.11.0"
 PIECES = re.compile(r"[^\W\d_]+|\d+|[^\s\w]", re.UNICODE)
 DEFAULT_CRITICAL = (
@@ -314,14 +320,18 @@ def chars_over_four(text: str) -> int:
     return (len(text) + 3) // 4
 
 
+def normalize_lf(text: str) -> str:
+    return text.replace("\r\n", "\n")
+
+
 def read_lines(path: str) -> list[str]:
     if path == "-":
-        return sys.stdin.read().splitlines()
-    return Path(path).read_text(encoding="utf-8", errors="replace").splitlines()
+        return normalize_lf(sys.stdin.read()).splitlines()
+    return normalize_lf(Path(path).read_text(encoding="utf-8", errors="replace")).splitlines()
 
 
 def sha256_text(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return hashlib.sha256(normalize_lf(text).encode("utf-8")).hexdigest()
 
 
 def to_ranges(indices: set[int]) -> list[list[int]]:
@@ -541,7 +551,8 @@ BILLING_CAVEAT = (
 
 
 def command_pack(args: argparse.Namespace) -> int:
-    text = sys.stdin.read() if args.path == "-" else Path(args.path).read_text(encoding="utf-8", errors="replace")
+    text = normalize_lf(sys.stdin.read() if args.path == "-" else Path(args.path).read_text(
+        encoding="utf-8", errors="replace"))
     original_estimate = estimate_v2(text, args.profile)
     method = getattr(args, "method", "zlib")
     dictionary = {}
@@ -663,6 +674,29 @@ def command_crosscheck(args: argparse.Namespace) -> int:
         "status": "fail" if inconsistent else ("unverified" if not completion else "pass"),
         "evidence": completion,
     })
+    git_drift = None
+    if getattr(args, "workspace", None):
+        if crosscheck_git_drift is None:
+            raise ValueError("objective drift checking requires rsaver_guard.py next to rsaver.py")
+        git_drift = crosscheck_git_drift(
+            Path(args.workspace), list(args.target_file or []), list(args.claimed_file or []))
+        drift_evidence = [
+            {"file": item, "kind": "untouched_target"}
+            for item in git_drift["untouched_targets"]
+        ] + [
+            {"file": item, "kind": "unplanned_edit"}
+            for item in git_drift["unplanned_edits"]
+        ] + [
+            {"file": item, "kind": "unverified_claim"}
+            for item in git_drift["unverified_claims"]
+        ]
+        checks.append({
+            "id": "objective_drift",
+            "status": ("pass" if git_drift["status"] == "ALIGNED"
+                       else ("unverified" if not git_drift["git_available"] else "fail")),
+            "evidence": drift_evidence,
+            "detail": git_drift,
+        })
     usage = None
     if args.usage:
         raw = json.loads(Path(args.usage).read_text(encoding="utf-8"))
@@ -679,7 +713,7 @@ def command_crosscheck(args: argparse.Namespace) -> int:
     report = {
         "tool": "RSaver", "version": VERSION, "method": "deterministic_artifact_crosscheck",
         "verdict": verdict, "checks": checks, "usage": usage,
-        "billing_note": BILLING_CAVEAT,
+        "git_drift": git_drift, "billing_note": BILLING_CAVEAT,
         "evidence_pack": "\n".join(
             [f"objective: {expected.get('objective', 'not supplied')}", f"verdict: {verdict}"]
             + [f"{item['id']}: {item['status']}" for item in checks]
@@ -1300,7 +1334,7 @@ def audit_project(root: Path, profile: str, top: int, max_files: int, max_read_b
         except OSError:
             skipped["unreadable"] += 1
             continue
-        text = data.decode("utf-8", errors="replace")
+        text = normalize_lf(data.decode("utf-8", errors="replace"))
         sized_only = size > max_read_bytes
         tokens = (size + 3) // 4 if sized_only else estimate_v2(text, profile)
         category = audit_category(name, size, large_threshold_bytes)
@@ -1425,21 +1459,94 @@ def redact_text(text: str) -> tuple[str, dict]:
 
 def command_redact(args: argparse.Namespace) -> int:
     text = "\n".join(read_lines(args.path))
-    redacted, report = redact_text(text)
+    vault_out = getattr(args, "vault_out", None)
+    if getattr(args, "reversible", False) or vault_out:
+        if ReversibleRedactor is None:
+            raise ValueError("reversible redaction requires rsaver_guard.py next to rsaver.py")
+        redactor = ReversibleRedactor()
+        redacted, total = redactor.redact(text)
+        report = {"counts": dict(sorted(redactor.counts.items())), "total": total, "lines": []}
+        vault_path = None
+        if vault_out:
+            destination = Path(vault_out).expanduser().resolve()
+            destination.write_text(json.dumps(redactor.vault, indent=2, sort_keys=True) + "\n",
+                                   encoding="utf-8")
+            try:
+                os.chmod(destination, 0o600)
+            except OSError:
+                pass
+            vault_path = str(destination)
+        payload = {"tool": "RSaver", "version": VERSION, "command": "redact",
+                   "profile": args.profile, "redactions": report["counts"],
+                   "redaction_count": report["total"], "lines_with_redactions": report["lines"],
+                   "recoverable": vault_path is not None, "vault_out": vault_path,
+                   "note": ("Reversible placeholders use a deterministic token plus a session vault. "
+                            "The vault contains raw secrets: keep it out of Git and delete it after "
+                            "restore. Without --vault-out the mapping is memory-only.")}
+    else:
+        redacted, report = redact_text(text)
+        payload = {"tool": "RSaver", "version": VERSION, "command": "redact",
+                   "profile": args.profile, "redactions": report["counts"],
+                   "redaction_count": report["total"],
+                   "lines_with_redactions": report["lines"], "recoverable": False,
+                   "note": ("Pattern-based and best-effort: it can miss unusual secrets. Treat unredacted "
+                            "output as sensitive. Redaction is intentionally not recoverable.")}
     original_estimate = estimate_v2(text, args.profile)
     reduced_estimate = estimate_v2(redacted, args.profile)
-    payload = {"tool": "RSaver", "version": VERSION, "command": "redact", "profile": args.profile,
-               "redactions": report["counts"], "redaction_count": report["total"],
-               "lines_with_redactions": report["lines"],
-               "sizes": {"original_estimate": original_estimate, "redacted_estimate": reduced_estimate},
-               "recoverable": False,
-               "note": ("Pattern-based and best-effort: it can miss unusual secrets. Treat unredacted output "
-                        "as sensitive. Redaction is intentionally not recoverable.")}
+    payload["sizes"] = {"original_estimate": original_estimate,
+                        "redacted_estimate": reduced_estimate}
     if args.fail_on_found and report["total"]:
         emit(payload, args.json, redacted, "redact", "redacted_text")
         print(f"RSaver redact: {report['total']} potential secret(s) found", file=sys.stderr)
         return 1
+    if payload["recoverable"]:
+        print("RSaver redact: vault written with raw secrets; restrict access and delete after restore",
+              file=sys.stderr)
     return emit(payload, args.json, redacted, "redact", "redacted_text")
+
+
+def command_restore(args: argparse.Namespace) -> int:
+    if ReversibleRedactor is None:
+        raise ValueError("restore requires rsaver_guard.py next to rsaver.py")
+    vault = json.loads(Path(args.vault).read_text(encoding="utf-8"))
+    if not isinstance(vault, dict):
+        raise ValueError("vault must be a JSON object mapping placeholders to original values")
+    redactor = ReversibleRedactor.from_vault(vault)
+    text = sys.stdin.read() if args.path == "-" else Path(args.path).read_text(
+        encoding="utf-8", errors="replace")
+    restored = redactor.restore(text)
+    if args.out:
+        Path(args.out).write_text(restored, encoding="utf-8")
+        print(f"RSaver restore: wrote {len(restored)} characters to {args.out}")
+    elif args.json:
+        print(json.dumps({"text": restored, "restored": True}, sort_keys=True))
+    else:
+        print(restored)
+    return 0
+
+
+def command_skeleton(args: argparse.Namespace) -> int:
+    if compress_skeleton is None:
+        raise ValueError("skeleton requires rsaver_guard.py next to rsaver.py")
+    path = Path(args.path)
+    text = normalize_lf(sys.stdin.read() if args.path == "-" else path.read_text(
+        encoding="utf-8", errors="replace"))
+    suffix = ".py" if args.path == "-" else path.suffix
+    label = args.label or ("stdin" if args.path == "-" else path.name)
+    skeleton = compress_skeleton(text, label, suffix)
+    anchors = len(re.findall(r"(?m)^\s*L\d+(?:-L\d+)?:", skeleton))
+    payload = {"tool": "RSaver", "version": VERSION, "command": "skeleton",
+               "file": args.path, "suffix": suffix, "total_lines": text.count("\n") + 1,
+               "anchor_count": anchors, "estimate": {
+                   "original": estimate_v2(text, args.profile),
+                   "skeleton": estimate_v2(skeleton, args.profile)},
+               "lossy": True, "recoverable": "anchors point at exact original line ranges",
+               "skeleton": skeleton}
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(skeleton)
+    return 0
 
 
 # ----------------------------------------------------------------------- ledger
@@ -1591,6 +1698,11 @@ def build_parser() -> argparse.ArgumentParser:
     crosscheck.add_argument("--test-log", help="file containing test output")
     crosscheck.add_argument("--claim", help="file containing the model's completion claim")
     crosscheck.add_argument("--usage", help="file containing provider usage JSON")
+    crosscheck.add_argument("--workspace", help="Git workspace used for objective drift checking")
+    crosscheck.add_argument("--target-file", action="append", default=[],
+                            help="objective target path in the workspace (repeatable)")
+    crosscheck.add_argument("--claimed-file", action="append", default=[],
+                            help="file the agent claims to have edited (repeatable)")
     crosscheck.add_argument("--json", action="store_true")
     crosscheck.set_defaults(func=command_crosscheck)
 
@@ -1695,8 +1807,25 @@ def build_parser() -> argparse.ArgumentParser:
     redact.add_argument("path", help="file, or - for stdin")
     redact.add_argument("--profile", choices=sorted(PROFILES), default="generic")
     redact.add_argument("--fail-on-found", action="store_true", help="exit 1 when anything was redacted")
+    redact.add_argument("--reversible", action="store_true",
+                        help="use deterministic reversible placeholders backed by a session vault")
+    redact.add_argument("--vault-out", help="write the reversible redaction vault (raw secrets) to this path")
     redact.add_argument("--json", action="store_true")
     redact.set_defaults(func=command_redact)
+
+    restore = sub.add_parser("restore", help="restore text from a reversible redaction vault")
+    restore.add_argument("path", help="file, or - for stdin")
+    restore.add_argument("--vault", required=True, help="vault JSON written by redact --vault-out")
+    restore.add_argument("--out", help="write restored text to this file")
+    restore.add_argument("--json", action="store_true")
+    restore.set_defaults(func=command_restore)
+
+    skeleton = sub.add_parser("skeleton", help="emit an AST/brace-anchored code skeleton")
+    skeleton.add_argument("path", help="file, or - for stdin")
+    skeleton.add_argument("--label", help="file label shown in the skeleton header")
+    skeleton.add_argument("--profile", choices=sorted(PROFILES), default="generic")
+    skeleton.add_argument("--json", action="store_true")
+    skeleton.set_defaults(func=command_skeleton)
 
     ledger = sub.add_parser("ledger", help="record and report cumulative estimated savings in a JSON ledger")
     ledger.add_argument("action", choices=["record", "report"])

@@ -61,3 +61,8 @@ Use static analysis, focused tests, dependency scans, and manual path tracing. C
 
 ## Output format
 Prioritized findings with classification and confidence · evidence · impact · remediation · regression tests · residual risk.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Use static analysis, focused tests, dependency scans, and manual path tracing.
+- **Anti-Patterns**: Treating a clean scan as a clean review; assuming internal helpers are safe
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

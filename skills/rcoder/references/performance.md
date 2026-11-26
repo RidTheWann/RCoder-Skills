@@ -63,3 +63,8 @@ Repeat warm/cold samples; report tool settings, sample count, environment, and c
 
 ## Output format
 Metric/budget · baseline · bottleneck evidence · change · comparable result · trade-offs · residual risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Repeat warm/cold samples; report tool settings, sample count, environment, and comparable values.
+- **Anti-Patterns**: Premature caching, thread-spray concurrency, rewriting in a lower-level language without evidence, micro-optimizing while the algorithm is wrong, publishing a speedup without raw numbers and settings.
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

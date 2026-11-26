@@ -64,3 +64,8 @@ Lint workflow files, test scripts locally, inspect CI jobs/artifacts. Local synt
 
 ## Output format
 Pipeline changes · trust/permissions · reproducibility · local/CI evidence · rollback · residual risks.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Lint workflow files, test scripts locally, inspect CI jobs/artifacts.
+- **Anti-Patterns**: `continue-on-error` without justification; deploying from a PR branch
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

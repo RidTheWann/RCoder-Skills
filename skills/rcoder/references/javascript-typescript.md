@@ -60,3 +60,8 @@ Run formatter/lint, tsc, tests, package build, lockfile checks, and supported br
 
 ## Output format
 Runtime targets · type/API changes · dependency impact · async semantics · verification.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run formatter/lint, tsc, tests, package build, lockfile checks, and supported browser/runtime tests.
+- **Anti-Patterns**: `eval` on untrusted input; disabling strict mode
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

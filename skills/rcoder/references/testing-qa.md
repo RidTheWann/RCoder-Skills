@@ -61,3 +61,8 @@ Record exact command, exit code, count, runtime, and skipped suites. Inspect the
 
 ## Output format
 Acceptance matrix · test layers · added cases · commands/results · known gaps.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Record exact command, exit code, count, runtime, and skipped suites.
+- **Anti-Patterns**: Asserting log text instead of behavior; arbitrary sleeps
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

@@ -86,3 +86,8 @@ In scope: true/false | Confidence: low/medium/insufficient signal/n/a (out of sc
   - <module>: <evidence>
 Note: ...
 ```
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run `scripts/test-route-predict.py`, which scores canonical, expanded, and multilingual datasets plus negative rejection, determinism, and boundary regression, and report leave-one-out metrics.
+- **Anti-Patterns**: Treating the proposal as the final answer.; Claiming in-sample accuracy as generalization.
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> scripts/test-route-predict.py.

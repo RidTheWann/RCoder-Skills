@@ -60,3 +60,8 @@ Run unit/UI tests, static analysis, emulator/device matrix, release signing veri
 
 ## Output format
 Platform versions · lifecycle behavior · permissions · device matrix · build evidence · store readiness.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run unit/UI tests, static analysis, emulator/device matrix, release signing verification, and platform policy checks.
+- **Anti-Patterns**: Storing tokens in plain preferences; performing network calls on the main thread
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

@@ -78,3 +78,8 @@ Replay or inject a representative failure in a safe environment and assert the r
 
 ## Output format
 Journeys and SLIs · SLO targets with evidence · instrumentation and alert changes · cost and cardinality estimate · runbook and rollback status · tests run with observed results · residual gaps and items NOT VERIFIED.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Replay or inject a representative failure in a safe environment and assert the right alert fires within the target time with a usable runbook.
+- **Anti-Patterns**: Collecting everything and querying nothing.; Alert fatigue tolerated as normal.
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

@@ -103,7 +103,7 @@ CI validates static structure, packaging, and simulated file-system behavior. It
 ## RCoder 2.0 development branch — 2026-11-23
 
 **Branch:** `feat/rcoder-2.0-contract-adapters`  
-**Product version:** 1.14.0 (development compatibility version; not a 2.0 release)
+**Product version:** 1.15.0 (development compatibility version; not a 2.0 release)
 
 ### Implemented in this branch
 - [x] Shared `rcoder.v2` contract for protocol revisions, transports, pagination, structured results, inline Skills manifest, host adapters, and cross-file version parity.

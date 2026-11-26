@@ -61,3 +61,8 @@ Run clean and incremental builds, lockfile checks, reproducibility comparison, p
 
 ## Output format
 Graph/toolchain changes · artifact contents · provenance · reproducibility · build evidence · NOT VERIFIED platforms.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run clean and incremental builds, lockfile checks, reproducibility comparison, package inspection, signing/attestation checks, and the CI matrix.
+- **Anti-Patterns**: Global installs as build prerequisites; `latest` tags in reproducible builds
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

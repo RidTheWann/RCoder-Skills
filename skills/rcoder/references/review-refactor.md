@@ -62,3 +62,8 @@ Run unit/contract tests, static/type checks, and final diff inspection; compare 
 
 ## Output format
 Finding (severity/location/trigger/impact/evidence/recommendation) · scope · checks · uncertainty.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run unit/contract tests, static/type checks, and final diff inspection; compare public outputs/contracts for behavior-preserving work.
+- **Anti-Patterns**: Approving without running tests; rewriting for elegance without a measured benefit
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

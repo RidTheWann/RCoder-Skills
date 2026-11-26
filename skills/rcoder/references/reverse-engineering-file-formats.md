@@ -61,3 +61,8 @@ Run parser fuzzing, differential tests, round-trip checks, and cross-version fix
 
 ## Output format
 Format map · evidence samples and hashes · parser assumptions · malformed cases · confidence · unresolved fields.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run parser fuzzing, differential tests, round-trip checks, and cross-version fixture tests.
+- **Anti-Patterns**: Guessing checksums without controlled experiments; writing a parser before collecting samples
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

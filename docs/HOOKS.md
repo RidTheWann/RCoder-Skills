@@ -46,6 +46,10 @@ A denial returns `permissionDecision: "deny"` with a reason that tells the model
 
 The gate reads the tail of the session transcript (the last 256 KB) and blocks the stop only when all of these hold for the final turn: a code file (not `.md`, `.txt`, `.rst`, `.adoc`) was edited; the last assistant message claims completion; no test, lint, or build command ran; and the message contains none of `VERIFIED`, `INFERRED`, `NOT VERIFIED`, `UNVERIFIED`. The reason asks for the narrowest check or an evidence-labelled restatement. When Claude Code reports `stop_hook_active`, the gate always allows, so it can never loop.
 
+## Strict objective stop gate
+
+The default gate is heuristic and stays opt-in. Set `RCODER_STRICT_STOP=1` in the environment that launches the host, or add `.rcoder/policy.json` with `{"strict_stop": true, "target_files": ["path/to/required.py"]}` to enable a stricter objective check at `Stop` (and at `SubagentStop` if the host registers it). The strict gate cross-checks `git status --porcelain` against named objective targets and claimed edits. It blocks when a named target is untouched, a claimed edit is absent from git status, or the last recorded verification command exited nonzero. `RCODER_STRICT_STOP=0` overrides the policy file. The gate fails open when git is unavailable, so it is an evidence guard rather than a sandbox. Edit the missing target, correct the objective with operator confirmation, or rerun the real check before stopping again.
+
 ## Limits and evidence status
 
 - **Fail open.** Malformed events, oversize events (over 1 MB), an unreadable transcript, and internal errors allow the action and print nothing. A guard that wedged a session would be worse than a missed block.

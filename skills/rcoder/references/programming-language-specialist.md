@@ -56,3 +56,8 @@ Run the pinned compiler, formatter, linter, static analysis, unit/integration te
 
 ## Output format
 Language version · idioms chosen · compatibility risks · verification evidence.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run the pinned compiler, formatter, linter, static analysis, unit/integration tests, and target builds.
+- **Anti-Patterns**: Copying examples from a different language version; treating a linter pass as correctness
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

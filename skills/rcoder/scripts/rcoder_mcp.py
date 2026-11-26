@@ -94,6 +94,10 @@ def product_version() -> str:
 
 # --------------------------------------------------------------------------- paths
 
+class WorkspaceSecurityError(ToolError, ValueError):
+    """Raised when a path escapes the confined workspace root."""
+
+
 def is_sensitive(path: Path) -> bool:
     parts = [part for part in path.parts]
     if any(part in SECRET_DIRS for part in parts):
@@ -101,25 +105,38 @@ def is_sensitive(path: Path) -> bool:
     return bool(SECRET_NAME_RE.search(path.name))
 
 
-def resolve_in_root(raw: str, must_exist: bool = True) -> Path:
-    if not isinstance(raw, str) or not raw.strip() or "\x00" in raw:
-        raise ToolError("path must be a non-empty string without NUL bytes")
-    candidate = Path(raw)
-    if not candidate.is_absolute():
-        # Resolve relative paths against the active process working directory
-        # at call time when cwd is inside the server root; otherwise fall back
-        # to State.root so relative paths stay confined (e.g. test harness runs
-        # with cwd outside the temp root). Confinement against State.root still
-        # blocks traversal outside root.
-        cwd = Path.cwd()
-        root_real = Path(os.path.realpath(State.root))
+def resolve_workspace_path(workspace_root: Path, user_path: str) -> Path:
+    """Resolve ``user_path`` strictly inside ``workspace_root``, defeating symlinks and prefixes."""
+    if not isinstance(user_path, str) or not user_path.strip() or "\x00" in user_path:
+        raise WorkspaceSecurityError("path must be a non-empty string without NUL bytes")
+
+    root_resolved = Path(workspace_root).resolve(strict=False)
+    raw = Path(user_path)
+    if raw.is_absolute():
+        candidate = raw
+    else:
+        # Relative paths resolve against the process cwd when it is inside the
+        # server root (native host behavior), otherwise against the root itself.
+        cwd = Path.cwd().resolve(strict=False)
         try:
-            cwd.relative_to(root_real)
+            cwd.relative_to(root_resolved)
             base = cwd
         except ValueError:
-            base = State.root
-        candidate = base / candidate
-    real = Path(os.path.realpath(candidate))
+            base = root_resolved
+        candidate = base / raw
+
+    resolved = candidate.resolve(strict=False)
+    try:
+        resolved.relative_to(root_resolved)
+    except ValueError:
+        raise WorkspaceSecurityError(
+            f"path is outside the server root (--root); refusing: {user_path}"
+        )
+    return resolved
+
+
+def resolve_in_root(raw: str, must_exist: bool = True) -> Path:
+    real = resolve_workspace_path(State.root, raw)
     root = Path(os.path.realpath(State.root))
     try:
         relative = real.relative_to(root)
@@ -130,6 +147,26 @@ def resolve_in_root(raw: str, must_exist: bool = True) -> Path:
     if must_exist and not real.exists():
         raise ToolError("path does not exist inside the server root")
     return real
+
+
+def mcp_error_envelope(
+    code: str,
+    message: str,
+    recovery_hint: str,
+    valid_example: dict | None = None,
+) -> dict:
+    """Structured MCP error payload enabling autonomous model self-correction."""
+    payload = {
+        "ok": False,
+        "error": {
+            "code": code,
+            "message": message,
+            "recovery_hint": recovery_hint,
+        },
+    }
+    if valid_example is not None:
+        payload["error"]["valid_example"] = valid_example
+    return payload
 
 
 def clip(text: str, limit: int = MAX_OUTPUT_CHARS) -> str:
@@ -629,6 +666,213 @@ def tool_repo_map(args):
 
 # ------------------------------------------------------------------------- tools
 
+def tool_preflight(args):
+    """Single-round-trip session initializer combining RScan graph analysis and routing."""
+    from rcoder_memory import EpisodicLessonStore
+    from rscan_graph import analyze_repository_graph
+    from route_predict import propose
+
+    task = str(args["task"]).strip()
+    root = resolve_in_root(args.get("root", "."), must_exist=True)
+    if not root.is_dir():
+        root = root.parent
+    targets: list[str] = []
+    for item in args.get("target_files") or []:
+        resolved = resolve_workspace_path(root, item)
+        targets.append(resolved.relative_to(root).as_posix())
+    graph = analyze_repository_graph(root, token_budget=args.get("token_budget"))
+    routing = propose(task, set(reference_names()))
+    lessons = EpisodicLessonStore(root).recall(task, limit=3)
+    return {
+        "ok": True,
+        "tool": "rcoder_preflight",
+        "version": product_version(),
+        "root": str(root),
+        "objective": {
+            "task": task,
+            "target_files": targets,
+            "anchored": True,
+            "target_files_provided": bool(targets),
+        },
+        "scan": {
+            "budget_mode": graph["budget_mode"],
+            "token_budget": graph["token_budget"],
+            "summary": graph["summary"],
+            "hotspots": graph["hotspots"],
+            "cycles": graph["cycles"],
+            "risks": graph["risks"],
+        },
+        "routing": {
+            "primary": routing.get("primary"),
+            "proposed": routing.get("proposed", []),
+            "addendums": routing.get("addendums", []),
+            "route_mode": routing.get("route_mode"),
+            "confidence": routing.get("confidence"),
+            "evidence": routing.get("evidence", {}),
+        },
+        "memory": {"lessons": lessons, "count": len(lessons)},
+        "next_actions": [
+            "Confirm the objective and target files before editing.",
+            "Inspect the highest-score hotspot and any circular dependency before planning.",
+            "Load only the primary reference plus addendum verification sections.",
+        ],
+    }
+
+
+def _selected_root(args: dict) -> Path:
+    root = resolve_in_root(args.get("root", "."))
+    return root if root.is_dir() else root.parent
+
+
+def tool_read_symbol(args):
+    from rscan_graph import _walk_files
+    from rscan_index import IncrementalRepoIndex
+
+    symbol = str(args["symbol"]).strip()
+    if not symbol:
+        raise ToolError("symbol must be a non-empty string")
+    root = _selected_root(args)
+    max_lines = min(max(int(args.get("max_lines", 160)), 20), 400)
+    max_matches = min(max(int(args.get("max_matches", 3)), 1), 8)
+    index = IncrementalRepoIndex(root, db_path=":memory:")
+    stats = index.sync_files(_walk_files(root))
+    matches = index.find_symbol(symbol)
+    results = []
+    for match in matches[:max_matches]:
+        path = resolve_workspace_path(root, match["path"])
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        start = max(1, int(match["start_line"]))
+        end = min(len(lines), int(match["end_line"]))
+        imports = [line for line in lines[:40] if line.startswith(("import ", "from "))]
+        body = "\n".join(lines[start - 1:end])
+        snippet = clip(body, max_lines * 200)
+        results.append({
+            "path": match["path"],
+            "kind": match["kind"],
+            "name": match["name"],
+            "anchors": [f"L{start}-L{end}"],
+            "imports": imports[:20],
+            "snippet": snippet,
+            "omitted_chars_estimate": max(0, len("\n".join(lines)) - len(snippet)),
+        })
+    return {
+        "ok": True,
+        "tool": "rcoder_read_symbol",
+        "version": product_version(),
+        "root": str(root),
+        "symbol": symbol,
+        "index_stats": stats,
+        "match_count": len(matches),
+        "matches": results,
+        "next_actions": [] if results else ["Search a broader symbol fragment or use rcoder_scan to locate the module."],
+    }
+
+
+def tool_impact_test(args):
+    from platform_runtime import to_posix_rel
+    from rscan_graph import analyze_repository_graph
+    from rscan_index import compute_test_blast_radius
+
+    root = _selected_root(args)
+    changed: list[str] = []
+    for arguments in (["git", "diff", "--name-only"], ["git", "diff", "--cached", "--name-only"]):
+        try:
+            process = subprocess.run(
+                arguments, cwd=str(root), capture_output=True, text=True,
+                timeout=8, check=False,
+            )
+        except (OSError, subprocess.SubprocessError) as error:
+            raise ToolError(f"git diff unavailable: {error}") from error
+        if process.returncode != 0:
+            raise ToolError("git diff failed: " + (process.stderr or process.stdout).strip())
+        for line in process.stdout.splitlines():
+            normalized = to_posix_rel(line)
+            if normalized and not normalized.startswith("..") and normalized not in changed:
+                changed.append(normalized)
+    graph = analyze_repository_graph(root, token_budget=400)
+    adjacency = graph["adjacency"]
+    all_files = list(dict.fromkeys([
+        *adjacency.keys(),
+        *(target for targets in adjacency.values() for target in targets),
+    ]))
+    blast = compute_test_blast_radius(changed, adjacency, all_files)
+    tests = blast["recommended_tests"]
+    command = "python3 -m pytest -q" + (" " + " ".join(tests) if tests else "")
+    return {
+        "ok": True,
+        "tool": "rcoder_impact_test",
+        "version": product_version(),
+        "root": str(root),
+        "changed_files": changed,
+        "impacted_modules": blast["impacted_modules"],
+        "recommended_tests": tests,
+        "required_verification": command,
+        "note": "Run this command before the stop gate accepts completion.",
+    }
+
+
+def tool_recall(args):
+    from rcoder_memory import EpisodicLessonStore
+
+    query = str(args["query"]).strip()
+    if not query:
+        raise ToolError("query must be a non-empty string")
+    root = _selected_root(args)
+    limit = min(max(int(args.get("limit", 3)), 1), 10)
+    minimum = min(max(float(args.get("min_score", 0.12)), 0.0), 1.0)
+    lessons = EpisodicLessonStore(root).recall(query, limit=limit, min_score=minimum)
+    return {
+        "ok": True, "tool": "rcoder_recall", "version": product_version(),
+        "root": str(root), "query": query, "count": len(lessons), "lessons": lessons,
+    }
+
+
+def tool_learn(args):
+    from rcoder_memory import EpisodicLessonStore
+
+    root = _selected_root(args)
+    result = EpisodicLessonStore(root).record_lesson(
+        symptom=str(args["symptom"]),
+        root_cause=str(args["root_cause"]),
+        verified_fix=str(args["verified_fix"]),
+        related_files=args.get("related_files") or [],
+        tags=args.get("tags") or [],
+    )
+    return {"ok": True, "tool": "rcoder_learn", "version": product_version(),
+            "root": str(root), **result}
+
+
+def tool_handoff(args):
+    from rcoder_swarm import SwarmCoordinator
+
+    root = _selected_root(args)
+    coordinator = SwarmCoordinator(root)
+    capsule = coordinator.pack_handoff(
+        from_agent=str(args["from_agent"]),
+        to_agent=str(args["to_agent"]),
+        objective=str(args["objective"]),
+        target_files=args.get("target_files") or [],
+        verified_receipts=args.get("verified_receipts") or [],
+        notes=str(args.get("notes", "")),
+    )
+    return {
+        "ok": True, "tool": "rcoder_handoff", "version": product_version(),
+        "root": str(root), "capsule": capsule,
+        "signature_verified": SwarmCoordinator.verify_handoff(capsule),
+    }
+
+
+def tool_apply_verify(args):
+    from rsaver_sandbox import transactional_apply_and_verify
+
+    root = _selected_root(args)
+    verify_cmd = [str(item) for item in (args.get("verify_cmd") or [])]
+    timeout = min(max(int(args.get("timeout_sec", 60)), 1), 300)
+    result = transactional_apply_and_verify(root, args["edits"], verify_cmd or None, timeout)
+    return {"ok": bool(result.get("ok")), "tool": "rcoder_apply_verify",
+            "version": product_version(), "root": str(root), **result}
+
+
 def schema(properties, required=None):
     return {"type": "object", "properties": properties, "required": required or [],
             "additionalProperties": False}
@@ -637,6 +881,21 @@ def schema(properties, required=None):
 INT = {"type": "integer"}
 ROOT_PROP = {"type": "string", "description": "Directory inside the server root (default '.')."}
 PATH_PROP = {"type": "string", "description": "File inside the server root."}
+
+TOOL_ANNOTATIONS = {
+    "rcoder_preflight": {
+        "readOnlyHint": True, "destructiveHint": False,
+        "idempotentHint": True, "openWorldHint": False,
+    },
+    "rcoder_apply_verify": {
+        "readOnlyHint": False, "destructiveHint": False,
+        "idempotentHint": False, "openWorldHint": False,
+    },
+    "rcoder_learn": {
+        "readOnlyHint": False, "destructiveHint": False,
+        "idempotentHint": True, "openWorldHint": False,
+    },
+}
 
 TOOLS = [
     ("rcoder_scan", "RScan: ranked development options",
@@ -779,6 +1038,61 @@ TOOLS = [
     ("rsaver_ledger", "Report cumulative savings",
      "Read-only summary of a savings ledger written by the CLI (`rsaver ledger record`).",
      schema({"ledger": PATH_PROP}, ["ledger"]), tool_rsaver_ledger),
+    ("rcoder_preflight", "Session preflight in one call",
+     "Run token-budgeted dependency-graph analysis, anchor the objective, and select a primary specialist plus bounded addendums.",
+     schema({"task": {"type": "string", "minLength": 3, "maxLength": 20000},
+             "root": ROOT_PROP,
+             "token_budget": {**INT, "minimum": 400, "maximum": 16000},
+             "target_files": {"type": "array", "items": {"type": "string", "maxLength": 500},
+                              "maxItems": 50}},
+            ["task"]), tool_preflight),
+    ("rcoder_read_symbol", "Read one symbol slice",
+     "Find a symbol in the incremental index and return only its anchored slice plus imports, avoiding whole-file reads.",
+     schema({"symbol": {"type": "string", "minLength": 1, "maxLength": 200},
+             "root": ROOT_PROP,
+             "max_lines": {**INT, "minimum": 20, "maximum": 400},
+             "max_matches": {**INT, "minimum": 1, "maximum": 8}}, ["symbol"]),
+     tool_read_symbol),
+    ("rcoder_impact_test", "Compute test blast radius",
+     "Read the git diff, compute transitive reverse dependencies, and recommend the narrowest test files to run before stopping.",
+     schema({"root": ROOT_PROP}), tool_impact_test),
+    ("rcoder_recall", "Recall verified lessons",
+     "Search repo-local episodic memory for a symptom or error and return previously verified root causes and fixes.",
+     schema({"query": {"type": "string", "minLength": 1, "maxLength": 2000}, "root": ROOT_PROP,
+             "limit": {**INT, "minimum": 1, "maximum": 10},
+             "min_score": {"type": "number"}}, ["query"]), tool_recall),
+    ("rcoder_learn", "Record a verified lesson",
+     "Append a sanitized symptom, root cause, and verified fix to repo-local episodic memory for future sessions.",
+     schema({"symptom": {"type": "string", "minLength": 1, "maxLength": 4000},
+             "root_cause": {"type": "string", "minLength": 1, "maxLength": 4000},
+             "verified_fix": {"type": "string", "minLength": 1, "maxLength": 4000},
+             "related_files": {"type": "array", "items": {"type": "string", "maxLength": 500},
+                               "maxItems": 50},
+             "tags": {"type": "array", "items": {"type": "string", "maxLength": 60},
+                      "maxItems": 20},
+             "root": ROOT_PROP}, ["symptom", "root_cause", "verified_fix"]), tool_learn),
+    ("rcoder_handoff", "Sign a swarm handoff",
+     "Build a canonical POSIX-path handoff capsule with a SHA-256 signature for verification by the receiving subagent.",
+     schema({"from_agent": {"type": "string", "minLength": 1, "maxLength": 100},
+             "to_agent": {"type": "string", "minLength": 1, "maxLength": 100},
+             "objective": {"type": "string", "minLength": 1, "maxLength": 4000},
+             "target_files": {"type": "array", "items": {"type": "string", "maxLength": 500},
+                              "maxItems": 50},
+             "verified_receipts": {"type": "array", "items": {"type": "string", "maxLength": 500},
+                                   "maxItems": 50},
+             "notes": {"type": "string", "maxLength": 4000}, "root": ROOT_PROP},
+            ["from_agent", "to_agent", "objective"]), tool_handoff),
+    ("rcoder_apply_verify", "Apply and verify edits atomically",
+     "Apply exact-match multi-file edits, run the verification command, and roll back every file on syntax or test failure.",
+     schema({"edits": {"type": "array", "minItems": 1, "maxItems": 50,
+                       "items": schema({"path": {"type": "string", "minLength": 1, "maxLength": 500},
+                                        "old_text": {"type": "string", "maxLength": 200000},
+                                        "new_text": {"type": "string", "maxLength": 200000}},
+                                       ["path", "old_text", "new_text"])},
+             "verify_cmd": {"type": "array", "items": {"type": "string", "maxLength": 500},
+                            "maxItems": 32},
+             "timeout_sec": {**INT, "minimum": 1, "maximum": 300}, "root": ROOT_PROP},
+            ["edits"]), tool_apply_verify),
 ]
 TOOL_INDEX = {item[0]: item for item in TOOLS}
 
@@ -816,6 +1130,13 @@ def validate(spec, value, label="arguments"):
             errors.append(f"{label} must be >= {spec['minimum']}")
         if "maximum" in spec and value > spec["maximum"]:
             errors.append(f"{label} must be <= {spec['maximum']}")
+    elif kind == "number":
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return [f"{label} must be a number"]
+        if "minimum" in spec and value < spec["minimum"]:
+            errors.append(f"{label} must be >= {spec['minimum']}")
+        if "maximum" in spec and value > spec["maximum"]:
+            errors.append(f"{label} must be <= {spec['maximum']}")
     elif kind == "array":
         if not isinstance(value, list):
             return [f"{label} must be an array"]
@@ -832,12 +1153,34 @@ def call_tool(name, arguments):
         raise KeyError(name)
     problems = validate(entry[3], arguments if arguments is not None else {})
     if problems:
-        return {"content": [{"type": "text", "text": "Invalid arguments: " + "; ".join(problems)}],
-                "isError": True}
+        message = "Invalid arguments: " + "; ".join(problems)
+        envelope = mcp_error_envelope(
+            "INVALID_ARGUMENTS", message,
+            ("Call tools/list, then retry with only the declared properties and required fields. "
+             f"Tool: {name}."),
+        )
+        result = {
+            "content": [{"type": "text", "text": message + "\nRecovery: " + envelope["error"]["recovery_hint"]}],
+            "isError": True,
+        }
+        if State.protocol >= "2025-06-18":
+            result["structuredContent"] = envelope
+        return result
     try:
         payload = entry[4](arguments or {})
     except ToolError as error:
-        return {"content": [{"type": "text", "text": str(error)}], "isError": True}
+        envelope = mcp_error_envelope(
+            "TOOL_ERROR", str(error),
+            ("Verify the path is inside the server --root, exists when required, and is not a "
+             "credential or VCS-internal file; then retry the same tool."),
+        )
+        result = {
+            "content": [{"type": "text", "text": str(error) + "\nRecovery: " + envelope["error"]["recovery_hint"]}],
+            "isError": True,
+        }
+        if State.protocol >= "2025-06-18":
+            result["structuredContent"] = envelope
+        return result
     text = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     bounded = len(text) <= MAX_OUTPUT_CHARS + 4000
     result = {"content": [{"type": "text", "text": text if bounded else clip(text)}]}
@@ -1107,9 +1450,11 @@ def handle(method: str, params: dict):
     if method == "tools/list":
         tools = []
         for name, title, description, input_schema, _ in visible_tools():
+            annotations = {"readOnlyHint": True, "destructiveHint": False,
+                           "idempotentHint": True, "openWorldHint": False}
+            annotations.update(TOOL_ANNOTATIONS.get(name, {}))
             tool = {"name": name, "description": description, "inputSchema": input_schema,
-                    "annotations": {"readOnlyHint": True, "destructiveHint": False,
-                                    "idempotentHint": True, "openWorldHint": False}}
+                    "annotations": annotations}
             if State.protocol >= "2025-06-18":
                 tool["title"] = title
             tools.append(tool)

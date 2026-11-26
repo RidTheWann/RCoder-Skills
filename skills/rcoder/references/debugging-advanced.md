@@ -61,3 +61,8 @@ Record baseline, exact experiment commands, before/after signals, regression res
 
 ## Output format
 Timeline · hypotheses · evidence · root-cause confidence · fix · tests · residual risks · unresolved observations.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Record baseline, exact experiment commands, before/after signals, regression result, and untested conditions.
+- **Anti-Patterns**: Restarting as a diagnostic without preserving state; editing production behavior during an incident without approval
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.

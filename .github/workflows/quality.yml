@@ -14,13 +14,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          eol: lf
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Static validation
         run: python scripts/validate-all
       - name: Context snapshot regression
@@ -97,6 +102,14 @@ jobs:
           node --check "$RUNNER_TEMP/rcoder-plugin.mjs"
       - name: Node installer and terminal launcher simulations
         run: node scripts/test-node-installer.mjs
+      - name: Cross-platform parity verifier
+        run: python scripts/verify-parity.py
+      - name: Phase 2 cross-platform synchronization tests
+        run: python scripts/test-cross-platform.py -v
+      - name: Phase 1 upgrade regression tests
+        run: python scripts/test-v2-upgrades.py -v
+      - name: Phase 3 autonomous execution tests
+        run: python scripts/test-autonomous-v3.py -v
       - name: Verify npm package contents
         run: npm pack --dry-run --json
       - name: POSIX installer simulations

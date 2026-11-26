@@ -62,3 +62,8 @@ Run only approved tests inside scope; preserve evidence; retest fixes safely; re
 
 ## Output format
 Scope and authorization · methodology · findings with classification/confidence · evidence · impact · remediation · retest status · residual risk.
+
+## Executable Verification & Failure Diagnostics
+- **Verify**: Run only approved tests inside scope; preserve evidence; retest fixes safely; report untested areas and limitations with exact commands and observed results.
+- **Anti-Patterns**: Credential spraying, social engineering, denial-of-service testing, installing persistence, accessing unrelated tenants, or publishing raw sensitive captures without explicit approval.
+- **Failure Diagnostics**: A failing or ambiguous Verify result -> the first failing assertion or error line is the root cause, not the completion summary -> rerun the narrowest check named in Verify and inspect its first failing assertion.
