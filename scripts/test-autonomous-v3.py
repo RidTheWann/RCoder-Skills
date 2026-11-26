@@ -344,6 +344,152 @@ class TestV3Architecture(unittest.TestCase):
                          blocked["structuredContent"]["elicitation"]["method"])
 
 
+
+class TestCodexConnectorRegressions(unittest.TestCase):
+    def test_sudo_no_argument_flags_and_exclusion_only_pathspecs_are_denied(self) -> None:
+        for command in (
+            "sudo -P rm -rf /",
+            "sudo --preserve-env rm -rf /",
+            "git add -A ':!secret'",
+            "git add ':!secret'",
+        ):
+            decision = rcoder_hooks.decide_tool(
+                {"tool_name": "Bash", "tool_input": {"command": command}}
+            )
+            self.assertEqual("deny", decision[0], command)
+        opencode = rcoder_hooks.decide_tool(
+            {"tool": "read", "output": {"args": {"filePath": ".env"}}}
+        )
+        self.assertIsNotNone(opencode)
+        self.assertEqual("deny", opencode[0])
+
+    def test_unquoted_secret_assignments_are_redacted(self) -> None:
+        self.assertEqual(
+            "API_KEY=[REDACTED_SECRET]",
+            _sanitize("API_KEY=supersecret123"),
+        )
+        self.assertEqual(
+            "password=[REDACTED_SECRET]",
+            _sanitize("password=anothersecret456"),
+        )
+
+    def test_impact_test_does_not_fabricate_missing_js_test_script(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = Path(temporary)
+            (workspace / "package.json").write_text(
+                '{"scripts":{},"devDependencies":{}}', encoding="utf-8"
+            )
+            self.assertIsNone(
+                rcoder_mcp._detected_test_command(workspace, ["src/a.test.ts"])
+            )
+            (workspace / "package.json").write_text(
+                '{"scripts":{},"devDependencies":{"vitest":"^3"}}', encoding="utf-8"
+            )
+            self.assertEqual(
+                "npx --no-install vitest run",
+                rcoder_mcp._detected_test_command(workspace, []),
+            )
+
+    def test_nested_rust_symbols_are_indexed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = Path(temporary)
+            source = workspace / "nested.rs"
+            source.write_text(
+                "mod inner {\n    pub struct NestedType;\n"
+                "    impl NestedType {\n        pub fn inner_method(&self) {}\n    }\n}\n",
+                encoding="utf-8",
+            )
+            index = IncrementalRepoIndex(workspace)
+            index.sync_files(["nested.rs"])
+            self.assertEqual("nested.rs", index.find_symbol("NestedType")[0]["path"])
+            self.assertEqual("nested.rs", index.find_symbol("inner_method")[0]["path"])
+
+    def test_rcoder_learn_writes_to_fts5_memory(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = Path(temporary)
+            previous = rcoder_mcp.State.root
+            try:
+                rcoder_mcp.State.root = workspace
+                result = rcoder_mcp.tool_learn({
+                    "root": str(workspace),
+                    "symptom": "FTS5 lesson integration regression",
+                    "root_cause": "normal MCP learning used only the JSONL ledger",
+                    "verified_fix": "write the verified lesson to the shared FTS5 store",
+                    "related_files": ["src/memory.py"],
+                    "tags": ["memory", "mcp"],
+                })
+                self.assertTrue(result["ok"])
+                hits = RCoderMemoryStore(workspace).recall_for_context(
+                    "FTS5 lesson integration"
+                )
+                self.assertTrue(hits)
+                self.assertEqual("FTS5 lesson integration regression", hits[0]["title"])
+            finally:
+                rcoder_mcp.State.root = previous
+
+    def test_concurrent_claims_are_serialized_by_persistent_lock(self) -> None:
+        import threading
+        from concurrent.futures import ThreadPoolExecutor
+
+        with tempfile.TemporaryDirectory() as temporary:
+            swarm = SwarmCoordinator(Path(temporary))
+            barrier = threading.Barrier(2)
+
+            def claim(agent: str):
+                barrier.wait(timeout=5)
+                return swarm.claim_files(agent, ["shared/concurrent.py"])
+
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                results = list(pool.map(claim, ["agent-a", "agent-b"]))
+            self.assertEqual(1, sum(1 for result in results if result["granted"]))
+            self.assertTrue(swarm.leases_path.with_suffix(".lock").exists())
+
+    def test_worktree_diff_includes_untracked_file_contents(self) -> None:
+        from rcoder_swarm import WorktreeManager
+
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary) / "repo"
+            repo.mkdir()
+            subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+            (repo / "tracked.txt").write_text("baseline\n", encoding="utf-8")
+            subprocess.run(["git", "add", "tracked.txt"], cwd=repo, check=True)
+            subprocess.run(
+                ["git", "-c", "user.email=test@example.invalid", "-c", "user.name=Test",
+                 "commit", "-qm", "initial"],
+                cwd=repo, check=True,
+            )
+            (repo / "new_worker.py").write_text(
+                "print('new worker survives')\n", encoding="utf-8"
+            )
+            manager = WorktreeManager(repo, repo.parent / "scratch")
+            diff = manager.collect_diff(repo)
+            self.assertIn("new_worker.py", diff)
+            self.assertIn("+print('new worker survives')", diff)
+            status = subprocess.run(
+                ["git", "status", "--porcelain"], cwd=repo,
+                capture_output=True, text=True, check=True,
+            ).stdout
+            self.assertIn("?? new_worker.py", status)
+
+    def test_supplied_verifier_is_ordered_after_all_work(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            swarm = RCoderSwarm(Path(temporary))
+            tasks = [
+                SwarmTask("work-a", "rcoder-debugger", "change A"),
+                SwarmTask("work-b", "rcoder-debugger", "change B"),
+                SwarmTask("verify", "rcoder-verifier", "verify both"),
+            ]
+            result = swarm.execute(tasks, lambda task, root, context: {"ok": True})
+            self.assertEqual(2, result["waves"])
+            self.assertEqual(["work-a", "work-b"], tasks[2].depends_on)
+
+    def test_user_scope_mcp_repair_keeps_active_project_root(self) -> None:
+        source = (ROOT / "scripts" / "rcoder.mjs").read_text(encoding="utf-8")
+        self.assertIn("path.join(PACKAGE_ROOT, 'launcher', 'rcoder-mcp.mjs')", source)
+        self.assertIn("delete entry.cwd", source)
+        self.assertNotIn("'--root', PACKAGE_ROOT", source)
+
+
 def rcoder_swarm_source() -> str:
     return (SCRIPTS / "rcoder_swarm.py").read_text(encoding="utf-8")
 
