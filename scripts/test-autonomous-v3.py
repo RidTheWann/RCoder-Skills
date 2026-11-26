@@ -98,7 +98,8 @@ class TestAutonomousPhase3(unittest.TestCase):
             lower = workspace / "auth.py"
             upper.write_text("a=1\n", encoding="utf-8")
             lower.write_text("a=2\n", encoding="utf-8")
-            case_sensitive_filesystem = upper.resolve() != lower.resolve()
+            case_sensitive_filesystem = upper.read_text(encoding="utf-8") == "a=1\n" and \
+                lower.read_text(encoding="utf-8") == "a=2\n"
             (workspace / "mcp.json").write_text(
                 r'{"command": "C:\\Python\\python.exe"}', encoding="utf-8"
             )
