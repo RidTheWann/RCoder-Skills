@@ -66,6 +66,28 @@ Install for a specific host and user scope:
 
 To inspect or configure MCP integration, append `-Mcp show` or `-Mcp install`.
 
+### Linux, macOS, WSL, and Termux (POSIX shell)
+
+From a local clone of RCoder-Skills, use the repository-root entrypoint:
+
+```sh
+git clone https://github.com/RidTheWann/RCoder-Skills.git
+cd RCoder-Skills
+sh ./install.sh --target codex --scope project
+```
+
+For Claude Code or Gemini CLI, short aliases are also accepted:
+
+```sh
+sh ./install.sh --host claude --scope user
+sh ./install.sh --host gemini --scope project
+```
+
+The root `install.sh` is a stable thin entrypoint that delegates to the canonical `scripts/install.sh`. Standard POSIX skill installation does not require Node.js. Use `--dry-run` to preview, `--uninstall` to restore the previous skill, `--yes` for automation-compatible invocation, or `--mcp show|install` to inspect/apply MCP configuration. `--host all` is intentionally rejected because the installer targets one host per invocation; use `--target agents` for the generic Agent Skills location.
+
+Run `sh ./install.sh --doctor` to run the CLI doctor. This diagnostic path requires Node.js 18.18 or newer; standard skill installation does not.
+
+
 ### Node.js / npm — Windows, Linux, macOS
 
 Requires Node.js 18.18+, npm, and Git:
