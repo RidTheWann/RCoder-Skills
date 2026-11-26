@@ -211,7 +211,9 @@ rcoder integration verify opencode --scope project
 # Diagnostics
 rcoder doctor --json
 rcoder doctor --fix
-python3 scripts/verify-parity.py
+python3 scripts/sync_plugins.py
+python3 scripts/verify_parity.py
+python3 scripts/check-dist.py
 
 # Agent Skill lifecycle
 rcoder skill new custom-domain --description "Guidance for custom domain workflows."
@@ -225,7 +227,7 @@ rcoder hooks uninstall --scope project
 rcoder hooks print-config
 ```
 
-The CLI-managed `guard` and `stop-gate` handlers are opt-in; installing the skill or plugin does not enable them. The Claude Code plugin separately bundles a read-only RScan `SessionStart` hook in `hooks/hooks.json`, which runs when the plugin is active. See [docs/HOOKS.md](docs/HOOKS.md) and [docs/MCP.md](docs/MCP.md) for the distinction before enabling additional hooks.
+When the Claude Code plugin is active, it runs the shared credential and destructive-command guard before tools, scans tool results for token-shaped secrets, and adds a short reminder before compaction. Its read-only RScan `SessionStart` hook remains enabled. Gemini CLI uses a different settings schema; install its shared before/after tool hooks explicitly with `rcoder hooks install --host gemini-cli`. Gemini CLI has no documented equivalent to Claude's `PreCompact` event. The `Stop` completion gate remains an explicit opt-in. See [docs/HOOKS.md](docs/HOOKS.md) for the host mappings and limits.
 
 ---
 

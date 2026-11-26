@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Self-test for the opt-in RCoder hook handlers (guard, stop-gate, settings merge)."""
+"""Self-test for RCoder lifecycle hooks (guard, cross-host output, compaction, settings merge)."""
 import importlib.util
 import json
 import os
@@ -96,6 +96,27 @@ payload = json.loads(denied.stdout)["hookSpecificOutput"]
 check(payload["hookEventName"] == "PreToolUse" and payload["permissionDecision"] == "deny", "deny payload shape")
 check("RCoder guard" in payload["permissionDecisionReason"] and ".env.example" in payload["permissionDecisionReason"],
       "deny reason must explain and offer an alternative")
+gemini_denied = run(["guard"], json.dumps({"hook_event_name": "BeforeTool", "tool_name": "read_file",
+                                         "tool_input": {"absolute_path": ".env"}}))
+gemini_payload = json.loads(gemini_denied.stdout)
+check(gemini_payload["decision"] == "deny" and "credential" in gemini_payload["reason"],
+      "Gemini BeforeTool must use its documented top-level deny contract")
+gemini_ask_command = next(command for command in CASES["ask"] if "push" in command)
+gemini_ask = run(["guard"], json.dumps({"hook_event_name": "BeforeTool", "tool_name": "run_shell_command",
+                                       "tool_input": {"command": gemini_ask_command}}))
+check(json.loads(gemini_ask.stdout)["decision"] == "deny"
+      and "review and approve" in json.loads(gemini_ask.stdout)["reason"],
+      "Gemini has no documented permission prompt; ask decisions must fail closed with a user-review reason")
+secret_warning = run(["post-tool"], json.dumps({"hook_event_name": "AfterTool",
+                                               "tool_response": "ghp_" + "A" * 36}))
+secret_output = json.loads(secret_warning.stdout)
+check(secret_output["hookSpecificOutput"]["additionalContext"].startswith("[RCoder Hook]"),
+      "Gemini AfterTool secret warning must use hookSpecificOutput.additionalContext")
+check("hookEventName" not in secret_output["hookSpecificOutput"],
+      "Gemini output must not contain the Claude-only hookEventName field")
+compact = run(["pre-compact"], json.dumps({"hook_event_name": "PreCompact"}))
+check("preserve the current objective" in compact.stdout and len(compact.stdout) < 10_000,
+      "PreCompact writes a bounded instruction string understood by Claude")
 asked = run(["guard", "--profile", "strict"], json.dumps({"tool_name": "Bash", "tool_input": {"command": "sudo ls"}}))
 check(json.loads(asked.stdout)["hookSpecificOutput"]["permissionDecision"] == "ask", "ask payload shape")
 for hostile in ("", "not json", "[]", "null", '{"tool_name": 5, "tool_input": []}', '{"tool_name": "Bash"}',
@@ -191,7 +212,8 @@ with tempfile.TemporaryDirectory() as tmp:
     project.mkdir()
     snippet = run(["print-config"])
     config = json.loads(snippet.stdout)["hooks"]
-    check(set(config) == {"PreToolUse", "Stop"}, "print-config covers both handlers")
+    check(set(config) == {"PreToolUse", "PostToolUse", "PreCompact", "Stop"},
+          "Claude print-config covers every supported lifecycle handler")
     command = config["PreToolUse"][0]["hooks"][0]["command"]
     check(sys.executable in command and "rcoder_hooks.py" in command and command.endswith("guard"),
           "print-config uses the absolute interpreter and script")
@@ -199,6 +221,13 @@ with tempfile.TemporaryDirectory() as tmp:
           ["hooks"][0]["command"].endswith("guard --profile strict"), "profile and --only are honored")
     check(run(["print-config", "--host", "cursor"]).returncode == 2, "unsupported hosts are refused")
     check(run(["print-config", "--only", "nope"]).returncode == 2, "unknown handler names are refused")
+    gemini_config = json.loads(run(["print-config", "--host", "gemini-cli"]).stdout)["hooks"]
+    check(set(gemini_config) == {"BeforeTool", "AfterTool"},
+          "Gemini config maps the shared guard and post-tool warning to its event names")
+    check(gemini_config["BeforeTool"][0]["hooks"][0]["timeout"] == hooks.HOOK_TIMEOUT * 1000,
+          "Gemini hook timeout uses milliseconds")
+    check(run(["print-config", "--host", "gemini-cli", "--only", "pre-compact"]).returncode == 2,
+          "undocumented Gemini compaction event is not advertised")
 
     dry = run(["install", "--root", str(project), "--dry-run"])
     check(dry.returncode == 0 and "dry run" in dry.stdout and not (project / ".claude").exists(),
@@ -247,6 +276,17 @@ with tempfile.TemporaryDirectory() as tmp:
     check(user_scope.returncode == 0 and "Stop" in json.loads((home / ".claude" / "settings.json").read_text())["hooks"],
           "user scope writes under the chosen home")
 
+    gemini_install = run(["install", "--host", "gemini-cli", "--root", str(project)])
+    gemini_settings = project / ".gemini" / "settings.json"
+    check(gemini_install.returncode == 0 and gemini_settings.is_file(),
+          "Gemini settings are installed under the host-specific project path")
+    gemini_hooks = json.loads(gemini_settings.read_text(encoding="utf-8"))["hooks"]
+    check(set(gemini_hooks) == {"BeforeTool", "AfterTool"},
+          "Gemini install writes only documented tool lifecycle events")
+    gemini_remove = run(["uninstall", "--host", "gemini-cli", "--root", str(project)])
+    check(gemini_remove.returncode == 0 and "hooks" not in json.loads(gemini_settings.read_text(encoding="utf-8")),
+          "Gemini uninstall removes RCoder entries")
+
     try:
         linked = Path(tmp) / "linked"
         (linked / ".claude").mkdir(parents=True)
@@ -275,7 +315,12 @@ for node in ast.walk(tree):
         check(not any(kw.arg == "shell" for kw in node.keywords), "rcoder_hooks.py must not pass shell=")
 check(not imported & {"subprocess", "socket", "ssl", "urllib", "http", "requests", "asyncio", "ctypes", "pickle"},
       f"rcoder_hooks.py imports a forbidden module: {sorted(imported)}")
-check(not (ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8").count("rcoder_hooks"),
-      "the bundled plugin hook file must not enable the opt-in handlers (D-019, D-021)")
+bundle_hooks = json.loads((ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
+check(set(bundle_hooks) == {"SessionStart", "PreToolUse", "PostToolUse", "PreCompact"},
+      "the bundled hook manifest enables the reviewed SessionStart and lifecycle handlers")
+check("rcoder_hooks.py\" guard" in bundle_hooks["PreToolUse"][0]["hooks"][0]["command"]
+      and "rcoder_hooks.py\" post-tool" in bundle_hooks["PostToolUse"][0]["hooks"][0]["command"]
+      and "rcoder_hooks.py\" pre-compact" in bundle_hooks["PreCompact"][0]["hooks"][0]["command"],
+      "all bundled lifecycle entries call the full canonical skill handler")
 
 print(f"rcoder_hooks: {CHECKS} checks passed")

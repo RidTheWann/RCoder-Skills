@@ -59,10 +59,10 @@
 - Decision: do not ship an auto-firing `SessionStart` hook with the plugin. Automatic RScan stays opt-in through `rscan hooks install`.
 - Rationale: an always-on hook changes behavior and token use for every session and runs a command with the user's permissions. `scripts/validate-all` rejects a `hooks/` directory so a change of this decision is deliberate.
 
-## D-019 — Bundled read-only SessionStart hook
-- Decision: the Claude Code plugin ships `hooks/hooks.json` with one `SessionStart` (matcher `startup`) hook that runs the bundled `rscan.py scan --hook claude`. Authorized explicitly by the repository owner on 2026-11-23, superseding D-017.
-- Rationale: the scan is read-only, bounded (about 1.6 KB of context, 15 s timeout), and gives every session a ranked menu of next steps without a manual call.
-- Limits: `scripts/validate-all` allows only this one event and command shape; blocking or tool-event hooks (`PreToolUse`, `PostToolUse`, `Stop`) and network or destructive programs stay forbidden. Cost: roughly 400 tokens per session start. Disable by disabling the plugin or via `/hooks`. Do not also run `rscan hooks install` for Claude Code, or the menu is injected twice.
+## D-019 — Bundled local Claude lifecycle hooks
+- Decision: the Claude Code plugin's `hooks/hooks.json` includes a read-only `SessionStart` RScan, a credential/destructive-command `PreToolUse` guard, a token-shaped-secret `PostToolUse` warning, and a `PreCompact` context reminder. This revision was explicitly requested by the repository owner on 2026-11-26 and supersedes the SessionStart-only limit below.
+- Rationale: use the same local policy logic as OpenCode at tool boundaries and preserve task state at compaction without network access or subprocesses.
+- Limits: hooks execute with the user's permissions whenever the plugin is active. The guard is lexical, not a sandbox. The default hook configuration does not enable the transcript-based `Stop` completion gate. Disable the plugin or its hooks to stop automatic behavior. Native host activation remains NOT VERIFIED.
 
 ## D-018 — Least-privilege subagents and unapproved commands
 - Decision: plugin subagents are never granted file-editing tools, the security reviewer has no shell, and slash commands do not pre-approve tools. `scripts/validate-all` enforces this.
@@ -73,11 +73,11 @@
 - Consequence: resources, tools, and prompts must apply project-local overrides identically; `scripts/test-mcp.py` asserts that parity.
 - Note: this entry was previously numbered D-019 a second time; it was renumbered because D-019 is the bundled SessionStart hook decision that other files cite.
 
-## D-021 — Opt-in guard and completion-gate hooks
-- Decision: ship `skills/rcoder/scripts/rcoder_hooks.py`, a standard-library handler for a `PreToolUse` guard and a `Stop` completion gate, that the user enables explicitly with `rcoder_hooks.py install` or by pasting `print-config` output. The bundled `hooks/hooks.json` stays SessionStart-only, so D-019 and its validator rule are unchanged.
-- Rationale: tool-event hooks can block work and run on every tool call, so they must be a deliberate user choice rather than a plugin default. Opt-in delivers the capability (refusing credential reads and staging, catastrophic commands, unreviewed force pushes and remote-script execution, and unevidenced completion claims) without changing any default session.
-- Safety properties, enforced by `scripts/test-hooks.py`: no subprocess, network, or dynamic-code use; fail open on any malformed event or internal error; `stop_hook_active` always allows, so a block cannot loop; `install` merges idempotently, backs up first, and refuses symbolic links and non-strict JSON.
-- Limits: a guard is a guardrail, not a sandbox. Interpreters, obfuscated names, and variables can still reach a credential file. Native host behavior is NOT VERIFIED; see `docs/HOOKS.md`.
+## D-021 — Explicit stop gate and Gemini settings merge
+- Decision: keep the transcript-based `Stop` completion gate opt-in through `rcoder_hooks.py install`. The same handler can explicitly merge the shared guard and post-tool warning into Gemini CLI's `.gemini/settings.json` using Gemini's `BeforeTool` and `AfterTool` event schema.
+- Rationale: a completion gate depends on transcript semantics, and Gemini's documented hook events and output schema differ from Claude's. Gemini has no documented `PreCompact` event.
+- Safety properties, enforced by `scripts/test-hooks.py`: no subprocess, network, or dynamic-code use; malformed events fail open; `stop_hook_active` prevents repeat blocks; settings merge is idempotent, backed up, and refuses symlinks and non-strict JSON.
+- Limits: the guard is a guardrail, not a sandbox. Gemini's documented schema has no permission-prompt decision, so actions classified as "ask" are denied with a request for user review. Native host behavior is NOT VERIFIED; see `docs/HOOKS.md`.
 
 ## D-022 — Legacy stdio honors the declared pagination contract
 - Decision: the legacy stdio core paginates `tools/list`, `resources/list`, `resources/templates/list`, and `prompts/list` with the shared `rcoder_contract.paginate_result` cursor, exactly as the modern transport already did. An invalid or out-of-range cursor maps to Invalid params (`-32602`) instead of an internal error.

@@ -39,7 +39,7 @@ Respond in the user's language; route by deliverable, criteria, domain, and risk
 
 Server: `scripts/rcoder_mcp.py`; modern adapter: `scripts/rcoder_mcp_modern.py`; launcher: `launcher/rcoder-mcp.mjs`. MCP exposes tools, resources, prompts, pagination, and workspace confinement. Preferred URIs: `rcoder://references/{slug}` and `rcoder://templates/{slug}`; legacy specialist/template URIs remain valid. Contract: `contracts/rcoder-v2.json`. A digest does not prove host discovery.
 
-Read `agent-extensions-engineering.md` for adapters and `mcp-transport-engineering.md` for transport. OpenCode hooks: `.opencode/plugins/rcoder.js`. Keep Claude `hooks/hooks.json` SessionStart-only; opt-in hooks require explicit installation.
+Read `agent-extensions-engineering.md` for adapters and `mcp-transport-engineering.md` for transport. OpenCode hooks: `.opencode/plugins/rcoder.js`. Claude `hooks/hooks.json` enables a local guard, post-tool secret warning, compaction reminder, and read-only session scan. Gemini CLI uses a separate settings schema; its before/after tool hooks require explicit installation. Do not claim a host runs a hook until that host has been observed.
 
 ## Hard invariants
 
