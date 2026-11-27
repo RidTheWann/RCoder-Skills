@@ -51,7 +51,7 @@ PLATFORM_MODULES = {
 }
 CONTEXT_MODULES = {
     "token-efficiency", "model-adaptation", "specialist-routing", "rsaver", "rsaver-gate",
-    "rsaver-anchor", "rsaver-crosscheck", "rscan",
+    "rsaver-anchor", "rsaver-crosscheck", "rscan", "context-fabric",
 }
 SECRET_NAME_RE = re.compile(
     r"(?i)(^\.env(\..*)?$|^id_(rsa|dsa|ecdsa|ed25519)(\.pub)?$|\.(pem|key|p12|pfx|jks|keystore|kdbx)$|"

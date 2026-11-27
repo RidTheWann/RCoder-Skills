@@ -8,8 +8,10 @@ RCoder uses one standard-library handler at `skills/rcoder/scripts/rcoder_hooks.
 | `post-tool` | Claude `PostToolUse`; Gemini `AfterTool` | Adds context when tool output contains a token-shaped secret |
 | `pre-compact` | Claude `PreCompact` | Adds a short handoff reminder to the compaction summary |
 | `stop-gate` | Claude `Stop` | Blocks once when a turn edited code, claimed completion, ran no check, and gave no evidence labels |
+| RFC injection | Claude `UserPromptSubmit` | Builds a fresh session/prompt payload and injects it through `additionalContext` when the RFC store exists |
+| RFC response capture | Claude `Stop` | Verifies the matching response canary and stores a token-free RFC transcript record |
 
-The Claude plugin runs `SessionStart`, `PreToolUse`, `PostToolUse`, and `PreCompact` from `hooks/hooks.json`. The `Stop` gate remains available through the explicit CLI installer. Gemini CLI uses `.gemini/settings.json`; install its documented before/after tool events separately. Gemini has no documented `PreCompact` or `Stop` equivalent, so those handlers are unavailable there.
+The Claude plugin runs `SessionStart`, `PreToolUse`, `PostToolUse`, `PreCompact`, RFC injection on `UserPromptSubmit`, response capture on `Stop`, and cleanup on `SessionEnd` from `hooks/hooks.json`. The separate completion `Stop` gate remains available through the explicit CLI installer. Gemini CLI uses `.gemini/settings.json`; install its documented before/after tool events separately. Gemini has no documented `PreCompact` or `Stop` equivalent, so those handlers are unavailable there.
 
 ## Enable
 
@@ -33,6 +35,12 @@ rcoder hooks uninstall --scope project
 ```
 
 `install` writes the absolute interpreter and script path, merges without removing existing hooks, writes a timestamped backup beside an existing settings file, is idempotent, and refuses symbolic links and settings files that are not strict JSON (print the snippet and merge by hand in that case). Hooks run with your privileges: install them only for projects you trust. Set `RCODER_HOOKS_DISABLE=1` in the environment that launches the host to switch both handlers off without editing settings.
+
+## RFC host injection
+
+The bundled Claude Code plugin calls `context_fabric_host.py user-prompt-submit` on every submitted prompt, `context_fabric_host.py stop` when a turn stops, and `context_fabric_host.py session-end` when the session closes. The adapter is inert until `.rcoder/context-fabric.sqlite3` exists; initialize it with `python scripts/context-fabric.py --root . stats`. Each prompt gets a unique canary file under `.rcoder/private/rfc-canaries`. If Claude omits `prompt_id`, RCoder creates a unique per-request ID and a private pending-session pointer to pair the subsequent Stop event with that delivery. The Stop hook checks the host's `last_assistant_message` and stores the token-free RFC transcript. It retains the delivery canary across repeated Stop events, then removes private pending state at the next prompt or SessionEnd. A missing canary marks the delivery unacknowledged but never blocks the turn. Set `RCODER_RFC_DISABLE=1` to disable only RFC host injection.
+
+This host path is Claude Code-specific (D-024). Local tests and static validation check the event wiring, hook payload, and lifecycle pairing; native loading and invocation inside a live Claude Code process remain NOT VERIFIED.
 
 ## Guard rules
 

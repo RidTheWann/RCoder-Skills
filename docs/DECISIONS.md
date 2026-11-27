@@ -89,3 +89,10 @@
 - Decision: add `rcoder_skill_lint`, `rcoder_hooks_config`, and `rcoder_contract` to the MCP server. Skill scaffolding, skill packaging, and hook installation remain CLI-only (`skill new|package`, `hooks install|uninstall`).
 - Rationale: D-016 requires every MCP tool to be read-only and `scripts/test-mcp.py` asserts `readOnlyHint: true` and `destructiveHint: false`. Creating files, writing ZIPs, and merging host settings are not read-only operations.
 - Consequence: the plugin CLI gains a `hooks <install|uninstall|print-config>` command so the opt-in guard/completion-gate capability is reachable without hand-editing JSON, while the MCP server can render and validate configuration without ever applying it.
+
+
+## D-024 — Opt-in RFC host injection through Claude lifecycle hooks
+- Decision: extend the bundled Claude plugin hook manifest with `UserPromptSubmit`, `Stop`, and `SessionEnd` for RFC Context Fabric. `UserPromptSubmit` assembles and injects a fresh context payload through the host's documented `additionalContext` field; `Stop` records the final response and validates the canary against the same `(session_id, prompt_id)` delivery.
+- Rationale: persistent storage becomes useful to a stateless model only when each request receives a newly assembled payload through the actual host request path. A corresponding response capture provides an auditable delivery signal.
+- Safety and scope: the adapter is inert until a workspace RFC database exists, uses one private single-use canary per delivery, stores only its digest in SQLite, retains the canary across repeated Stop calls, removes it at the next prompt or SessionEnd, creates a private runtime prompt ID and pending-session pointer when Claude omits prompt_id, and fails open without blocking the conversation. It does not enable the separate heuristic completion Stop gate, does not write to MCP, and does not claim that the assistant understood or followed the context.
+- Verification: `scripts/test-context-fabric-host.py` validates the local hook contract and delivery pairing; live loading and invocation in a Claude Code process remain NOT VERIFIED.

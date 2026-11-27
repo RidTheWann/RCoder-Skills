@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+"""Repository-root wrapper for the RFC Context Fabric CLI."""
+import runpy
+from pathlib import Path
+
+CANONICAL = Path(__file__).resolve().parent.parent / "skills" / "rcoder" / "scripts" / "context_fabric.py"
+
+
+def main() -> None:
+    runpy.run_path(str(CANONICAL), run_name="__main__")
+
+
+if __name__ == "__main__":
+    main()
