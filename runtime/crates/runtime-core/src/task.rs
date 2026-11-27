@@ -21,6 +21,8 @@ const MAX_CONSTRAINT_CHARS: usize = 2_000;
 const MAX_EVIDENCE_SUMMARY_CHARS: usize = 2_500;
 const MAX_EVIDENCE_SOURCE_CHARS: usize = 1_000;
 const MAX_TRANSITION_REASON_CHARS: usize = 1_000;
+const MAX_EVIDENCE_RECORDS: usize = 500;
+const MAX_TRANSITIONS: usize = 200;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -339,7 +341,9 @@ pub fn list_tasks(project_root: &Path) -> Result<Vec<TaskContract>> {
             continue;
         };
         if let Ok(task_id) = canonical_task_id(id) {
-            tasks.push(get_task(project_root, &task_id)?);
+            if task_id == id {
+                tasks.push(get_task(project_root, &task_id)?);
+            }
         }
     }
     tasks.sort_by(|left, right| right.updated_at_unix.cmp(&left.updated_at_unix));
@@ -377,6 +381,9 @@ pub fn record_evidence(
         .any(|criterion| criterion.id == criterion_id)
     {
         anyhow::bail!("unknown acceptance criterion: {criterion_id}");
+    }
+    if task.evidence.len() >= MAX_EVIDENCE_RECORDS {
+        anyhow::bail!("task evidence history is full ({MAX_EVIDENCE_RECORDS} records maximum)");
     }
 
     let summary = validate_text(summary, "evidence summary", MAX_EVIDENCE_SUMMARY_CHARS)?;
@@ -417,6 +424,7 @@ pub fn transition_task(
             | (TaskStatus::Active, TaskStatus::Cancelled)
             | (TaskStatus::Blocked, TaskStatus::Active)
             | (TaskStatus::Blocked, TaskStatus::Cancelled)
+            | (TaskStatus::Completed, TaskStatus::Active)
     );
     if !allowed {
         anyhow::bail!(
@@ -444,8 +452,15 @@ pub fn transition_task(
     let reason = reason
         .map(|value| validate_text(value, "transition reason", MAX_TRANSITION_REASON_CHARS))
         .transpose()?;
-    if to == TaskStatus::Blocked && reason.is_none() {
-        anyhow::bail!("a reason is required when blocking a task");
+    if matches!(to, TaskStatus::Blocked)
+        || (from == TaskStatus::Completed && to == TaskStatus::Active)
+    {
+        if reason.is_none() {
+            anyhow::bail!("a reason is required when blocking or reopening a task");
+        }
+    }
+    if task.history.len() >= MAX_TRANSITIONS {
+        anyhow::bail!("task transition history is full ({MAX_TRANSITIONS} records maximum)");
     }
 
     let now = unix_now();
@@ -581,6 +596,69 @@ mod tests {
         assert_eq!(blocked.status, TaskStatus::Blocked);
         let resumed = transition_task(&root, &task.id, TaskStatus::Active, None).expect("resume");
         assert_eq!(resumed.status, TaskStatus::Active);
+        fs::remove_dir_all(root).expect("remove fixture");
+    }
+
+    #[test]
+    fn completed_task_can_be_reopened_and_a_new_failure_blocks_completion() {
+        let root = fixture();
+        let task = create_task(
+            &root,
+            "Recheck a completed deliverable",
+            &["Regression suite passes".to_string()],
+            &[],
+            RiskLevel::High,
+        )
+        .expect("create task");
+        transition_task(&root, &task.id, TaskStatus::Active, None).expect("activate");
+        record_evidence(
+            &root,
+            &task.id,
+            "AC-001",
+            EvidenceOutcome::Pass,
+            "Initial regression suite passed",
+            "CI run 100",
+        )
+        .expect("record initial pass");
+        transition_task(&root, &task.id, TaskStatus::Completed, None)
+            .expect("complete task");
+
+        assert!(transition_task(&root, &task.id, TaskStatus::Active, None).is_err());
+        let reopened = transition_task(
+            &root,
+            &task.id,
+            TaskStatus::Active,
+            Some("A post-release regression was reported"),
+        )
+        .expect("reopen with a reason");
+        assert_eq!(reopened.status, TaskStatus::Active);
+
+        record_evidence(
+            &root,
+            &task.id,
+            "AC-001",
+            EvidenceOutcome::Fail,
+            "A later regression check failed",
+            "CI run 101",
+        )
+        .expect("record later failure");
+        assert!(transition_task(&root, &task.id, TaskStatus::Completed, None).is_err());
+
+        let repaired = record_evidence(
+            &root,
+            &task.id,
+            "AC-001",
+            EvidenceOutcome::Pass,
+            "Regression fixed and suite passed",
+            "CI run 102",
+        )
+        .expect("record repaired pass");
+        assert_eq!(
+            latest_outcome(&repaired, "AC-001"),
+            Some(EvidenceOutcome::Pass)
+        );
+        transition_task(&root, &task.id, TaskStatus::Completed, None)
+            .expect("complete after re-verification");
         fs::remove_dir_all(root).expect("remove fixture");
     }
 
