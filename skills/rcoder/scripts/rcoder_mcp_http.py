@@ -23,6 +23,13 @@ NAME_METHODS = {"tools/call": "name", "resources/read": "uri", "prompts/get": "n
 HEADER_MISMATCH = -32020
 
 
+def worker_environment(token_env: str) -> dict[str, str]:
+    """Remove the HTTP bearer token and prevent one-shot workers from spawning sidecars."""
+    environment = {key: value for key, value in os.environ.items() if key != token_env}
+    environment["RCODER_RUNTIME_DISABLE"] = "1"
+    return environment
+
+
 def encode_json(value: dict) -> bytes:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
@@ -200,10 +207,8 @@ class Handler(BaseHTTPRequestHandler):
                    "--profile", self.server.profile]
         if self.server.tools:
             command.extend(["--tools", self.server.tools])
-        worker_env = {key: value for key, value in os.environ.items()
-                      if key != self.server.token_env}
         # HTTP workers are one-request children; only the long-lived HTTP server owns a session.
-        worker_env["RCODER_RUNTIME_DISABLE"] = "1"
+        worker_env = worker_environment(self.server.token_env)
         try:
             worker = subprocess.run(
                 command, input=json.dumps(request, ensure_ascii=False) + "\n",
