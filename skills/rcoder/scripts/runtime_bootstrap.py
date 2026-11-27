@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+"""Best-effort launcher for the optional Rust RCoder Runtime companion.
+
+The local MCP server is the activation signal: when this process starts, the
+companion attaches to its PID and remains alive until the MCP process exits.
+This module never writes to MCP stdout and never blocks MCP startup.
+"""
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from typing import Callable, Optional, Sequence
+
+
+def start_runtime_companion(
+    project_root: Path,
+    *,
+    runtime_binary: Optional[str] = None,
+    parent_pid: Optional[int] = None,
+    platform: Optional[str] = None,
+    popen: Optional[Callable] = None,
+) -> bool:
+    """Start the Runtime sidecar when installed; fail open when unavailable."""
+    if os.environ.get("RCODER_RUNTIME_DISABLE", "").strip().lower() in {"1", "true", "yes", "on"}:
+        return False
+
+    explicit_binary = runtime_binary or os.environ.get("RCODER_RUNTIME_PATH")
+    binary = explicit_binary or shutil.which("rcoder-runtime")
+    if not binary:
+        return False
+
+    try:
+        root = project_root.expanduser().resolve(strict=True)
+        if not root.is_dir():
+            return False
+    except (OSError, RuntimeError):
+        return False
+
+    actual_platform = platform or sys.platform
+    command: Sequence[str] = (
+        binary,
+        "attach",
+        "--project",
+        str(root),
+        "--parent-pid",
+        str(parent_pid if parent_pid is not None else os.getpid()),
+    )
+    launch = popen or subprocess.Popen
+    options = {
+        "stdin": subprocess.DEVNULL,
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+        "close_fds": True,
+    }
+    if actual_platform == "win32":
+        options["creationflags"] = 0x00000008 | 0x08000000  # DETACHED_PROCESS | CREATE_NO_WINDOW
+    else:
+        options["start_new_session"] = True
+
+    try:
+        launch(list(command), **options)
+        return True
+    except (OSError, ValueError):
+        if os.environ.get("RCODER_RUNTIME_DEBUG") == "1":
+            print("RCoder Runtime companion could not be started; MCP remains available.",
+                  file=sys.stderr)
+        return False
