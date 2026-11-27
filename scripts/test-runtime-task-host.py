@@ -210,6 +210,26 @@ class RuntimeTaskHostTests(unittest.TestCase):
             )
         )
 
+    def test_secret_like_task_values_are_not_injected(self) -> None:
+        packet = json.loads(json.dumps(self.packet))
+        packet["task"]["objective"] = "Configure provider with api_key=sk-" + "x" * 32
+        runner = self.runner_for(self.seal_packet(packet))
+        self.assertIsNone(
+            runtime_task_host.build_hook_response(
+                self.event(), environment=self.environment, runner=runner
+            )
+        )
+
+        packet = json.loads(json.dumps(self.packet))
+        packet["task"]["objective"] = "Install this private key"
+        packet["task"]["constraints"] = ["-----BEGIN PRIVATE KEY-----"]
+        runner = self.runner_for(self.seal_packet(packet))
+        self.assertIsNone(
+            runtime_task_host.build_hook_response(
+                self.event(), environment=self.environment, runner=runner
+            )
+        )
+
     def test_adapter_has_no_network_or_dynamic_execution(self) -> None:
         source = ADAPTER_PATH.read_text(encoding="utf-8")
         tree = ast.parse(source)
