@@ -216,6 +216,16 @@ mod tests {
     }
 
     #[test]
+    fn compiler_digest_matches_host_canonical_serialization_fixture() {
+        let task = active_task();
+        let packet = compile_task(&task).expect("compile packet");
+        assert_eq!(
+            packet.digest_sha256,
+            "73c0d6cc36c60ff0a64b6790d4f8bf52f47c09f52ae27ab1f3a963c982d9c92d"
+        );
+    }
+
+    #[test]
     fn compiler_rejects_draft_blocked_completed_and_cancelled_tasks() {
         let mut task = active_task();
         for status in [
