@@ -353,6 +353,29 @@ def main():
     ):
         check((ROOT / required).is_file(), f"G1: required installer/test file missing: {required}")
 
+    # Runtime must attach only from the real RCoder MCP entrypoints and stay optional.
+    runtime_bootstrap = read(SKILL / "scripts" / "runtime_bootstrap.py")
+    mcp_stdio = read(SKILL / "scripts" / "rcoder_mcp.py")
+    mcp_http = read(SKILL / "scripts" / "rcoder_mcp_http.py")
+    runtime_discovery = read(ROOT / "runtime" / "crates" / "runtime-core" / "src" / "discovery.rs")
+    runtime_docs = read(ROOT / "docs" / "RUNTIME.md")
+    workflow = read(ROOT / ".github" / "workflows" / "quality.yml")
+    check("start_runtime_companion(State.root)" in mcp_stdio,
+          "G8: stdio RCoder MCP must attach the optional Runtime companion")
+    check("start_runtime_companion(root)" in mcp_http,
+          "G8: loopback HTTP MCP must attach one Runtime companion")
+    check('worker_env["RCODER_RUNTIME_DISABLE"] = "1"' in mcp_http,
+          "G8: one-request HTTP workers must not create duplicate Runtime sessions")
+    check("RCODER_RUNTIME_DISABLE" in runtime_bootstrap and "RCODER_RUNTIME_PATH" in runtime_bootstrap,
+          "G8: Runtime bootstrap must support explicit opt-out and executable path")
+    check("rcoder_mcp.py" in runtime_discovery and "rcoder-mcp.mjs" in runtime_discovery,
+          "G8: Runtime discovery must identify actual RCoder MCP entrypoints")
+    check("a server merely named" in runtime_docs.lower(),
+          "G8: Runtime documentation must reject server-name-only detection")
+    check("cargo fmt --manifest-path runtime/Cargo.toml --all -- --check" in workflow
+          and "cargo test --manifest-path runtime/Cargo.toml --workspace" in workflow,
+          "G8: CI must format and test the Rust Runtime workspace")
+
     attributes = read(ROOT / ".gitattributes")
     check("* text=auto eol=lf" in attributes and "*.ps1 text eol=crlf" in attributes,
           "G1: .gitattributes must lock LF scripts and CRLF PowerShell files")
