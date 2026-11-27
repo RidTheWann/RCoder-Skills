@@ -1,10 +1,14 @@
+<div align="center">
+
 # RCoder
 
-**A calmer way to use AI coding agents: less guessing, more evidence.**
+### A calmer way to use AI coding agents — less guessing, more evidence.
 
-RCoder is a small instruction and tooling layer you add to the agent you already use. It helps the agent look around the repository, pick the right guidance, do the work, and show what was actually checked. It does not replace your model, your editor, or your host's permission system.
+RCoder is a small instruction and tooling layer you add to the agent you already use.
+It helps the agent inspect the repository, pick the right guidance, do the work, and show what was actually checked.
+It does not replace your model, your editor, or your host's permission system.
 
-You do not need a new model, a separate app, or a background service to start.
+**No new model. No separate app. No background service required.**
 
 [![Quality CI](https://github.com/RidTheWann/RCoder-Skills/actions/workflows/quality.yml/badge.svg)](https://github.com/RidTheWann/RCoder-Skills/actions/workflows/quality.yml)
 [![Security: A — Skills Directory](https://www.skillsdirectory.com/api/skills/ridthewann-rcoder/badge)](https://www.skillsdirectory.com/skills/ridthewann-rcoder)
@@ -12,24 +16,40 @@ You do not need a new model, a separate app, or a background service to start.
 [![Agent hosts](https://img.shields.io/badge/Agent%20hosts-20-informational.svg)](#supported-agent-hosts)
 [![Platforms](https://img.shields.io/badge/OS-Windows%20%7C%20Linux%20%7C%20macOS%20%7C%20Termux-informational.svg)](#cross-platform-support)
 
+`Agent Skill` · `MCP` · `RFC` · `RSaver` · `Rust Runtime` · `OpenCode V2`
+
+</div>
+
+---
+
+### RCoder in numbers
+
+| 60+ | 20 | 5 | 4,650 |
+|:---:|:---:|:---:|:---:|
+| specialist references | host integrations | native E2E cases | repository checks |
+
 ---
 
 ## Which path should I take?
 
-| I want to... | Start here |
-|---|---|
-| Install it and try it | [Quick start](#quick-start) |
-| Understand what it does | [How RCoder works](#how-rcoder-works) |
-| See proof that it helps | [Before and after](#before-and-after-evidence) |
-| Know if my OS is supported | [Cross-platform support](#cross-platform-support) |
-| Add Runtime or RFC | [Core components](#core-components) |
-| Run the tests myself | [Development and verification](#development-and-verification) |
+| I want to... | Start here | Reading time |
+|---|---|---|
+| Install it and try it | [Quick start](#quick-start) | 5 min |
+| Understand what it does | [How RCoder works](#how-rcoder-works) | 3 min |
+| See proof that it helps | [Before and after](#before-and-after-evidence) | 4 min |
+| Know if my OS is supported | [Cross-platform support](#cross-platform-support) | 2 min |
+| Add Runtime or RFC | [Core components](#core-components) | 5 min |
+| Run the tests myself | [Development and verification](#development-and-verification) | 3 min |
 
 ---
 
 ## Quick start
 
-The whole setup is one install command and one check. Pick your shell.
+> **Three steps:** install → verify → ask your agent to do engineering work.
+
+### 1 · Install
+
+Pick your shell.
 
 **Windows (PowerShell)**
 
@@ -51,13 +71,21 @@ sh ./install.sh --target agents --scope project
 npx -y github:RidTheWann/RCoder-Skills
 ```
 
-Open a new terminal, then confirm the launcher is available:
+### 2 · Verify
+
+Open a new terminal so the updated `PATH` is loaded, then run:
 
 ```sh
 rcoder doctor --json
 ```
 
-That is it. Your agent will find `skills/rcoder/SKILL.md` and follow it when the task is engineering work. Need another host or user scope? See [Installation](#installation).
+### 3 · Use it
+
+That is it. Your agent will find `skills/rcoder/SKILL.md` and follow it when the task is engineering work. Try:
+
+> _"Inspect this repository, then implement the smallest safe fix for the failing test and show me the evidence."_
+
+Need another host or user scope? See [Installation](#installation).
 
 > **No Rust required for normal use.** The Rust Runtime is optional and only needed for local task contracts and artifact-backed verification.
 
@@ -82,8 +110,13 @@ The goal is not more code. It is work that is **focused, reviewable, reproducibl
 ## How RCoder works
 
 ```text
-objective -> repository recon -> specialist choice -> implementation
-          -> verification -> evidence-backed handoff
+  ┌──────────┐   ┌───────────┐   ┌───────────┐   ┌──────────────┐
+  │ objective│──▶│ recon     │──▶│ specialists│──▶│ implementation│
+  └──────────┘   └───────────┘   └───────────┘   └──────┬───────┘
+                                                        │
+  ┌────────────────────┐   ┌───────────┐   ┌────────────▼─────────┐
+  │ evidence handoff   │◀──│ verification│◀──│ host-approved tools  │
+  └────────────────────┘   └───────────┘   └──────────────────────┘
 ```
 
 Four subsystems stay separate on purpose:
@@ -103,13 +136,17 @@ Host adapters (OpenCode, Claude Code, and others) only carry information into th
 
 ### Integration before and after
 
-**The short version**
+> ### Before ❯ After
+>
+> **BEFORE** · *"The adapters exist and the unit tests pass."*
+> We could show code and configuration, but not that a real editor ever sent our context to a model.
+>
+> **AFTER** · *"The host itself delivered it, and we captured the request."*
+> We start the installed OpenCode app, point it at a local fake model, and read the exact outgoing payload. RFC memory and Runtime task context arrive **in the same request**, each with its own provenance.
+>
+> **In one line:** the difference between *"the code looks right"* and *"the host actually delivered it."*
 
-**Before:** we could show that the adapters existed and that unit tests passed. We could not show that a real editor actually sent our context to a model.
-
-**Now:** we start the installed OpenCode app, point it at a local fake model, and read the exact request the app sends. The RFC memory and the Runtime task context arrive **in the same request**, with their provenance intact.
-
-That is the difference between *"the code looks right"* and *"the host actually delivered it."*
+**Evidence legend:** **VERIFIED** = executed and observed locally · **NOT VERIFIED** = not run in this environment.
 
 | Question | Before | After | Why it matters |
 |---|---|---|---|
