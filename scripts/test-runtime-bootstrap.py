@@ -12,6 +12,7 @@ sys.path.insert(0, str(SCRIPTS))
 
 import runtime_bootstrap  # noqa: E402
 import rcoder_mcp  # noqa: E402
+import rcoder_mcp_http  # noqa: E402
 
 
 def main():
@@ -76,6 +77,17 @@ def main():
         with patch.object(rcoder_mcp.runtime_bootstrap, "start_runtime_companion") as start:
             assert rcoder_mcp.main(["--print-config", "generic"]) == 0
             start.assert_not_called()
+
+        # The long-lived loopback HTTP process owns one session; per-request workers are disabled.
+        fake_server = Mock()
+        fake_server.server_port = 8765
+        with patch.dict(os.environ, {"RCODER_MCP_TOKEN": "x" * 40}), \
+             patch.object(rcoder_mcp_http, "Server", return_value=fake_server), \
+             patch.object(rcoder_mcp_http.runtime_bootstrap, "start_runtime_companion") as start:
+            assert rcoder_mcp_http.main(["--root", str(project), "--port", "0"]) == 0
+            start.assert_called_once_with(project)
+            fake_server.serve_forever.assert_called_once()
+            fake_server.server_close.assert_called_once()
 
         broken_launch = Mock(side_effect=OSError("cannot start"))
         assert not runtime_bootstrap.start_runtime_companion(
