@@ -590,7 +590,7 @@ def main():
     check("RCODER_RUNTIME_DISABLE" in runtime_bootstrap
           and "RCODER_RUNTIME_PATH" in runtime_bootstrap
           and "start_new_session" in runtime_bootstrap
-          and "env": runtime_environment() in runtime_bootstrap,
+          and '"env": runtime_environment()' in runtime_bootstrap,
           "G8: Runtime bootstrap must remain opt-out, configurable, and detached")
     check("D-025" in read(ROOT / "docs" / "DECISIONS.md")
           and (ROOT / "docs" / "RUNTIME.md").is_file(),
