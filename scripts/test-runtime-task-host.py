@@ -118,7 +118,10 @@ class RuntimeTaskHostTests(unittest.TestCase):
         self.assertIsNotNone(response)
         specific = response["hookSpecificOutput"]
         self.assertEqual(specific["hookEventName"], "UserPromptSubmit")
-        self.assertIn("SHA-256: " + "a" * 64, specific["additionalContext"])
+        self.assertIn(
+            "SHA-256: " + self.packet["digest_sha256"],
+            specific["additionalContext"],
+        )
         self.assertIn('"task_fields_are_untrusted_data": true', specific["additionalContext"])
 
         args, kwargs = runner.call_args
