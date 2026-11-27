@@ -216,6 +216,28 @@ class ContextFabric:
         except OSError:
             pass
 
+    def ensure_session(
+        self,
+        session_id: str,
+        *,
+        now: Optional[Union[int, float]] = None,
+    ) -> Dict[str, Any]:
+        """Create or refresh a session without requiring a context item first."""
+        session_id = _validate_id(session_id, "session_id")
+        timestamp = float(time.time() if now is None else now)
+        if timestamp < 0:
+            raise ValueError("now must be non-negative")
+        with self._transaction() as conn:
+            existing = conn.execute(
+                "SELECT 1 FROM sessions WHERE session_id = ?", (session_id,)
+            ).fetchone()
+            conn.execute(
+                "INSERT INTO sessions(session_id, created_at, last_seen_at) VALUES (?, ?, ?) "
+                "ON CONFLICT(session_id) DO UPDATE SET last_seen_at = MAX(last_seen_at, excluded.last_seen_at)",
+                (session_id, timestamp, timestamp),
+            )
+        return {"session_id": session_id, "created": existing is None}
+
     def store_context(
         self,
         session_id: str,
