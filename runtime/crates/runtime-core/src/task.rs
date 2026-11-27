@@ -207,7 +207,15 @@ fn read_task_locked(directory: &Path, id: &str) -> Result<TaskContract> {
         anyhow::bail!("refusing non-file or symlink at {}", path.display());
     }
     let bytes = fs::read(&path)?;
-    serde_json::from_slice(&bytes).context("task contract JSON is invalid")
+    let task: TaskContract =
+        serde_json::from_slice(&bytes).context("task contract JSON is invalid")?;
+    if task.schema_version != 1 {
+        anyhow::bail!("unsupported task contract schema version: {}", task.schema_version);
+    }
+    if task.id != id {
+        anyhow::bail!("task contract ID does not match its storage filename");
+    }
+    Ok(task)
 }
 
 fn write_task_locked(directory: &Path, task: &TaskContract) -> Result<()> {
