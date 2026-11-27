@@ -1,6 +1,6 @@
 # RCoder plugin and extension integration matrix
 
-Updated: 2026-11-26. Product version is 1.15.0.
+Updated: 2026-11-27. Product version is 1.16.0.
 
 ## Integration principles
 
@@ -50,16 +50,21 @@ Marketplace registration and plugin installation are separate actions. The integ
 
 ### Claude Code plugin
 
-The repository contains `.claude-plugin/plugin.json`, commands, agents, and a compatibility MCP config at `.mcp.json`. The plugin manifest references that file as a relative MCP server configuration.
+The repository contains `.claude-plugin/plugin.json`, commands, agents, and a Claude-specific MCP config at `.claude-plugin/mcp.json`. The manifest references that file; its launcher path uses `${CLAUDE_PLUGIN_ROOT}` and its project root uses `${CLAUDE_PROJECT_DIR}`. The generic Codex/Agent Plugins compatibility file remains `.mcp.json` at the root. The marketplace entry uses a git source so the plugin resolves from both repository-hosted and URL-hosted catalogs.
 
-Run inside a Claude Code session:
+Run from a shell or inside a Claude Code session:
+
+```sh
+claude plugin marketplace add RidTheWann/RCoder-Skills
+claude plugin install rcoder@rcoder-skills
+```
 
 ```text
 /plugin marketplace add RidTheWann/RCoder-Skills
 /plugin install rcoder@rcoder-skills
 ```
 
-The integration manager prints these commands; it does not claim to execute an in-session plugin action. The repository retains the existing marketplace metadata for compatibility with the documented workflow; check the current host's marketplace guidance before a future public registry submission.
+The integration manager prints these commands; it does not claim to execute an in-session plugin action. `claude plugin list` and `claude mcp list` are the local checks; native skill invocation by a model remains a separate gate.
 
 ## Shared stdio launcher
 
@@ -75,8 +80,9 @@ The integration manager prints these commands; it does not claim to execute an i
 | OpenCode native loading and invocation of the dual adapter | VERIFIED on 2.4.2 only (`docs/OPENCODE-V2-ADAPTER.md`) |
 | Gemini extension discovery/invocation | NOT VERIFIED |
 | Codex plugin installation/invocation | NOT VERIFIED |
-| Claude Code plugin invocation | NOT VERIFIED |
-| Native MCP tool calls for all 24 tools over HTTP | NOT VERIFIED |
+| Claude Code plugin install and MCP connection | VERIFIED locally with CLI 2.1.332: marketplace add, plugin install, `claude plugin list` enabled, `claude mcp list` → `✔ Connected` (`plugin:rcoder:rcoder`) |
+| Claude Code skill/agent invocation by a model | NOT VERIFIED |
+| Native MCP tool calls for all 39 tools over HTTP | NOT VERIFIED |
 | Multilingual live routing accuracy | NOT VERIFIED |
 
 The existing OpenCode 1.19.6 skill-discovery and RScan hook evidence predates this new adapter and must not be used as evidence for its activation. The 2.4.2 observation is version-scoped and does not raise the 1.19.6 row. CI can raise static/config evidence only; native-host claims require direct host observation.

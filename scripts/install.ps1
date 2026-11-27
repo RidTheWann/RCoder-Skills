@@ -57,6 +57,14 @@ function Same-Tree([string]$A,[string]$B){
  foreach($f in $x){if((Get-FileHash -LiteralPath (Join-Path $A $f)).Hash -ne (Get-FileHash -LiteralPath (Join-Path $B $f)).Hash){return $false}}
  return $true
 }
+function Write-FeatureManifest{
+ $featureManifest=Join-Path $targetRoot '.rcoder-features.json'
+ $version=(Get-Content -LiteralPath (Join-Path $repoDir 'package.json') -Raw -Encoding UTF8 | ConvertFrom-Json).version
+ $state=([ordered]@{schema_version=1;version=$version;rsaver=($selectedFeatures -contains 'rsaver');rscan=($selectedFeatures -contains 'rscan')})|ConvertTo-Json
+ # 'Set-Content -Encoding UTF8' adds a BOM on Windows PowerShell 5.1; strict JSON readers reject it.
+ [IO.File]::WriteAllText($featureManifest,$state+"`n",(New-Object System.Text.UTF8Encoding($false)))
+ Write-Output "Enabled optional tools: $Features"
+}
 function Invoke-McpStep{
  if($Mcp -eq 'none'){return}
  . (Join-Path (Join-Path $repoDir 'launcher') 'McpSetup.ps1')
@@ -75,7 +83,7 @@ if($Uninstall){
   exit 0
 }
 if(-not(Test-Path -LiteralPath (Join-Path $sourceDir 'SKILL.md') -PathType Leaf)){throw "Skill source missing: $(Join-Path $sourceDir 'SKILL.md')"}
-if(Same-Tree -A $sourceDir -B $dest){Write-Output "RCoder is already current at $dest";if(-not $DryRun){Invoke-McpStep};exit 0}
+if(Same-Tree -A $sourceDir -B $dest){Write-Output "RCoder is already current at $dest";if(-not $DryRun){Write-FeatureManifest;Invoke-McpStep}else{Write-Output "DRY RUN: refresh optional tool manifest with $Features"};exit 0}
 Write-Output "Install target: $Target ($Scope) -> $dest"
 if($DryRun){Write-Output 'DRY RUN: no files will be changed.';if($Mcp -ne 'none'){Write-Output "DRY RUN: MCP mode '$Mcp' would run after install."};exit 0}
 New-Item -ItemType Directory -Force -Path $parent,$backup|Out-Null
@@ -85,12 +93,7 @@ try{
  if(Test-Path -LiteralPath $dest){$saved=Join-Path $backup "install-$stamp";Move-Item -LiteralPath $dest -Destination $saved}
  Move-Item -LiteralPath $stage -Destination $dest
   Write-Output "Installed RCoder for $Target ($Scope): $dest"
-  $featureManifest=Join-Path $targetRoot '.rcoder-features.json'
-  $version=(Get-Content -LiteralPath (Join-Path $repoDir 'package.json') -Raw -Encoding UTF8 | ConvertFrom-Json).version
-  $state=([ordered]@{schema_version=1;version=$version;rsaver=($selectedFeatures -contains 'rsaver');rscan=($selectedFeatures -contains 'rscan')})|ConvertTo-Json
-  # 'Set-Content -Encoding UTF8' adds a BOM on Windows PowerShell 5.1; strict JSON readers reject it.
-  [IO.File]::WriteAllText($featureManifest,$state+"`n",(New-Object System.Text.UTF8Encoding($false)))
-  Write-Output "Enabled optional tools: $Features"
+  Write-FeatureManifest
   Invoke-McpStep
  }catch{
  if(Test-Path -LiteralPath $stage){Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue}

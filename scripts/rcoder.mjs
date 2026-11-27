@@ -41,6 +41,14 @@ const MCP_TEMPLATES = {
       }
     }
   },
+  '.claude-plugin/mcp.json': {
+    mcpServers: {
+      rcoder: {
+        command: 'node',
+        args: ['${CLAUDE_PLUGIN_ROOT}/launcher/rcoder-mcp.mjs', '--root', '${CLAUDE_PROJECT_DIR}']
+      }
+    }
+  },
   'mcp.json': {
     $schema: 'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json',
     mcpServers: {
@@ -307,7 +315,8 @@ function doctorReport() {
     'skills/rcoder/scripts/skill_authoring.py',
     'skills/rcoder/contracts/rcoder-v2.json', 'skills/rcoder/scripts/rcoder_contract.py',
     'launcher/rcoder-mcp.mjs', '.opencode/plugins/rcoder.js', 'gemini-extension.json',
-    'GEMINI.md', '.mcp.json', 'mcp.json', '.claude-plugin/plugin.json', '.codex-plugin/plugin.json',
+    'GEMINI.md', '.mcp.json', 'mcp.json', '.claude-plugin/plugin.json',
+    '.claude-plugin/mcp.json', '.codex-plugin/plugin.json',
     '.agents/plugins/marketplace.json', '.claude-plugin/marketplace.json',
     'skills/rcoder/references/mcp-transport-engineering.md'
   ];
@@ -450,7 +459,8 @@ function syncValidation() {
     issues.push(`targets.json is unreadable: ${error.message}`);
   }
   for (const relative of ['targets.json', '.claude-plugin/plugin.json', '.codex-plugin/plugin.json',
-                          '.opencode/plugins/rcoder.js', 'gemini-extension.json', '.mcp.json', 'mcp.json']) {
+                          '.opencode/plugins/rcoder.js', 'gemini-extension.json', '.mcp.json', 'mcp.json',
+                          '.claude-plugin/mcp.json']) {
     if (!existsSync(path.join(PACKAGE_ROOT, relative))) issues.push(`missing ${relative}`);
   }
   return issues;
@@ -672,13 +682,15 @@ function runIntegration(options) {
     const source = path.join(PACKAGE_ROOT, '.opencode', 'plugins', 'rcoder.js');
     if (!existsSync(source)) throw new Error('Bundled OpenCode adapter is missing from this RCoder package');
     if (action === 'instructions') {
-      console.log('OpenCode V1 adapter: rcoder integration install opencode --scope project|user');
+      console.log('OpenCode dual V2/V1 adapter: rcoder integration install opencode --scope project|user');
       return 0;
     }
     if (action === 'verify') {
       const exists = existsSync(destination) && statSync(destination).isFile();
       const content = exists ? readFileSync(destination, 'utf8') : '';
-      const adapterValid = content.includes('export const RCoderPlugin') && content.includes('RCoder:');
+      const adapterValid = content.includes('export async function setupV2') &&
+        content.includes("id: 'rcoder'") && content.includes('setup: setupV2') &&
+        content.includes('export const RCoderPlugin') && content.includes('RCoder:');
       const skillPath = scope === 'project'
         ? path.join(projectRoot, '.opencode', 'skills', 'rcoder', 'SKILL.md')
         : path.join(path.resolve(homeDir), '.config', 'opencode', 'skills', 'rcoder', 'SKILL.md');
@@ -693,7 +705,8 @@ function runIntegration(options) {
       const skillDestination = targetPaths(target, scope, base).destination;
       if (!dryRun && existsSync(destination)) {
         const content = readFileSync(destination, 'utf8');
-        if (!content.includes('export const RCoderPlugin')) {
+        if (!content.includes('export const RCoderPlugin') &&
+            !(content.includes('export async function setupV2') && content.includes('setup: setupV2'))) {
           throw new Error(`Refusing to remove a file that is not a recognized RCoder adapter: ${destination}`);
         }
         rmSync(destination);
@@ -1045,6 +1058,7 @@ function sameLauncherApp(appRoot) {
     ['.mcp.json', '.mcp.json'],
     ['mcp.json', 'mcp.json'],
     ['.claude-plugin/plugin.json', '.claude-plugin/plugin.json'],
+    ['.claude-plugin/mcp.json', '.claude-plugin/mcp.json'],
     ['.claude-plugin/marketplace.json', '.claude-plugin/marketplace.json'],
     ['.codex-plugin/plugin.json', '.codex-plugin/plugin.json'],
     ['.agents/plugins/marketplace.json', '.agents/plugins/marketplace.json'],
@@ -1213,6 +1227,7 @@ function installLauncher(homeDir) {
     path.join(PACKAGE_ROOT, '.mcp.json'),
     path.join(PACKAGE_ROOT, 'mcp.json'),
     path.join(PACKAGE_ROOT, '.claude-plugin', 'plugin.json'),
+    path.join(PACKAGE_ROOT, '.claude-plugin', 'mcp.json'),
     path.join(PACKAGE_ROOT, '.claude-plugin', 'marketplace.json'),
     path.join(PACKAGE_ROOT, '.codex-plugin', 'plugin.json'),
     path.join(PACKAGE_ROOT, '.agents', 'plugins', 'marketplace.json'),
@@ -1244,6 +1259,7 @@ function installLauncher(homeDir) {
       for (const relative of [
         'launcher/rcoder-mcp.mjs', 'plugin.json', '.mcp.json', 'mcp.json',
         '.claude-plugin/plugin.json', '.claude-plugin/marketplace.json',
+        '.claude-plugin/mcp.json',
         '.codex-plugin/plugin.json', '.agents/plugins/marketplace.json',
         '.opencode/plugins/rcoder.js', 'gemini-extension.json', 'GEMINI.md'
       ]) {
@@ -1383,6 +1399,7 @@ async function runInteractive(options) {
         writeFeatureManifest(targetOptions, target);
         if (action === '1') runMcpSetup(options.mcp, target, scope, base);
       }
+      if (action === '1' && !options.noLauncher) installLauncher(options.homeDir);
       console.log('\nOperation completed. Start a new agent session to refresh its skills.');
     }
   } finally {

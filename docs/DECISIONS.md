@@ -60,7 +60,7 @@
 - Rationale: an always-on hook changes behavior and token use for every session and runs a command with the user's permissions. `scripts/validate-all` rejects a `hooks/` directory so a change of this decision is deliberate.
 
 ## D-019 — Bundled local Claude lifecycle hooks
-- Decision: the Claude Code plugin's `hooks/hooks.json` includes a read-only `SessionStart` RScan, a credential/destructive-command `PreToolUse` guard, a token-shaped-secret `PostToolUse` warning, and a `PreCompact` context reminder. This revision was explicitly requested by the repository owner on 2026-11-26 and supersedes the SessionStart-only limit below.
+- Decision: the Claude Code plugin's `hooks/hooks.json` includes a read-only `SessionStart` RScan, a credential/destructive-command `PreToolUse` guard, a token-shaped-secret `PostToolUse` warning, a `PreCompact` context reminder, and the opt-in RFC Context Fabric `UserPromptSubmit` / `Stop` / `SessionEnd` adapters. This revision was explicitly requested by the repository owner on 2026-11-26 and supersedes the SessionStart-only limit below. The transcript-based `Stop` completion gate remains a separate CLI opt-in.
 - Rationale: use the same local policy logic as OpenCode at tool boundaries and preserve task state at compaction without network access or subprocesses.
 - Limits: hooks execute with the user's permissions whenever the plugin is active. The guard is lexical, not a sandbox. The default hook configuration does not enable the transcript-based `Stop` completion gate. Disable the plugin or its hooks to stop automatic behavior. Native host activation remains NOT VERIFIED.
 

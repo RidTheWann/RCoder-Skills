@@ -14,11 +14,15 @@ const home = path.join(temp, 'home');
 mkdirSync(project, { recursive: true });
 mkdirSync(home, { recursive: true });
 
-function run(args, expect = 0) {
-  const result = spawnSync(process.execPath, [cli, ...args], {
+function runRaw(args) {
+  return spawnSync(process.execPath, [cli, ...args], {
     cwd: root, encoding: 'utf8', timeout: 60000,
     env: { ...process.env, HOME: home, USERPROFILE: home }
   });
+}
+
+function run(args, expect = 0) {
+  const result = runRaw(args);
   assert.equal(result.status, expect, result.stderr || result.stdout);
   return result.stdout;
 }
@@ -33,14 +37,26 @@ try {
   assert(existsSync(skill), install);
   assert(existsSync(plugin), install);
   assert(existsSync(featureManifest), install);
-  assert.match(readFileSync(plugin, 'utf8'), /experimental\.chat\.system\.transform/);
-  assert.match(readFileSync(plugin, 'utf8'), /RCoder:/);
-  assert.match(readFileSync(plugin, 'utf8'), /selected Agent Skill is at \${skillFile}/);
+  const adapterContent = readFileSync(plugin, 'utf8');
+  assert.match(adapterContent, /experimental\.chat\.system\.transform/);
+  assert.match(adapterContent, /RCoder:/);
+  assert.match(adapterContent, /selected Agent Skill is at \${skillFile}/);
+  assert.match(adapterContent, /export async function setupV2/);
+  assert.match(adapterContent, /id: 'rcoder'/);
+  assert.match(adapterContent, /setup: setupV2/);
 
   const verify = run(['integration', 'verify', 'opencode', '--scope', 'project',
     '--root', project, '--home-dir', home]);
   assert.match(verify, /adapter: PRESENT/);
   assert.match(verify, /skill: PRESENT/);
+
+  // A V1-only stub must not satisfy the dual-adapter verify contract.
+  writeFileSync(plugin, "export const RCoderPlugin = () => {};\n// RCoder: stub\n");
+  const stubVerify = runRaw(['integration', 'verify', 'opencode', '--scope', 'project',
+    '--root', project, '--home-dir', home]);
+  assert.notEqual(stubVerify.status, 0);
+  assert.match(stubVerify.stdout + stubVerify.stderr, /adapter: MISSING/);
+  writeFileSync(plugin, adapterContent);
 
   // Replacing an existing adapter is reversible and does not silently discard user content.
   writeFileSync(plugin, '// locally customized OpenCode plugin\n');

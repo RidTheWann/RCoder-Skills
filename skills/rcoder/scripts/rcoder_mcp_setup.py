@@ -35,7 +35,7 @@ HOSTS = {
     "cursor": {"kind": "mcpServers", "project": ".cursor/mcp.json", "user": ".cursor/mcp.json"},
     "gemini-cli": {"kind": "mcpServers", "project": ".gemini/settings.json",
                    "user": ".gemini/settings.json"},
-    "copilot": {"kind": "vscode", "project": ".vscode/mcp.json", "user": None},
+    "copilot": {"kind": "copilot", "project": ".mcp.json", "user": ".copilot/mcp-config.json"},
     "opencode": {"kind": "opencode", "project": "opencode.json",
                  "user": ".config/opencode/opencode.json"},
     "codex": {"kind": "toml", "project": None, "user": ".codex/config.toml"},
@@ -78,13 +78,11 @@ def entry_for(info: dict, command: str, args: list[str]) -> dict:
     if kind == "opencode":
         return {"type": "local", "command": [command, *args], "enabled": True}
     entry = {"command": command, "args": args}
-    if kind == "vscode":
-        entry = {"type": "stdio", **entry}
     return entry
 
 
 def container_key(info: dict) -> str:
-    return {"vscode": "servers", "opencode": "mcp"}.get(info["kind"], "mcpServers")
+    return {"opencode": "mcp"}.get(info["kind"], "mcpServers")
 
 
 def snippet(host: str, scope: str, command: str, args: list[str]) -> str:

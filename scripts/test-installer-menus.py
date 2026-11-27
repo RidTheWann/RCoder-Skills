@@ -141,7 +141,9 @@ def run_node(temp):
     text = re.sub(rb"\x1b\[[0-9;?]*[A-Za-z]", b"", output).decode("utf-8", "replace")
     check_blocks("Node manager", text)
     assert (project / ".cursor" / "mcp.json").is_file(), text
-    print("PASS Node terminal manager menus")
+    if os.name != "nt":
+        assert (home / ".local" / "bin" / "rcoder").is_file(), "interactive install did not install the global launcher"
+    print("PASS Node terminal manager menus and global launcher")
 
 
 def main():

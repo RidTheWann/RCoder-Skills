@@ -47,7 +47,7 @@ def main() -> int:
         server = install_copy(project, ".cursor")
         base_args = ["--base", str(project), "--server", str(server), "--command", "python"]
         for host, key in (("cursor", "mcpServers"), ("gemini-cli", "mcpServers"),
-                          ("qoder", "mcpServers"), ("copilot", "servers"), ("opencode", "mcp")):
+                          ("qoder", "mcpServers"), ("copilot", "mcpServers"), ("opencode", "mcp")):
             data = snippet_json(run("show", "--host", host, *base_args))
             assert "rcoder" in data[key], (host, data)
         cursor = snippet_json(run("show", "--host", "cursor", *base_args))["mcpServers"]["rcoder"]
@@ -88,15 +88,17 @@ def main() -> int:
         out = run("apply", "--host", "gemini-cli", *base_args)
         assert "[manual]" in out and gemini.read_text(encoding="utf-8") == original, out
 
-        # 5. new file for opencode gets the schema; VS Code route uses "servers"
+        # 5. new file for opencode gets the schema; Copilot uses the native mcpServers format
         assert "[applied]" in run("apply", "--host", "opencode", *base_args)
         opencode = json.loads((project / "opencode.json").read_text(encoding="utf-8"))
         assert opencode["$schema"] == "https://opencode.ai/config.json"
         assert opencode["mcp"]["rcoder"]["type"] == "local" and opencode["mcp"]["rcoder"]["enabled"] is True
         assert "[applied]" in run("apply", "--host", "copilot", *base_args)
-        vscode = json.loads((project / ".vscode" / "mcp.json").read_text(encoding="utf-8"))
-        assert vscode["servers"]["rcoder"]["type"] == "stdio"
-        assert "[applied]" in run("apply", "--host", "claude-code", *base_args)
+        copilot = json.loads((project / ".mcp.json").read_text(encoding="utf-8"))
+        assert copilot["mcpServers"]["rcoder"]["command"] == "python"
+        assert "type" not in copilot["mcpServers"]["rcoder"]
+        claude_apply = run("apply", "--host", "claude-code", *base_args)
+        assert "[applied]" in claude_apply or "[already]" in claude_apply, claude_apply
         assert "rcoder" in json.loads((project / ".mcp.json").read_text(encoding="utf-8"))["mcpServers"]
 
         # 6. hosts without an automatic route print the snippet instead of writing anything
@@ -119,6 +121,9 @@ def main() -> int:
         assert text.startswith('model = "x"') and text.count("[mcp_servers.rcoder]") == 1, text
         assert "[already]" in run("apply", "--host", "codex", *user_args)
         assert toml.read_text(encoding="utf-8").count("[mcp_servers.rcoder]") == 1
+        assert "[applied]" in run("apply", "--host", "copilot", *user_args)
+        copilot_user = json.loads((home / ".copilot" / "mcp-config.json").read_text(encoding="utf-8"))
+        assert copilot_user["mcpServers"]["rcoder"]["command"] == "python"
 
         # 8. dry run writes nothing; symlinked config directories are refused
         dry = temp / "dry"

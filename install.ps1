@@ -53,6 +53,13 @@ function Write-Utf8NoBom([string]$Path,[string]$Text) {
     # Windows PowerShell 5.1 'Set-Content -Encoding UTF8' writes a BOM that breaks strict JSON readers.
     [IO.File]::WriteAllText($Path,$Text,(New-Object System.Text.UTF8Encoding($false)))
 }
+function Write-FeatureManifest([string]$TargetRoot) {
+    $featureManifest = Join-Path $TargetRoot '.rcoder-features.json'
+    $version = (Get-Content -LiteralPath (Join-Path $repo 'package.json') -Raw -Encoding UTF8 | ConvertFrom-Json).version
+    $state = ([ordered]@{schema_version=1;version=$version;rsaver=($selectedFeatures -contains 'rsaver');rscan=($selectedFeatures -contains 'rscan')})|ConvertTo-Json
+    Write-Utf8NoBom -Path $featureManifest -Text ($state+"`n")
+    Write-Host "Enabled optional tools: $Features"
+}
 
 function Test-SameDirectory([string]$Left,[string]$Right) {
     if(-not(Test-Path -LiteralPath $Left -PathType Container) -or -not(Test-Path -LiteralPath $Right -PathType Container)){return $false}
@@ -213,12 +220,8 @@ try {
         Move-Item -LiteralPath $stage -Destination $destination
         $stage=$null
         Write-Host "Installed RCoder skill: $destination"
-        $featureManifest = Join-Path $targetRoot '.rcoder-features.json'
-        $version = (Get-Content -LiteralPath (Join-Path $repo 'package.json') -Raw -Encoding UTF8 | ConvertFrom-Json).version
-        $state = ([ordered]@{schema_version=1;version=$version;rsaver=($selectedFeatures -contains 'rsaver');rscan=($selectedFeatures -contains 'rscan')})|ConvertTo-Json
-        Write-Utf8NoBom -Path $featureManifest -Text ($state+"`n")
-        Write-Host "Enabled optional tools: $Features"
     } else {Write-Host 'The selected RCoder skill installation is already current.'}
+    if(-not $DryRun){Write-FeatureManifest -TargetRoot $targetRoot}else{Write-Host "DRY RUN: refresh optional tool manifest with $Features"}
     if(-not $NoLauncher -and -not $DryRun){Install-GlobalLauncher -Repo $repo -UserHome $userHome}
     if($Mcp -ne 'none' -and -not $DryRun){
         . (Join-Path (Join-Path $repo 'launcher') 'McpSetup.ps1')

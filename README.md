@@ -247,6 +247,16 @@ sh ./install.sh --dry-run
 sh ./install.sh --uninstall
 ```
 
+**Claude Code plugin (marketplace)**
+
+```sh
+claude plugin marketplace add RidTheWann/RCoder-Skills
+claude plugin install rcoder@rcoder-skills
+# In a session: /plugin install rcoder --marketplace RidTheWann/RCoder-Skills
+```
+
+Add the **repository** (`owner/repo`), not a raw `marketplace.json` URL: Claude Code clones the repository to resolve the plugin source. The marketplace entry now uses a git source, so a URL-hosted catalog also resolves the plugin. Verify with `claude plugin list` and `claude mcp list`; the bundled server should report `✔ Connected` as `plugin:rcoder:rcoder`.
+
 Launchers: `~/.local/bin/rcoder` on POSIX; `%USERPROFILE%\.rcoder\bin\rcoder.cmd` on Windows. The full target list lives in [docs/INSTALLATION-MATRIX.md](docs/INSTALLATION-MATRIX.md).
 
 ---

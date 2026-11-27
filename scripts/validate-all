@@ -278,8 +278,18 @@ def main():
           "G7: Gemini extension version mismatch")
     check(manifests["gemini-extension.json"].get("name") == "rcoder",
           "G8: Gemini extension name mismatch")
-    check(manifests[".claude-plugin/plugin.json"].get("mcpServers") == "./.mcp.json",
-          "G8: Claude plugin must reference its bundled compatibility MCP config")
+    check(manifests[".claude-plugin/plugin.json"].get("mcpServers") == "./.claude-plugin/mcp.json",
+          "G8: Claude plugin must reference its plugin-root MCP config")
+    claude_plugin_mcp = load_json(ROOT / ".claude-plugin" / "mcp.json")
+    claude_server = claude_plugin_mcp.get("mcpServers", {}).get("rcoder", {})
+    claude_args = [str(arg) for arg in claude_server.get("args", [])]
+    check(any("${CLAUDE_PLUGIN_ROOT}" in arg for arg in claude_args),
+          "G8: Claude plugin MCP launcher must be rooted at the plugin directory")
+    check(any("${CLAUDE_PROJECT_DIR}" in arg for arg in claude_args),
+          "G8: Claude plugin MCP server must scope reads to the project directory")
+    check(load_json(ROOT / ".claude-plugin" / "marketplace.json").get("plugins", [{}])[0]
+          .get("source", {}).get("source") == "github",
+          "G8: Claude marketplace plugin source must work for URL-hosted marketplaces")
     check(manifests[".codex-plugin/plugin.json"].get("mcpServers") == "./.mcp.json",
           "G8: Codex compatibility plugin must reference its bundled MCP config")
     check(manifests[".codex-plugin/plugin.json"].get("skills") == "./skills/",

@@ -45,6 +45,7 @@ The plugin manifest at hooks/hooks.json registers three events:
 |---|---|
 | UserPromptSubmit | Reads session_id, prompt_id, and cwd; builds the fresh RFC payload; returns it through hookSpecificOutput.additionalContext. |
 | Stop | Reads the same identity and last_assistant_message; verifies the per-delivery canary and stores a token-free transcript record. |
+| SessionEnd | Removes private pending-delivery state for sessions that ended without a matching Stop event. |
 
 The adapter is deliberately opt-in. It does nothing unless .rcoder/context-fabric.sqlite3 already exists. Initialize the store once:
 
