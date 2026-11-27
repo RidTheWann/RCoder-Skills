@@ -119,8 +119,7 @@ pub fn detect_project(project_root: &Path) -> Result<DetectionReport> {
     Ok(report)
 }
 
-fn is_rcoder_server(name: &str, definition: &Value) -> bool {
-    let _ = name; // Server aliases are not proof of implementation identity.
+fn is_rcoder_server(_name: &str, definition: &Value) -> bool {
     let Some(object) = definition.as_object() else {
         return false;
     };
