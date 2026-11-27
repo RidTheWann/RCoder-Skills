@@ -163,6 +163,8 @@ class ContextFabricHostTests(unittest.TestCase):
         self.assertTrue(result["acknowledged"])
         exported = self.fabric.export_transcript(self.session_id, generated_id)
         self.assertTrue(exported["acknowledged"])
+        self.assertTrue(token_path.exists())
+        host.handle_session_end({"session_id": self.session_id, "cwd": str(self.root)})
         self.assertFalse(token_path.exists())
 
     def test_response_without_canary_is_recorded_as_unacknowledged(self):
