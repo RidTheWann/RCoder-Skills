@@ -1733,7 +1733,8 @@ CONFIG_HOSTS = ("claude-code", "codex", "cursor", "gemini-cli", "vscode", "openc
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         description="RCoder read-only stdio MCP server. Speaks JSON-RPC on stdin/stdout.")
-    parser.add_argument("--root", default=".", help="project root that path arguments are confined to")
+    parser.add_argument("--root", default=os.environ.get("RCODER_WORKSPACE_ROOT", "."),
+                        help="project root that path arguments are confined to")
     parser.add_argument("--profile", choices=("full", "minimal"), default="full",
                         help="tool set to expose (minimal: scan, list/get specialist, validate selection)")
     parser.add_argument("--tools", help="comma-separated tool allowlist (overrides --profile)")
