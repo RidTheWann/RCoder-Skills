@@ -322,7 +322,7 @@ def main():
         "runtime/crates/runtime-core/src/session.rs", "runtime/crates/runtime-core/src/task.rs",
         "runtime/apps/rcoder-runtime/Cargo.toml",
         "runtime/apps/rcoder-runtime/src/main.rs", "skills/rcoder/scripts/runtime_bootstrap.py",
-        "scripts/test-runtime-bootstrap.py", "docs/RUNTIME.md",
+        "skills/rcoder/references/rcoder-runtime.md", "scripts/test-runtime-bootstrap.py", "docs/RUNTIME.md",
         "skills/rcoder/scripts/rsaver.py", "scripts/test-rsaver.py",
         "skills/rcoder/scripts/rsaver_guard.py",
         "scripts/rscan.py", "skills/rcoder/scripts/rscan.py", "scripts/test-rscan.py",
@@ -612,6 +612,9 @@ def main():
     check("TaskCommand::Create" in runtime_cli and "TaskCommand::Evidence" in runtime_cli
           and "TaskCommand::Transition" in runtime_cli,
           "G8: Runtime CLI must expose task contract and evidence operations")
+    check("rcoder-runtime.md" in read(skill_file)
+          and (SKILL / "references" / "rcoder-runtime.md").is_file(),
+          "G8: RCoder Skill must route contract-aware tasks to Runtime guidance")
     check("D-026" in runtime_decisions and "caller-supplied evidence attestations" in runtime_docs,
           "G8: Runtime task evidence boundary must be documented as caller-attested")
     runtime_discovery = read(ROOT / "runtime" / "crates" / "runtime-core" / "src" / "discovery.rs")
