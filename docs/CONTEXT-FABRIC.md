@@ -58,7 +58,7 @@ The first prompt then receives the session and prompt identifiers in its context
 python scripts/context-fabric.py --root . put --session SESSION_ID --kind objective --title "Active objective" --source README.md --file objective.md
 ~~~
 
-The next prompt in that same Claude session will receive the selected item. The adapter creates one fresh canary per prompt in .rcoder/private/rfc-canaries, with restrictive directory/file permissions where supported. The raw token is not stored in SQLite; only its SHA-256 digest is stored there. The payload asks the model to append the marker as an HTML comment so it is not presented as ordinary prose. The token file is removed after the matching Stop event is captured.
+The next prompt in that same Claude session will receive the selected item. The adapter creates one fresh canary per prompt in .rcoder/private/rfc-canaries, with restrictive directory/file permissions where supported. If the host omits prompt_id (which can occur before the first user input), RCoder creates a unique runtime prompt ID and stores a private session-to-delivery pointer until the corresponding Stop event. The raw token is not stored in SQLite; only its SHA-256 digest is stored there. The payload asks the model to append the marker as an HTML comment so it is not presented as ordinary prose. The token file is removed after the matching Stop event is captured.
 
 The host hook is fail-open: malformed events, unavailable state, duplicate prompt identities, and internal errors do not block the prompt or stop event. Set RCODER_RFC_DISABLE=1 to disable RFC injection while leaving other RCoder hooks active; RCODER_HOOKS_DISABLE=1 disables all RCoder hooks. The default budget is 16,000 UTF-8 bytes. Use RSaver for token estimation and safe reduction.
 
@@ -81,6 +81,6 @@ A record with expires_at == now is eligible for collection (expires_at <= now). 
 - stats reports local counters without exposing stored content.
 - The SQLite database is unencrypted. The redactor is best-effort and does not guarantee detection of arbitrary sensitive data.
 - Keep .rcoder/ private and do not deliberately store credentials.
-- Native loading and invocation in a live Claude Code process remain **NOT VERIFIED** by the local simulator and CI.
+- Native loading and invocation in a live Claude Code process remain **NOT VERIFIED** by the local simulator and CI. The runtime-generated ID fallback is covered by regression tests.
 - The current adapter is Claude Code-specific. OpenCode, Gemini CLI, Codex, and other host integrations are not implemented by this slice.
 - MCP write tools, cross-device synchronization, encryption at rest, vector retrieval, and background GC are not implemented.

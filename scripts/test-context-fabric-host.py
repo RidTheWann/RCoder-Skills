@@ -45,8 +45,10 @@ class ContextFabricHostTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def token_path(self):
-        return host._canary_path(self.root, self.session_id, self.prompt_id, create=False)
+    def token_path(self, prompt_id=None):
+        return host._canary_path(
+            self.root, self.session_id, prompt_id or self.prompt_id, create=False
+        )
 
     def test_user_prompt_submit_injects_a_fresh_context_for_exact_prompt(self):
         output = host.handle_user_prompt_submit(self.event)
@@ -97,7 +99,7 @@ class ContextFabricHostTests(unittest.TestCase):
         first_token = self.token_path().read_text(encoding="utf-8").strip()
         second_event = {**self.event, "prompt_id": "claude-prompt-002"}
         second = host.handle_user_prompt_submit(second_event)
-        second_path = host._canary_path(self.root, self.session_id, "claude-prompt-002", create=False)
+        second_path = self.token_path("claude-prompt-002")
         second_token = second_path.read_text(encoding="utf-8").strip()
         self.assertIn(first_token, first["hookSpecificOutput"]["additionalContext"])
         self.assertIn(second_token, second["hookSpecificOutput"]["additionalContext"])
@@ -107,6 +109,31 @@ class ContextFabricHostTests(unittest.TestCase):
                 "SELECT COUNT(*) FROM prompt_deliveries WHERE session_id=?", (self.session_id,)
             ).fetchone()[0]
         self.assertEqual(count, 2)
+
+    def test_first_prompt_without_host_prompt_id_uses_private_runtime_identity(self):
+        event = {key: value for key, value in self.event.items() if key != "prompt_id"}
+        output = host.handle_user_prompt_submit(event)
+        self.assertIsNotNone(output)
+        payload = output["hookSpecificOutput"]["additionalContext"]
+        generated_id = next(
+            line.split(": ", 1)[1]
+            for line in payload.splitlines()
+            if line.startswith("prompt_id: ")
+        )
+        self.assertRegex(generated_id, r"^rfc-[0-9]+-[a-f0-9]{16}$")
+        token_path = self.token_path(generated_id)
+        token = token_path.read_text(encoding="utf-8").strip()
+        result = host.handle_stop({
+            "hook_event_name": "Stop",
+            "session_id": self.session_id,
+            "prompt_id": "a-later-assigned-host-id",
+            "cwd": str(self.root),
+            "last_assistant_message": f"First response.\n<!-- RFC-ACK: {token} -->",
+        })
+        self.assertTrue(result["acknowledged"])
+        exported = self.fabric.export_transcript(self.session_id, generated_id)
+        self.assertTrue(exported["acknowledged"])
+        self.assertFalse(token_path.exists())
 
     def test_response_without_canary_is_recorded_as_unacknowledged(self):
         host.handle_user_prompt_submit(self.event)

@@ -5,8 +5,9 @@ UserPromptSubmit assembles and injects a fresh payload through the documented
 additionalContext channel. Stop verifies the per-prompt canary against the
 host's last_assistant_message and stores a token-free RFC transcript record.
 
-The adapter is opt-in: it does nothing unless .rcoder/context-fabric.sqlite3
-already exists. It fails open and never blocks a prompt or stop event.
+If Claude omits prompt_id on an early prompt, the adapter creates a fresh
+runtime ID and keeps a private session-to-delivery pointer until Stop.
+The adapter is opt-in and fails open; it never blocks a prompt or stop event.
 """
 from __future__ import annotations
 
@@ -16,8 +17,9 @@ import json
 import os
 import secrets
 import sys
+import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 from context_fabric import ContextFabric, DEFAULT_BUDGET_BYTES, ID_RE, PromptAlreadyPrepared
 
@@ -46,14 +48,19 @@ def _workspace(event: dict) -> Optional[Path]:
     return root if root.is_dir() else None
 
 
-def _identity(event: dict) -> Optional[tuple[str, str]]:
-    session_id = event.get("session_id")
-    prompt_id = event.get("prompt_id")
-    if not isinstance(session_id, str) or not ID_RE.fullmatch(session_id):
-        return None
-    if not isinstance(prompt_id, str) or not ID_RE.fullmatch(prompt_id):
-        return None
-    return session_id, prompt_id
+def _session_id(event: dict) -> Optional[str]:
+    value = event.get("session_id")
+    return value if isinstance(value, str) and ID_RE.fullmatch(value) else None
+
+
+def _host_prompt_id(event: dict) -> tuple[bool, Optional[str]]:
+    """Return (valid, prompt_id); missing is supported, malformed is not."""
+    value = event.get("prompt_id")
+    if value is None:
+        return True, None
+    if isinstance(value, str) and ID_RE.fullmatch(value):
+        return True, value
+    return False, None
 
 
 def _database_ready(root: Path) -> bool:
@@ -100,6 +107,61 @@ def _canary_path(root: Path, session_id: str, prompt_id: str, *, create: bool) -
     return path
 
 
+def _pending_path(root: Path, session_id: str, *, create: bool) -> Optional[Path]:
+    directory = _canary_directory(root, create=create)
+    if directory is None:
+        return None
+    identity = hashlib.sha256(session_id.encode("utf-8")).hexdigest()
+    path = directory / f"{identity}.pending"
+    if path.is_symlink():
+        raise ValueError("RFC pending-delivery file must not be a symbolic link")
+    return path
+
+
+def _read_pending(path: Optional[Path]) -> Optional[dict]:
+    if path is None or not path.is_file() or path.is_symlink():
+        return None
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError):
+        return None
+    if not isinstance(value, dict):
+        return None
+    prompt_id = value.get("prompt_id")
+    host_prompt_id = value.get("host_prompt_id")
+    if not isinstance(prompt_id, str) or not ID_RE.fullmatch(prompt_id):
+        return None
+    if host_prompt_id is not None and (
+        not isinstance(host_prompt_id, str) or not ID_RE.fullmatch(host_prompt_id)
+    ):
+        return None
+    return value
+
+
+def _write_private_file(path: Path, content: str) -> None:
+    temporary = path.with_name(f".{path.name}.{secrets.token_hex(8)}.tmp")
+    descriptor = os.open(str(temporary), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
+            stream.write(content)
+            stream.flush()
+            try:
+                os.fsync(stream.fileno())
+            except OSError:
+                pass
+        os.replace(temporary, path)
+    except BaseException:
+        try:
+            temporary.unlink()
+        except OSError:
+            pass
+        raise
+    try:
+        os.chmod(path, 0o600)
+    except OSError:
+        pass  # Windows ACLs are managed by the host.
+
+
 def _write_private_token(path: Path, token: str) -> None:
     descriptor = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
@@ -122,22 +184,51 @@ def _write_private_token(path: Path, token: str) -> None:
         pass  # Windows ACLs are managed by the host.
 
 
+def _discard_pending(root: Path, session_id: str, pending_path: Path) -> None:
+    pending = _read_pending(pending_path)
+    if pending:
+        old_token = _canary_path(root, session_id, pending["prompt_id"], create=False)
+        if old_token is not None:
+            try:
+                old_token.unlink()
+            except OSError:
+                pass
+    try:
+        pending_path.unlink()
+    except FileNotFoundError:
+        pass
+
+
+def _new_prompt_id() -> str:
+    return f"rfc-{time.time_ns()}-{secrets.token_hex(8)}"
+
+
 def handle_user_prompt_submit(event: dict) -> Optional[dict]:
     """Return Claude's documented additionalContext response, or None for a no-op."""
     if os.environ.get(DISABLE_ENV) == "1" or os.environ.get(RFC_DISABLE_ENV) == "1":
         return None
     root = _workspace(event)
-    identity = _identity(event)
-    if root is None or identity is None or not _database_ready(root):
+    session_id = _session_id(event)
+    valid_prompt_id, host_prompt_id = _host_prompt_id(event)
+    if root is None or session_id is None or not valid_prompt_id or not _database_ready(root):
         return None
 
-    session_id, prompt_id = identity
+    prompt_id = host_prompt_id or _new_prompt_id()
     fabric = ContextFabric(root)
     fabric.ensure_session(session_id)
     token_path = _canary_path(root, session_id, prompt_id, create=True)
-    if token_path is None:
+    pending_path = _pending_path(root, session_id, create=True)
+    if token_path is None or pending_path is None:
         return None
-    # A duplicate hook invocation for the same prompt must not overwrite its canary.
+
+    previous = _read_pending(pending_path)
+    if previous:
+        if previous.get("host_prompt_id") == host_prompt_id and previous.get("prompt_id") == prompt_id:
+            # A duplicate invocation for the same host prompt must not rotate its canary.
+            if token_path.is_file():
+                return None
+        _discard_pending(root, session_id, pending_path)
+
     if token_path.exists():
         return None
     token = secrets.token_urlsafe(24)
@@ -152,6 +243,11 @@ def handle_user_prompt_submit(event: dict) -> Optional[dict]:
             budget_bytes=DEFAULT_BUDGET_BYTES,
             ack_token=token,
         )
+        pending_data = json.dumps(
+            {"prompt_id": prompt_id, "host_prompt_id": host_prompt_id},
+            separators=(",", ":"),
+        )
+        _write_private_file(pending_path, pending_data)
     except PromptAlreadyPrepared:
         try:
             token_path.unlink()
@@ -159,10 +255,11 @@ def handle_user_prompt_submit(event: dict) -> Optional[dict]:
             pass
         return None
     except BaseException:
-        try:
-            token_path.unlink()
-        except OSError:
-            pass
+        for path in (token_path, pending_path):
+            try:
+                path.unlink()
+            except OSError:
+                pass
         raise
 
     return {
@@ -178,14 +275,29 @@ def handle_stop(event: dict) -> Optional[dict]:
     if os.environ.get(DISABLE_ENV) == "1" or os.environ.get(RFC_DISABLE_ENV) == "1":
         return None
     root = _workspace(event)
-    identity = _identity(event)
+    session_id = _session_id(event)
+    valid_prompt_id, host_prompt_id = _host_prompt_id(event)
     response = event.get("last_assistant_message")
-    if root is None or identity is None or not isinstance(response, str) or not response:
-        return None
-    if not _database_ready(root):
+    if (
+        root is None or session_id is None or not valid_prompt_id
+        or not isinstance(response, str) or not response or not _database_ready(root)
+    ):
         return None
 
-    session_id, prompt_id = identity
+    pending_path = _pending_path(root, session_id, create=False)
+    pending = _read_pending(pending_path)
+    if pending:
+        prepared_host_id = pending.get("host_prompt_id")
+        if prepared_host_id is not None and host_prompt_id is not None and prepared_host_id != host_prompt_id:
+            return None
+        # If the submit event had no prompt_id, its private generated ID is
+        # authoritative for this in-order Stop event even if Stop supplies one.
+        prompt_id = pending["prompt_id"]
+    elif host_prompt_id is not None:
+        prompt_id = host_prompt_id
+    else:
+        return None
+
     token_path = _canary_path(root, session_id, prompt_id, create=False)
     if token_path is None or not token_path.is_file() or token_path.is_symlink():
         return None
@@ -195,8 +307,12 @@ def handle_stop(event: dict) -> Optional[dict]:
 
     fabric = ContextFabric(root)
     result = fabric.record_response(session_id, prompt_id, response, token)
-    # The raw token is needed only until this exact Stop event is evaluated.
     token_path.unlink()
+    if pending_path is not None:
+        try:
+            pending_path.unlink()
+        except FileNotFoundError:
+            pass
     return result
 
 
