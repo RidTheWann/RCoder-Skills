@@ -106,17 +106,17 @@
 
 
 ## D-026 — Typed execution contracts and evidence-gated task completion
-- Decision: Runtime persists versioned task contracts with an objective, explicit acceptance criteria, constraints, risk level, state history, and criterion-scoped evidence attestations. A task may enter `completed` only when every criterion's latest attestation is `pass`; a completed task may be reopened to `active` only with a reason so new evidence can be recorded and the gate re-evaluated. Evidence and transition histories have fixed upper bounds; invalid state transitions are rejected.
+- Decision: Runtime persists versioned task contracts with an objective, explicit acceptance criteria, constraints, risk level, state history, and criterion-scoped evidence attestations. A task may enter `completed` only when every criterion's latest attestation in the current verification cycle is `pass`; reopening a completed task to `active` with a reason starts a new cycle while retaining old evidence for audit and excluding it from the new completion gate. Evidence and transition histories have fixed upper bounds; invalid state transitions are rejected.
 - Rationale: the Runtime needs a machine-readable task record and deterministic lifecycle before it can provide host adapters, policy gates, and independent verification.
 - Safety and scope: contracts are stored separately under `.rcoder/runtime/tasks/`; RFC remains responsible for durable cross-request context and RSaver remains responsible for context reduction. Evidence summaries and sources are caller-supplied attestations, not proof that a command ran or that the referenced artifact is valid. This controller does not intercept host tools or grant permissions.
-- Verification: Rust unit tests cover task creation, valid/invalid transitions, evidence completion gates, latest-failure behavior, reasoned post-completion reopening, blocking reasons, bounded history behavior, and task-ID/path safety.
+- Verification: Rust unit tests cover task creation, valid/invalid transitions, fresh-evidence completion gates after reopening, latest-failure behavior, backward compatibility for older task contracts, blocking reasons, bounded history behavior, and task-ID/path safety.
 
 
 ## D-027 — Deterministic bounded instruction packet compilation
-- Decision: Runtime compiles only active task contracts into a schema-versioned structured packet containing the task objective, constraints, risk, acceptance criteria, latest evidence per criterion, explicit trust/permission boundaries, and a SHA-256 digest over the canonical payload.
+- Decision: Runtime compiles only active task contracts into a schema-versioned structured packet containing the task objective, constraints, risk, acceptance criteria, latest current-cycle evidence per criterion, explicit trust/permission boundaries, and a SHA-256 digest over the canonical payload.
 - Rationale: hosts need a stable machine-readable contract representation before the next stage can inject it into each model request and retry. Deterministic serialization makes a task revision auditable and deduplicable.
 - Safety and scope: task fields are explicitly untrusted data and cannot override system, repository, or host policy. Blocked/draft/completed/cancelled tasks cannot compile. The 64 KiB packet limit rejects oversized content without truncation. Compilation is on-demand and does not itself inject context or intercept host tools; RFC remains the owner of durable per-request context hydration.
-- Verification: Rust unit tests cover deterministic digests, active-state gating, latest-evidence selection, and oversized-packet rejection.
+- Verification: Rust unit tests cover deterministic digests, active-state gating, latest current-cycle evidence selection, stale-evidence exclusion after reopening, and oversized-packet rejection.
 
 
 ## D-028 — Fail-open Claude Runtime task packet injection
