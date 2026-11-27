@@ -1,6 +1,6 @@
 # RCoder Runtime
 
-RCoder Runtime is the optional local control-plane companion for RCoder Skills. The first release slice focuses on project discovery and MCP session lifecycle; it is not an autonomous agent, an MCP server replacement, or a permission bypass.
+RCoder Runtime is the optional local control plane for RCoder Skills. It now provides project discovery, MCP process lifecycle tracking, and typed execution contracts with acceptance-evidence gates. It is not an autonomous agent, an MCP server replacement, or a permission bypass.
 
 ## Activation model
 
@@ -43,13 +43,45 @@ Environment controls:
 
 Detection inspects the configured command, executable, module, and argument fields for the exact bundled RCoder MCP entry points (`rcoder_mcp.py`, `rcoder_mcp_modern.py`, `rcoder-mcp`, or the Node `rcoder-mcp.mjs` launcher). A server merely named `rcoder` is not sufficient evidence. Unrelated MCP servers are ignored. JSONC, TOML, global user-level manifests, and remote endpoint lifecycle are not detected by this initial slice.
 
+## Execution contracts and acceptance evidence
+
+Runtime can persist a typed task contract separately from RFC context. Each contract contains an objective, numbered acceptance criteria, constraints, a risk level, state-transition history, and evidence attestations.
+
+Create and activate a task:
+
+```sh
+rcoder-runtime task create --project . \
+  --objective "Implement the requested feature" \
+  --acceptance "Focused tests pass" \
+  --acceptance "No unrelated files changed" \
+  --constraint "Keep host permissions unchanged" \
+  --risk high --json
+
+rcoder-runtime task list --project .
+rcoder-runtime task show --project . --id TASK_UUID
+rcoder-runtime task transition --project . --id TASK_UUID --to active
+```
+
+After checking a criterion, record its outcome and a concise source reference:
+
+```sh
+rcoder-runtime task evidence --project . --id TASK_UUID \
+  --criterion AC-001 --outcome pass \
+  --summary "The focused test suite passed" \
+  --source "cargo test -p runtime-core"
+```
+
+A task can move to `completed` only when the latest recorded outcome for every acceptance criterion is `pass`. A later `fail` or `not-run` record reopens that criterion as a completion blocker. Invalid state transitions are rejected; blocking requires a reason.
+
+**Evidence boundary:** the Runtime validates contract structure, state transitions, and whether all criteria have a latest passing attestation. It does not independently execute the referenced command or prove the attestation is truthful. The future Verification Engine must cross-check evidence against actual test artifacts and repository state before stronger completion claims are made. The Task Controller does not intercept agent filesystem, shell, or IDE tools.
+
 ## State and safety boundaries
 
-Runtime stores only session metadata in `.rcoder/runtime/sessions/`: opaque session ID, project path, process IDs, process start time, lifecycle timestamps, and state. It does not copy MCP arguments, environment variables, prompts, context payloads, canaries, credentials, or tool output into session records. The launcher also passes the companion a small OS-environment allowlist (PATH, home/temp/system-root basics, and locale) instead of inheriting host API keys and provider tokens.
+Runtime stores session metadata in `.rcoder/runtime/sessions/` and task contracts/evidence in `.rcoder/runtime/tasks/`. Session records contain opaque session IDs, project paths, process IDs, process start times, lifecycle timestamps, and state. Task contracts contain the requested objective, acceptance criteria, constraints, risk level, state history, and caller-supplied evidence attestations. It does not copy MCP arguments, environment variables, prompts, context payloads, canaries, credentials, or tool output into session records. The launcher also passes the companion a small OS-environment allowlist (PATH, home/temp/system-root basics, and locale) instead of inheriting host API keys and provider tokens.
 
 The runtime and sessions directories are restricted to the current user on Unix-like systems. Runtime refuses symlinked state directories and uses OS file locks to distinguish active sessions from abandoned records after a crash. Session records are local operational metadata, not proof that an agent completed work.
 
-This slice does not yet enforce tool permissions, compile task instructions, or validate acceptance criteria. Those capabilities remain separate roadmap stages. RFC remains the owner of durable request context and hydration; RSaver remains the context measurement and reduction subsystem. Runtime does not open or write the RFC SQLite database.
+Runtime still does not enforce host tool permissions, compile a host-specific instruction payload, or independently verify caller-supplied evidence. Those capabilities remain separate roadmap stages. RFC remains the owner of durable request context and hydration; RSaver remains the context measurement and reduction subsystem. Runtime does not open or write the RFC SQLite database.
 
 ## Architecture and next stages
 
@@ -64,7 +96,11 @@ Agent host
   |                                                   |
   |                                             session controller
   |                                                   |
+  |                                             Task Controller
+  |                                                   |
   |                                             .rcoder/runtime/
+  |                                               sessions/
+  |                                               tasks/
   |
   +-- agent tools and permissions remain host-owned
 
