@@ -152,7 +152,7 @@ fn restrict_directory(path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn prepare_task_directory(project_root: &Path) -> Result<(PathBuf, String)> {
+fn prepare_task_directory(project_root: &Path) -> Result<(std::path::PathBuf, String)> {
     let root = project_root
         .canonicalize()
         .with_context(|| format!("cannot resolve project root: {}", project_root.display()))?;
@@ -175,7 +175,7 @@ fn canonical_task_id(value: &str) -> Result<String> {
         .context("task ID must be a UUID")
 }
 
-fn task_path(directory: &Path, id: &str) -> PathBuf {
+fn task_path(directory: &Path, id: &str) -> std::path::PathBuf {
     directory.join(format!("{id}.json"))
 }
 
