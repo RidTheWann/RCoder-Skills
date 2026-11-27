@@ -53,7 +53,7 @@ class RuntimeTaskHostTests(unittest.TestCase):
                     "Preserve unrelated user changes and report missing verification as NOT VERIFIED."
                 ),
                 "completion_rule": (
-                    "A task is complete only when the latest recorded evidence for every acceptance criterion is pass."
+                    "A task is complete only when the latest evidence for every acceptance criterion, recorded after the most recent reopen, is pass."
                 ),
                 "evidence_rule": (
                     "Evidence summaries and source references are caller attestations, not independent proof "
@@ -161,7 +161,7 @@ class RuntimeTaskHostTests(unittest.TestCase):
         sealed = self.seal_packet(packet)
         self.assertEqual(
             sealed["digest_sha256"],
-            "73c0d6cc36c60ff0a64b6790d4f8bf52f47c09f52ae27ab1f3a963c982d9c92d",
+            "963a1b21c621b5af39571e008d9993188287a264b4abc8333ee664f9d073ec31",
         )
 
     def test_disabled_runtime_does_not_invoke_cli(self) -> None:
