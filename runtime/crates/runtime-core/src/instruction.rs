@@ -179,9 +179,7 @@ pub fn compile_task(task: &TaskContract) -> Result<InstructionPacket> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::task::{
-        AcceptanceCriterion, EvidenceRecord, RiskLevel, TaskContract, TaskStatus,
-    };
+    use crate::task::{AcceptanceCriterion, EvidenceRecord};
 
     fn active_task() -> TaskContract {
         TaskContract {
