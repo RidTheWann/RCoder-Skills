@@ -175,7 +175,10 @@ fn print_task(task: &rcoder_runtime_core::TaskContract, json: bool) -> Result<()
     } else {
         println!("Task: {}", task.id);
         println!("Status: {}", task.status.as_str());
-        println!("Risk: {}", format!("{:?}", task.risk_level).to_ascii_lowercase());
+        println!(
+            "Risk: {}",
+            format!("{:?}", task.risk_level).to_ascii_lowercase()
+        );
         println!("Objective: {}", task.objective);
         println!("Acceptance criteria:");
         for criterion in &task.acceptance_criteria {
@@ -186,7 +189,10 @@ fn print_task(task: &rcoder_runtime_core::TaskContract, json: bool) -> Result<()
                 .find(|evidence| evidence.criterion_id == criterion.id)
                 .map(|evidence| format!("{:?}", evidence.outcome).to_ascii_lowercase())
                 .unwrap_or_else(|| "not_recorded".to_string());
-            println!("  [{}] {} — {}", criterion.id, outcome, criterion.description);
+            println!(
+                "  [{}] {} — {}",
+                criterion.id, outcome, criterion.description
+            );
         }
         if !task.constraints.is_empty() {
             println!("Constraints:");
@@ -272,12 +278,7 @@ async fn main() -> Result<()> {
                     println!("No execution contracts are recorded for this project.");
                 } else {
                     for task in tasks {
-                        println!(
-                            "{}  {}  {}",
-                            task.status.as_str(),
-                            task.id,
-                            task.objective
-                        );
+                        println!("{}  {}  {}", task.status.as_str(), task.id, task.objective);
                     }
                 }
             }
@@ -294,14 +295,8 @@ async fn main() -> Result<()> {
                 source,
                 json,
             } => {
-                let task = record_evidence(
-                    &project,
-                    &id,
-                    &criterion,
-                    outcome.into(),
-                    &summary,
-                    &source,
-                )?;
+                let task =
+                    record_evidence(&project, &id, &criterion, outcome.into(), &summary, &source)?;
                 print_task(&task, json)?;
             }
             TaskCommand::Transition {
@@ -324,7 +319,6 @@ async fn main() -> Result<()> {
     }
     Ok(())
 }
-
 
 #[cfg(test)]
 mod cli_tests {
