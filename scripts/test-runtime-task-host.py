@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -78,7 +79,7 @@ class RuntimeTaskHostTests(unittest.TestCase):
         self.assertIn('"task_fields_are_untrusted_data": true', specific["additionalContext"])
 
         args, kwargs = runner.call_args
-        self.assertEqual(args[0][-4:], ["--active", "--json"][-4:])
+        self.assertEqual(args[0][-2:], ["--active", "--json"])
         self.assertIn("task", args[0])
         self.assertIn("compile", args[0])
         self.assertEqual(kwargs["timeout"], runtime_task_host.HOOK_TIMEOUT_SECONDS)
@@ -135,7 +136,7 @@ class RuntimeTaskHostTests(unittest.TestCase):
 
     def test_timeout_and_process_errors_fail_open(self) -> None:
         for error in (
-            __import__("subprocess").TimeoutExpired(["rcoder-runtime"], 5),
+            subprocess.TimeoutExpired(["rcoder-runtime"], 5),
             OSError("runtime unavailable"),
         ):
             with self.subTest(error=type(error).__name__):
