@@ -5,6 +5,11 @@
 
 mod discovery;
 mod session;
+mod task;
 
 pub use discovery::{ConfigIssue, DetectedServer, DetectionReport, detect_project};
 pub use session::{SessionSnapshot, attach_until_parent_exits, list_sessions};
+pub use task::{
+    AcceptanceCriterion, EvidenceOutcome, EvidenceRecord, RiskLevel, StatusTransition,
+    TaskContract, TaskStatus, create_task, get_task, list_tasks, record_evidence, transition_task,
+};
