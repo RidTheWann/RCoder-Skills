@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
 use rcoder_runtime_core::{
-    EvidenceOutcome, RiskLevel, TaskStatus, attach_until_parent_exits, create_task, detect_project,
-    get_task, list_sessions, list_tasks, record_evidence, transition_task,
+    EvidenceOutcome, RiskLevel, TaskStatus, attach_until_parent_exits, compile_task, create_task,
+    detect_project, get_task, list_sessions, list_tasks, record_evidence, transition_task,
 };
 
 #[derive(Debug, Parser)]
@@ -75,6 +75,15 @@ enum TaskCommand {
     },
     /// Show one execution contract, its evidence, and transition history.
     Show {
+        #[arg(long, default_value = ".")]
+        project: PathBuf,
+        #[arg(long)]
+        id: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Compile an active task into a bounded, deterministic host-context packet.
+    Compile {
         #[arg(long, default_value = ".")]
         project: PathBuf,
         #[arg(long)]
@@ -167,6 +176,27 @@ impl From<TaskStatusArg> for TaskStatus {
             TaskStatusArg::Cancelled => Self::Cancelled,
         }
     }
+}
+
+fn print_instruction_packet(
+    packet: &rcoder_runtime_core::InstructionPacket,
+    json: bool,
+) -> Result<()> {
+    if json {
+        println!("{}", serde_json::to_string_pretty(packet)?);
+    } else {
+        println!("RCoder Runtime instruction packet");
+        println!("Schema: {}", packet.schema_version);
+        println!("Compiler: {}", packet.compiler_version);
+        println!("SHA-256: {}", packet.digest_sha256);
+        println!("Trust boundary: {}", packet.trust_boundary);
+        println!("Execution rule: {}", packet.policy.execution_rule);
+        println!("Completion rule: {}", packet.policy.completion_rule);
+        println!("Evidence rule: {}", packet.policy.evidence_rule);
+        println!("Task data:");
+        println!("{}", serde_json::to_string_pretty(&packet.task)?);
+    }
+    Ok(())
 }
 
 fn print_task(task: &rcoder_runtime_core::TaskContract, json: bool) -> Result<()> {
@@ -315,6 +345,11 @@ async fn main() -> Result<()> {
                 let task = get_task(&project, &id)?;
                 print_task(&task, json)?;
             }
+            TaskCommand::Compile { project, id, json } => {
+                let task = get_task(&project, &id)?;
+                let packet = compile_task(&task)?;
+                print_instruction_packet(&packet, json)?;
+            }
             TaskCommand::Evidence {
                 project,
                 id,
@@ -385,6 +420,29 @@ mod cli_tests {
             } => {
                 assert_eq!(acceptance_criteria.len(), 2);
                 assert!(matches!(risk, RiskArg::High));
+                assert!(json);
+            }
+            other => panic!("unexpected command: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn task_compile_command_parses_json_mode() {
+        let cli = Cli::try_parse_from([
+            "rcoder-runtime",
+            "task",
+            "compile",
+            "--id",
+            "00000000-0000-4000-8000-000000000001",
+            "--json",
+        ])
+        .expect("parse task compile command");
+
+        match cli.command {
+            Command::Task {
+                command: TaskCommand::Compile { id, json, .. },
+            } => {
+                assert_eq!(id, "00000000-0000-4000-8000-000000000001");
                 assert!(json);
             }
             other => panic!("unexpected command: {other:?}"),
