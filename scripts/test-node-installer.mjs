@@ -158,7 +158,11 @@ try {
   assert.equal(featureState.rscan, true);
   assert.equal(featureState.rsaver, false);
   assert.throws(() => run([...featureArgs, '--features', 'unknown-tool']));
-  console.log('PASS optional tool selection: RSaver and RScan manifests');
+  run([...featureArgs, '--features', 'rsaver']);
+  const refreshedFeatureState = JSON.parse(readFileSync(featureManifest, 'utf8'));
+  assert.equal(refreshedFeatureState.rscan, false);
+  assert.equal(refreshedFeatureState.rsaver, true);
+  console.log('PASS optional tool selection: RSaver and RScan manifests with refresh on re-install');
 
   // MCP option: show prints a snippet and writes nothing; install merges safely; bad values are rejected.
   const pythonProbe = spawnSync(process.platform === 'win32' ? 'python' : 'python3', ['--version'], { encoding: 'utf8' });

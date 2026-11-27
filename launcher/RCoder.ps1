@@ -25,8 +25,8 @@ function Get-RcoderPython {
             if (-not $cmd) { continue }
             $source = [string]$cmd.Source
             if ([string]::IsNullOrWhiteSpace($source)) { continue }
-            $prefix = if ($name -eq 'py') { '-3 ' } else { '' }
-            $arguments = "$prefix-c ""import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)"""
+            $prefix = if ($name -eq 'py') { '-3' } else { '' }
+            $arguments = ('{0} -c "import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)"' -f $prefix).Trim()
             $probe = Start-Process -FilePath $source -ArgumentList $arguments `
                 -NoNewWindow -Wait -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
             if ($probe.ExitCode -eq 0) {

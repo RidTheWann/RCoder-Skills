@@ -130,7 +130,7 @@ One hook ships by default (D-019): a read-only `SessionStart` hook (`hooks/hooks
 | A host calls `completion/complete`, surfaces the new prompts, or uses `query` in practice | NOT VERIFIED |
 | Host-specific configuration snippets match each host's current format | NOT VERIFIED (formats follow public documentation; confirm against your host version) |
 | Any host connects to the server, lists its tools, and a model calls them | NOT VERIFIED |
-| Claude Code loads the plugin's commands, agents, and `mcpServers` entry, including the `${CLAUDE_PLUGIN_ROOT}` expansion and the server working directory | NOT VERIFIED |
+| Claude Code installs the marketplace plugin and connects its bundled MCP server using `${CLAUDE_PLUGIN_ROOT}` / `${CLAUDE_PROJECT_DIR}` | VERIFIED locally with Claude Code CLI 2.1.332: `claude plugin validate .` passes, `claude plugin install rcoder@rcoder-skills` succeeds, and `claude mcp list` reports `✔ Connected` for `plugin:rcoder:rcoder`. Native model invocation remains NOT VERIFIED. |
 | The server improves model outcomes | NOT VERIFIED (no evaluation has been run; see `evals/ABLATION-PROTOCOL.md`) |
 
 ## Testing

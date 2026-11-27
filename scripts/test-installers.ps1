@@ -51,6 +51,11 @@ try {
             $afterRepeat = @(Get-ChildItem -LiteralPath $backupRoot -Directory -Filter 'install-*')
             if ($afterRepeat.Count -ne 1) { throw "Repeat install was not idempotent for $($target.id)/$scope" }
 
+            & $installer -Target $target.id -Scope $scope -ProjectDir $project -HomeDir $homeDir -Features rscan | Out-Null
+            $featureManifest = Join-Path $discovery '.rcoder-features.json'
+            $featureState = Get-Content -LiteralPath $featureManifest -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($featureState.rscan -ne $true -or $featureState.rsaver -ne $false) { throw "Feature refresh on an already-current install failed for $($target.id)/$scope" }
+
             & $installer -Target $target.id -Scope $scope -ProjectDir $project -HomeDir $homeDir -Uninstall
             if (-not (Test-Path -LiteralPath (Join-Path $dest 'original.txt'))) { throw "Backup restore failed: $($target.id)/$scope" }
             if (Test-Path -LiteralPath (Join-Path $dest 'SKILL.md')) { throw "Uninstall left RCoder: $($target.id)/$scope" }

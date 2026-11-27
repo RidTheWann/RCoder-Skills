@@ -78,7 +78,10 @@ import json, sys
 with open(sys.argv[1], encoding="utf-8") as handle:
     json.load(handle)
 PY
-echo 'PASS POSIX optional tool selection and atomic JSON manifest'
+sh "$INSTALLER" --target agents --scope project --project-dir "$FEATURE_PROJECT" --home-dir "$FEATURE_HOME" --features rscan >/dev/null
+grep -q '"rsaver": false' "$FEATURE_MANIFEST"
+grep -q '"rscan": true' "$FEATURE_MANIFEST"
+echo 'PASS POSIX optional tool selection, atomic JSON manifest, and feature refresh on an already-current install'
 
 if command -v python3 >/dev/null 2>&1 || command -v python >/dev/null 2>&1; then
   MCP_PROJECT="$TMP/mcp-project"

@@ -12,7 +12,7 @@ Do not read this table as a compatibility guarantee. It records the specific kin
 | T3 — Invocation verified | The host was observed loading and following the skill on a task. | "This host invoked the skill." |
 | T4 — Behavioral evaluation | A pinned ablation meets the `evals/rubric.md` pass rule. | "RCoder measurably changed outcomes on this task." |
 
-T0 and T1 are supported by repository evidence for the general host matrix. OpenCode has specific historical T2/T3 evidence for Agent Skill discovery and the earlier RScan V1 hook on version 1.19.6. That evidence does not extend to the new RCoder V1 plugin adapter documented below. OpenCode 2.4.2 V2 plugin loading, MCP connection, and request delivery are now directly observed in the dedicated section below; all other adapter tiers, builds, and hosts remain `NOT VERIFIED` unless directly observed. Do not advertise compatibility using T0 evidence alone.
+T0 and T1 are supported by repository evidence for the general host matrix. OpenCode has specific historical T2/T3 evidence for Agent Skill discovery and the earlier RScan V1 hook on version 1.19.6. That evidence does not extend to the new dual V2/V1 plugin adapter documented below. OpenCode 2.4.2 V2 plugin loading, MCP connection, and request delivery are now directly observed in the dedicated section below; all other adapter tiers, builds, and hosts remain `NOT VERIFIED` unless directly observed. Do not advertise compatibility using T0 evidence alone.
 
 ## Catalog
 
@@ -77,7 +77,7 @@ Verified runtimes in the development shell: Linux aarch64 (kernel `6.1.164-JetKe
 | M0 — Protocol behavior of `rcoder_mcp.py` against a scripted stdio client | VERIFIED locally by `scripts/test-mcp.py` |
 | M1 — Host configuration snippet printed by `--print-config` matches the host's documented format | NOT VERIFIED for every host; confirm against the installed host version |
 | M2 — A real host connects, lists the tools, and a model calls them | NOT VERIFIED for every host |
-| P1 — Claude Code loads `commands/`, `agents/`, and the manifest `mcpServers` entry (including `${CLAUDE_PLUGIN_ROOT}` expansion and the server working directory) | NOT VERIFIED |
+| P1 — Claude Code installs the marketplace plugin and connects its manifest MCP server with `${CLAUDE_PLUGIN_ROOT}` / `${CLAUDE_PROJECT_DIR}` expansion | VERIFIED locally with Claude Code CLI 2.1.332 (`claude plugin validate`, `claude plugin install`, `claude mcp list` → `✔ Connected`). Native skill/agent invocation by a model remains NOT VERIFIED. |
 
 Do not advertise MCP or plugin compatibility on M0 evidence alone.
 

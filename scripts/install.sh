@@ -220,6 +220,19 @@ if [ "$REMOVE" -eq 1 ]; then
   exit 0
 fi
 
+write_feature_manifest(){
+  FEATURE_MANIFEST="$TARGET_ROOT/.rcoder-features.json"
+  RSAVER=false
+  RSCAN=false
+  case ",$FEATURES," in *,rsaver,*) RSAVER=true ;; esac
+  case ",$FEATURES," in *,rscan,*) RSCAN=true ;; esac
+  VERSION=$(grep -m1 '"version"' "$SCRIPT_DIR/../package.json" | tr -dc '0-9.')
+  FEATURE_TMP="$TARGET_ROOT/.rcoder-features.json.tmp.$$"
+  printf '{\n  "schema_version": 1,\n  "version": "%s",\n  "rsaver": %s,\n  "rscan": %s\n}\n' "$VERSION" "$RSAVER" "$RSCAN" > "$FEATURE_TMP"
+  mv -f "$FEATURE_TMP" "$FEATURE_MANIFEST"
+  echo "Enabled optional tools: $FEATURES"
+}
+
 mcp_step(){
   [ "$MCP" != none ] || return 0
   PY=''
@@ -240,7 +253,12 @@ mcp_step(){
 
 if [ -d "$DEST" ] && diff -qr "$SOURCE" "$DEST" >/dev/null 2>&1; then
   echo "RCoder is already current at $DEST"
-  [ "$DRY" -eq 1 ] || mcp_step
+  if [ "$DRY" -eq 1 ]; then
+    echo "DRY RUN: refresh optional tool manifest with $FEATURES"
+  else
+    write_feature_manifest
+    mcp_step
+  fi
   exit 0
 fi
 
@@ -268,14 +286,5 @@ fi
 trap - EXIT HUP INT TERM
 
 echo "Installed RCoder for $TARGET: $DEST"
-FEATURE_MANIFEST="$TARGET_ROOT/.rcoder-features.json"
-RSAVER=false
-RSCAN=false
-case ",$FEATURES," in *,rsaver,*) RSAVER=true ;; esac
-case ",$FEATURES," in *,rscan,*) RSCAN=true ;; esac
-VERSION=$(grep -m1 '"version"' "$SCRIPT_DIR/../package.json" | tr -dc '0-9.')
-FEATURE_TMP="$TARGET_ROOT/.rcoder-features.json.tmp.$$"
-printf '{\n  "schema_version": 1,\n  "version": "%s",\n  "rsaver": %s,\n  "rscan": %s\n}\n' "$VERSION" "$RSAVER" "$RSCAN" > "$FEATURE_TMP"
-mv -f "$FEATURE_TMP" "$FEATURE_MANIFEST"
-echo "Enabled optional tools: $FEATURES"
+write_feature_manifest
 mcp_step
