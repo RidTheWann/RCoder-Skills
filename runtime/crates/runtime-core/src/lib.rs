@@ -1,7 +1,7 @@
 //! Local lifecycle and discovery core for RCoder Runtime.
 //!
-//! The first runtime slice deliberately manages only the lifetime of a local
-//! RCoder MCP process. It does not execute agent tools or grant permissions.
+//! Runtime tracks local RCoder MCP process lifetimes and persists typed task
+//! contracts. It does not execute agent tools or grant host permissions.
 
 mod discovery;
 mod session;
