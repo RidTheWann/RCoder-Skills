@@ -30,7 +30,7 @@ RCoder Skills is an **instruction and tooling layer**, not an AI model or a stan
 - [Installation](#installation)
 - [Use RCoder with your agent](#use-rcoder-with-your-agent)
 - [Core components](#core-components)
-- [RCoder Runtime](#rcoder-runtime-preview)
+- [RCoder Runtime](#rcoder-runtime-optional-local-control-plane)
 - [Supported agent hosts](#supported-agent-hosts)
 - [Specialist library](#specialist-library)
 - [Security and execution boundaries](#security-and-execution-boundaries)
