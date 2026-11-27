@@ -4,10 +4,15 @@
 //! contracts. It does not execute agent tools or grant host permissions.
 
 mod discovery;
+mod instruction;
 mod session;
 mod task;
 
 pub use discovery::{ConfigIssue, DetectedServer, DetectionReport, detect_project};
+pub use instruction::{
+    CompiledCriterion, CompiledEvidence, CompiledTask, InstructionPacket, InstructionPolicy,
+    compile_task,
+};
 pub use session::{SessionSnapshot, attach_until_parent_exits, list_sessions};
 pub use task::{
     AcceptanceCriterion, EvidenceOutcome, EvidenceRecord, RiskLevel, StatusTransition,
