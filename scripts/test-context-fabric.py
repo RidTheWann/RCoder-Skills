@@ -40,6 +40,11 @@ class ContextFabricTests(unittest.TestCase):
             "This note expires at timestamp 120.", ttl_seconds=20, now=100,
         )
 
+    def test_reopening_an_existing_wal_store_is_safe(self):
+        second = ContextFabric(self.root)
+        self.assertEqual(second.stats()["sessions"], self.fabric.stats()["sessions"])
+        self.assertEqual(second.stats()["context_items"], self.fabric.stats()["context_items"])
+
     def test_ensure_session_registers_a_session_before_any_context_exists(self):
         result = self.fabric.ensure_session("session-empty", now=100)
         self.assertTrue(result["created"])

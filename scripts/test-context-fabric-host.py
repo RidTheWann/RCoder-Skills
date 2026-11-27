@@ -86,13 +86,43 @@ class ContextFabricHostTests(unittest.TestCase):
             "last_assistant_message": response,
         })
         self.assertTrue(result["acknowledged"])
-        self.assertFalse(self.token_path().exists())
+        self.assertTrue(self.token_path().exists())
         exported = self.fabric.export_transcript(self.session_id, self.prompt_id)
         serialized = json.dumps(exported, ensure_ascii=False)
         self.assertTrue(exported["acknowledged"])
         self.assertNotIn(token, serialized)
         self.assertIn("Task result is ready", serialized)
         self.assertIn("<!-- RFC-ACK:  -->", serialized)
+        host.handle_session_end({"session_id": self.session_id, "cwd": str(self.root)})
+        self.assertFalse(self.token_path().exists())
+
+    def test_repeated_stop_events_capture_each_continuation_for_the_same_delivery(self):
+        host.handle_user_prompt_submit(self.event)
+        token = self.token_path().read_text(encoding="utf-8").strip()
+        for message in ("First completion attempt.", "Final completion after the stop gate."):
+            result = host.handle_stop({
+                "hook_event_name": "Stop",
+                "session_id": self.session_id,
+                "prompt_id": self.prompt_id,
+                "cwd": str(self.root),
+                "last_assistant_message": f"{message} <!-- RFC-ACK: {token} -->",
+                "stop_hook_active": message.startswith("Final"),
+            })
+            self.assertTrue(result["acknowledged"])
+        exported = self.fabric.export_transcript(self.session_id, self.prompt_id)
+        self.assertEqual(len(exported["messages"]), 2)
+        self.assertIn("Final completion after the stop gate.", json.dumps(exported))
+        self.assertTrue(self.token_path().exists())
+        host.handle_session_end({"session_id": self.session_id, "cwd": str(self.root)})
+        self.assertFalse(self.token_path().exists())
+
+    def test_next_prompt_cleans_an_interrupted_prior_delivery(self):
+        host.handle_user_prompt_submit(self.event)
+        old_token_path = self.token_path()
+        next_event = {**self.event, "prompt_id": "claude-prompt-002"}
+        self.assertIsNotNone(host.handle_user_prompt_submit(next_event))
+        self.assertFalse(old_token_path.exists())
+        self.assertTrue(self.token_path("claude-prompt-002").exists())
 
     def test_successive_prompts_receive_distinct_single_use_canaries(self):
         first = host.handle_user_prompt_submit(self.event)
@@ -148,7 +178,7 @@ class ContextFabricHostTests(unittest.TestCase):
         exported = self.fabric.export_transcript(self.session_id, self.prompt_id)
         self.assertFalse(exported["acknowledged"])
         self.assertIn("omitted the delivery marker", json.dumps(exported))
-        self.assertFalse(self.token_path().exists())
+        self.assertTrue(self.token_path().exists())
 
     def test_wrong_prompt_stop_cannot_capture_another_delivery(self):
         host.handle_user_prompt_submit(self.event)
@@ -207,6 +237,16 @@ class ContextFabricHostTests(unittest.TestCase):
         with patch.dict(os.environ, {"RCODER_RFC_DISABLE": "1"}):
             self.assertIsNone(host.handle_user_prompt_submit(self.event))
             self.assertIsNone(host.handle_stop(self.event))
+
+    def test_session_end_cli_cleans_private_pending_delivery_state(self):
+        host.handle_user_prompt_submit(self.event)
+        completed = subprocess.run(
+            [sys.executable, str(SCRIPT_DIR / "context_fabric_host.py"), "session-end"],
+            input=json.dumps({"session_id": self.session_id, "cwd": str(self.root)}),
+            capture_output=True, text=True, timeout=20,
+        )
+        self.assertEqual(completed.returncode, 0)
+        self.assertFalse(self.token_path().exists())
 
     def test_host_cli_uses_documented_hook_json_contract_and_fails_open(self):
         completed = subprocess.run(

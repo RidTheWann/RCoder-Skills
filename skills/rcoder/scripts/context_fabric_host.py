@@ -307,18 +307,27 @@ def handle_stop(event: dict) -> Optional[dict]:
 
     fabric = ContextFabric(root)
     result = fabric.record_response(session_id, prompt_id, response, token)
-    token_path.unlink()
-    if pending_path is not None:
-        try:
-            pending_path.unlink()
-        except FileNotFoundError:
-            pass
+    # Keep the same delivery live across repeated Stop events. An independently
+    # installed completion gate may continue the turn and trigger Stop again.
     return result
+
+
+def handle_session_end(event: dict) -> None:
+    """Remove the outstanding private canary and pending pointer at session end."""
+    if os.environ.get(DISABLE_ENV) == "1" or os.environ.get(RFC_DISABLE_ENV) == "1":
+        return
+    root = _workspace(event)
+    session_id = _session_id(event)
+    if root is None or session_id is None or not _database_ready(root):
+        return
+    pending_path = _pending_path(root, session_id, create=False)
+    if pending_path is not None:
+        _discard_pending(root, session_id, pending_path)
 
 
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("event", choices=("user-prompt-submit", "stop"))
+    parser.add_argument("event", choices=("user-prompt-submit", "stop", "session-end"))
     args = parser.parse_args(argv)
     try:
         event = _read_event()
@@ -328,8 +337,10 @@ def main(argv: Optional[list[str]] = None) -> int:
             output = handle_user_prompt_submit(event)
             if output is not None:
                 print(json.dumps(output, ensure_ascii=False))
-        else:
+        elif args.event == "stop":
             handle_stop(event)
+        else:
+            handle_session_end(event)
     except Exception as exc:  # host hooks must fail open, never wedge the agent.
         if os.environ.get(DEBUG_ENV) == "1":
             print(f"rfc-host: ignored {type(exc).__name__}", file=sys.stderr)

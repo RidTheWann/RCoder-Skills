@@ -148,8 +148,10 @@ class ContextFabric:
                 raise
 
     def _initialise(self) -> None:
-        with self._transaction() as conn:
+        # SQLite journal mode can only be changed outside an active transaction.
+        with self._connection() as conn:
             conn.execute("PRAGMA journal_mode = WAL")
+        with self._transaction() as conn:
             version = int(conn.execute("PRAGMA user_version").fetchone()[0])
             if version > SCHEMA_VERSION:
                 raise ContextFabricError(
