@@ -40,7 +40,7 @@ Environment controls:
 - `rcoder-runtime status --project PATH` reports active, stopped, and orphaned session records.
 - The internal `attach` command is started by RCoder MCP and is not intended for manual use.
 
-Detection matches a server entry named `rcoder` (or a `rcoder-*` name), or a command argument that explicitly names the RCoder MCP entry point. Unrelated MCP servers are ignored. JSONC, TOML, global user-level manifests, and remote endpoint lifecycle are not detected by this initial slice.
+Detection inspects the configured command, executable, module, and argument fields for the exact bundled RCoder MCP entry points (`rcoder_mcp.py`, `rcoder_mcp_modern.py`, `rcoder-mcp`, or the Node `rcoder-mcp.mjs` launcher). A server merely named `rcoder` is not sufficient evidence. Unrelated MCP servers are ignored. JSONC, TOML, global user-level manifests, and remote endpoint lifecycle are not detected by this initial slice.
 
 ## State and safety boundaries
 
