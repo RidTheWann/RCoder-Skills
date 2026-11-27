@@ -61,7 +61,7 @@ enum TaskCommand {
         acceptance_criteria: Vec<String>,
         #[arg(long = "constraint")]
         constraints: Vec<String>,
-        #[arg(long, value_enum, default_value_t = RiskArg::Medium)]
+        #[arg(long, value_enum, default_value = "medium")]
         risk: RiskArg,
         #[arg(long)]
         json: bool,
