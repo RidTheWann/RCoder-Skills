@@ -392,6 +392,39 @@ mod cli_tests {
     }
 
     #[test]
+    fn task_transition_command_parses_reopen_reason() {
+        let cli = Cli::try_parse_from([
+            "rcoder-runtime",
+            "task",
+            "transition",
+            "--id",
+            "00000000-0000-4000-8000-000000000001",
+            "--to",
+            "active",
+            "--reason",
+            "A regression needs re-verification",
+        ])
+        .expect("parse task reopen command");
+
+        match cli.command {
+            Command::Task {
+                command:
+                    TaskCommand::Transition {
+                        to: TaskStatusArg::Active,
+                        reason,
+                        ..
+                    },
+            } => {
+                assert_eq!(
+                    reason.as_deref(),
+                    Some("A regression needs re-verification")
+                );
+            }
+            other => panic!("unexpected command: {other:?}"),
+        }
+    }
+
+    #[test]
     fn task_evidence_command_parses_attestation_fields() {
         let cli = Cli::try_parse_from([
             "rcoder-runtime",
