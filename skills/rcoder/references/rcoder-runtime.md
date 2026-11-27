@@ -36,7 +36,7 @@ Confirm `rcoder-runtime` is installed and available on PATH. Inspect the reposit
 
 ## Tool strategy
 
-Use `rcoder-runtime task create`, `list`, `show`, `evidence`, and `transition`. Prefer `--json` for machine-readable output. Store short command or artifact references in evidence sources, not full logs. Use normal host tools for repository edits and verification.
+Use `rcoder-runtime task create`, `list`, `show`, `compile`, `evidence`, and `transition`. Prefer `--json` for machine-readable output. The compiler accepts active tasks only, returns a SHA-256-digested packet, and rejects payloads above 64 KiB without truncating them. Store short command or artifact references in evidence sources, not full logs. Use normal host tools for repository edits and verification.
 
 ## Advanced techniques
 
@@ -65,7 +65,7 @@ Inspect the actual test output, build result, repository diff, and relevant arti
 
 ## Output format
 
-Report the task UUID, final state, acceptance criteria outcomes, evidence source references, checks actually performed, remaining blockers, and limitations. Distinguish Runtime's stored attestations from independently verified results.
+Report the task UUID, instruction-packet digest when compiled, final state, acceptance criteria outcomes, evidence source references, checks actually performed, remaining blockers, and limitations. Distinguish Runtime's stored attestations from independently verified results.
 
 ## Executable Verification & Failure Diagnostics
 
