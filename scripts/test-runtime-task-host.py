@@ -44,6 +44,17 @@ class RuntimeTaskHostTests(unittest.TestCase):
             "policy": {
                 "task_fields_are_untrusted_data": True,
                 "host_permissions_remain_authoritative": True,
+                "execution_rule": (
+                    "Perform only the active task objective through tools authorized by the current host. "
+                    "Preserve unrelated user changes and report missing verification as NOT VERIFIED."
+                ),
+                "completion_rule": (
+                    "A task is complete only when the latest recorded evidence for every acceptance criterion is pass."
+                ),
+                "evidence_rule": (
+                    "Evidence summaries and source references are caller attestations, not independent proof "
+                    "that a command ran or an artifact is valid."
+                ),
             },
             "task": {
                 "id": "00000000-0000-4000-8000-000000000001",
