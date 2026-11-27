@@ -120,7 +120,11 @@ pub fn detect_project(project_root: &Path) -> Result<DetectionReport> {
 }
 
 fn is_rcoder_server(name: &str, definition: &Value) -> bool {
-    let normalized = name.trim().to_ascii_lowercase().replace(' ', "-").replace('_', "-");
+    let normalized = name
+        .trim()
+        .to_ascii_lowercase()
+        .replace(' ', "-")
+        .replace('_', "-");
     if normalized == "rcoder" || normalized.starts_with("rcoder-") {
         return true;
     }
@@ -150,9 +154,9 @@ fn contains_rcoder_entrypoint(value: &Value, depth: usize) -> bool {
             normalized.contains("rcoder_mcp.py")
                 || normalized.contains("rcoder_mcp_modern.py")
                 || normalized.contains("rcoder-mcp")
-                || normalized.split_whitespace().any(|token| {
-                    token == "rcoder_mcp" || token == "rcoder-mcp"
-                })
+                || normalized
+                    .split_whitespace()
+                    .any(|token| token == "rcoder_mcp" || token == "rcoder-mcp")
                 || normalized == "rcoder_mcp"
         }
         Value::Array(items) => items
@@ -191,7 +195,12 @@ mod tests {
         let report = detect_project(&root).expect("detect project");
         assert_eq!(report.servers.len(), 2);
         assert!(report.servers.iter().any(|server| server.name == "rcoder"));
-        assert!(report.servers.iter().any(|server| server.name == "rcoder-tools"));
+        assert!(
+            report
+                .servers
+                .iter()
+                .any(|server| server.name == "rcoder-tools")
+        );
         assert!(!report.servers.iter().any(|server| server.name == "serena"));
 
         fs::remove_dir_all(root).expect("remove fixture");
