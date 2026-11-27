@@ -324,3 +324,80 @@ async fn main() -> Result<()> {
     }
     Ok(())
 }
+
+
+#[cfg(test)]
+mod cli_tests {
+    use super::*;
+
+    #[test]
+    fn task_create_accepts_multiple_acceptance_criteria() {
+        let cli = Cli::try_parse_from([
+            "rcoder-runtime",
+            "task",
+            "create",
+            "--project",
+            ".",
+            "--objective",
+            "Implement a feature",
+            "--acceptance",
+            "Tests pass",
+            "--acceptance",
+            "Diff is scoped",
+            "--risk",
+            "high",
+            "--json",
+        ])
+        .expect("parse task create command");
+
+        match cli.command {
+            Command::Task {
+                command:
+                    TaskCommand::Create {
+                        acceptance_criteria,
+                        risk,
+                        json,
+                        ..
+                    },
+            } => {
+                assert_eq!(acceptance_criteria.len(), 2);
+                assert!(matches!(risk, RiskArg::High));
+                assert!(json);
+            }
+            other => panic!("unexpected command: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn task_evidence_command_parses_attestation_fields() {
+        let cli = Cli::try_parse_from([
+            "rcoder-runtime",
+            "task",
+            "evidence",
+            "--id",
+            "00000000-0000-4000-8000-000000000001",
+            "--criterion",
+            "AC-001",
+            "--outcome",
+            "not-run",
+            "--summary",
+            "Build not run",
+            "--source",
+            "CI log reference",
+        ])
+        .expect("parse task evidence command");
+
+        match cli.command {
+            Command::Task {
+                command:
+                    TaskCommand::Evidence {
+                        outcome, criterion, ..
+                    },
+            } => {
+                assert!(matches!(outcome, EvidenceArg::NotRun));
+                assert_eq!(criterion, "AC-001");
+            }
+            other => panic!("unexpected command: {other:?}"),
+        }
+    }
+}
