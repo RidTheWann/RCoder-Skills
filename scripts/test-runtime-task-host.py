@@ -2,6 +2,7 @@
 """Regression tests for the fail-open Claude Runtime task-context hook."""
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import os
@@ -51,9 +52,21 @@ class RuntimeTaskHostTests(unittest.TestCase):
                 "acceptance_criteria": [{"id": "AC-001", "description": "Tests pass"}],
             },
         }
+        self.packet = self.seal_packet(self.packet)
 
     def tearDown(self) -> None:
         self.temp.cleanup()
+
+    def seal_packet(self, packet: dict[str, object]) -> dict[str, object]:
+        payload = {
+            key: packet[key]
+            for key in ("schema_version", "compiler_version", "trust_boundary", "policy", "task")
+        }
+        canonical = json.dumps(
+            payload, ensure_ascii=False, separators=(",", ":"), allow_nan=False
+        ).encode("utf-8")
+        packet["digest_sha256"] = hashlib.sha256(canonical).hexdigest()
+        return packet
 
     def event(self) -> dict[str, object]:
         return {"hook_event_name": "UserPromptSubmit", "cwd": str(self.root)}
@@ -154,7 +167,7 @@ class RuntimeTaskHostTests(unittest.TestCase):
         wrong_status["task"]["status"] = "blocked"
         cases.append(wrong_status)
         wrong_digest = json.loads(json.dumps(self.packet))
-        wrong_digest["digest_sha256"] = "invalid"
+        wrong_digest["digest_sha256"] = "b" * 64
         cases.append(wrong_digest)
         wrong_root = json.loads(json.dumps(self.packet))
         wrong_root["task"]["project_root"] = str(self.root.parent)
