@@ -589,7 +589,8 @@ def main():
           "G8: loopback HTTP MCP must own one Runtime session and suppress per-request worker sidecars")
     check("RCODER_RUNTIME_DISABLE" in runtime_bootstrap
           and "RCODER_RUNTIME_PATH" in runtime_bootstrap
-          and "start_new_session" in runtime_bootstrap,
+          and "start_new_session" in runtime_bootstrap
+          and "env": runtime_environment() in runtime_bootstrap,
           "G8: Runtime bootstrap must remain opt-out, configurable, and detached")
     check("D-025" in read(ROOT / "docs" / "DECISIONS.md")
           and (ROOT / "docs" / "RUNTIME.md").is_file(),
