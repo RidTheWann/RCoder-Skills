@@ -60,6 +60,7 @@ rcoder-runtime task create --project . \
 rcoder-runtime task list --project .
 rcoder-runtime task show --project . --id TASK_UUID
 rcoder-runtime task transition --project . --id TASK_UUID --to active
+rcoder-runtime task compile --project . --id TASK_UUID --json
 ```
 
 After checking a criterion, record its outcome and a concise source reference:
