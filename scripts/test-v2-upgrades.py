@@ -344,7 +344,7 @@ class DoctorAndStopGateTests(unittest.TestCase):
 class VerificationFooterTests(unittest.TestCase):
     def test_every_reference_has_executable_footer(self) -> None:
         references = sorted((SKILL_SCRIPTS.parent / "references").glob("*.md"))
-        self.assertEqual(72, len(references))
+        self.assertEqual(73, len(references))
         heading = "## Executable Verification & Failure Diagnostics"
         for path in references:
             text = path.read_text(encoding="utf-8")

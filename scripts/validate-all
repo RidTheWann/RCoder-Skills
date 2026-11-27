@@ -316,7 +316,15 @@ def main():
     for required in (
         "scripts/rcoder.mjs", "scripts/install.ps1", "scripts/install.sh",
         "scripts/test-node-installer.mjs", "scripts/test-installers.sh",
-        "scripts/test-installers.ps1",         "scripts/test-context-snapshot.py", "scripts/rsaver.py",
+        "scripts/test-installers.ps1", "scripts/test-context-snapshot.py", "scripts/rsaver.py",
+        "runtime/Cargo.toml", "runtime/crates/runtime-core/Cargo.toml",
+        "runtime/crates/runtime-core/src/lib.rs", "runtime/crates/runtime-core/src/discovery.rs",
+        "runtime/crates/runtime-core/src/session.rs", "runtime/crates/runtime-core/src/task.rs",
+        "runtime/crates/runtime-core/src/instruction.rs",
+        "runtime/apps/rcoder-runtime/Cargo.toml",
+        "runtime/apps/rcoder-runtime/src/main.rs", "skills/rcoder/scripts/runtime_bootstrap.py",
+        "skills/rcoder/scripts/runtime_task_host.py", "skills/rcoder/references/rcoder-runtime.md",
+        "scripts/test-runtime-bootstrap.py", "scripts/test-runtime-task-host.py", "docs/RUNTIME.md",
         "skills/rcoder/scripts/rsaver.py", "scripts/test-rsaver.py",
         "skills/rcoder/scripts/rsaver_guard.py",
         "scripts/rscan.py", "skills/rcoder/scripts/rscan.py", "scripts/test-rscan.py",
@@ -566,12 +574,103 @@ def main():
     }
     for event, phase in expected_rfc_hooks.items():
         entries = hook_events.get(event, [])
-        handlers = entries[0].get("hooks", []) if len(entries) == 1 else []
+        expected_entry_count = 2 if event == "UserPromptSubmit" else 1
+        handlers = entries[0].get("hooks", []) if entries else []
         command = handlers[0].get("command", "") if handlers else ""
-        check(len(handlers) == 1 and handlers[0].get("type") == "command"
+        check(len(entries) == expected_entry_count and len(handlers) == 1
+              and handlers[0].get("type") == "command"
               and handlers[0].get("timeout") == 10 and phase in command
               and "skills/rcoder/scripts/context_fabric_host.py" in command,
               f"G8: {event} must invoke the bundled RFC host adapter with a bounded timeout")
+    runtime_mcp = read(SKILL / "scripts" / "rcoder_mcp.py")
+    runtime_http = read(SKILL / "scripts" / "rcoder_mcp_http.py")
+    runtime_bootstrap = read(SKILL / "scripts" / "runtime_bootstrap.py")
+    check('default=os.environ.get("RCODER_WORKSPACE_ROOT", ".")' in runtime_mcp
+          and 'default=os.environ.get("RCODER_WORKSPACE_ROOT", ".")' in runtime_http,
+          "G8: both MCP transports must honor the host-supplied workspace root")
+    check("start_runtime_companion(State.root)" in runtime_mcp,
+          "G8: local stdio MCP must activate the optional Runtime companion")
+    check("start_runtime_companion(root)" in runtime_http
+          and 'environment["RCODER_RUNTIME_DISABLE"] = "1"' in runtime_http
+          and "worker_env = worker_environment(" in runtime_http
+          and "def worker_environment(" in runtime_http,
+          "G8: loopback HTTP MCP must own one Runtime session and suppress per-request worker sidecars")
+    check("RCODER_RUNTIME_DISABLE" in runtime_bootstrap
+          and "RCODER_RUNTIME_PATH" in runtime_bootstrap
+          and "start_new_session" in runtime_bootstrap
+          and '"env": runtime_environment()' in runtime_bootstrap,
+          "G8: Runtime bootstrap must remain opt-out, configurable, and detached")
+    check("D-025" in read(ROOT / "docs" / "DECISIONS.md")
+          and (ROOT / "docs" / "RUNTIME.md").is_file(),
+          "G8: D-025 and Runtime architecture docs must describe the local MCP lifecycle")
+    runtime_task = read(ROOT / "runtime" / "crates" / "runtime-core" / "src" / "task.rs")
+    runtime_cli = read(ROOT / "runtime" / "apps" / "rcoder-runtime" / "src" / "main.rs")
+    runtime_docs = read(ROOT / "docs" / "RUNTIME.md")
+    runtime_decisions = read(ROOT / "docs" / "DECISIONS.md")
+    check("pub fn create_task(" in runtime_task and "pub fn record_evidence(" in runtime_task
+          and "pub fn transition_task(" in runtime_task and "TaskStatus::Completed" in runtime_task,
+          "G8: Runtime Task Controller must persist contracts, evidence, and guarded transitions")
+    check("cannot complete task; acceptance criteria" in runtime_task
+          and "latest_failing_evidence_reopens_a_completion_blocker" in runtime_task,
+          "G8: task completion must require latest passing evidence for every criterion")
+    check("completed_task_can_be_reopened_and_a_new_failure_blocks_completion" in runtime_task
+          and "TaskStatus::Completed, TaskStatus::Active" in runtime_task
+          and "a reason is required when blocking or reopening a task" in runtime_task,
+          "G8: completed tasks must reopen only with a reason and re-enter the evidence gate")
+    check("MAX_EVIDENCE_RECORDS" in runtime_task and "MAX_TRANSITIONS" in runtime_task,
+          "G8: Runtime task evidence and transition histories must have explicit bounds")
+    check('"Evidence history:"' in runtime_cli and '"State history:"' in runtime_cli,
+          "G8: Runtime task inspection must display evidence and state-transition history")
+    check("TaskCommand::Create" in runtime_cli and "TaskCommand::Evidence" in runtime_cli
+          and "TaskCommand::Transition" in runtime_cli,
+          "G8: Runtime CLI must expose task contract and evidence operations")
+    check("rcoder-runtime.md" in read(skill_file)
+          and (SKILL / "references" / "rcoder-runtime.md").is_file(),
+          "G8: RCoder Skill must route contract-aware tasks to Runtime guidance")
+    check("D-026" in runtime_decisions and "caller-supplied evidence attestations" in runtime_docs,
+          "G8: Runtime task evidence boundary must be documented as caller-attested")
+    runtime_instruction = read(ROOT / "runtime" / "crates" / "runtime-core" / "src" / "instruction.rs")
+    check("pub fn compile_task(" in runtime_instruction
+          and "MAX_INSTRUCTION_PACKET_BYTES: usize = 64 * 1024" in runtime_instruction
+          and "digest_sha256" in runtime_instruction
+          and "TaskStatus::Active" in runtime_instruction,
+          "G8: Runtime instruction compiler must produce a bounded digest packet for active tasks only")
+    check("compile_task" in runtime_cli and "TaskCommand::Compile" in runtime_cli
+          and "task compile --project" in runtime_docs
+          and "D-027" in runtime_decisions,
+          "G8: instruction packet compilation must be exposed, documented, and recorded as a decision")
+    check("identical_task_revisions_produce_identical_sha256_packets" in runtime_instruction
+          and "compiler_rejects_oversized_packets_without_truncation" in runtime_instruction
+          and "only_latest_evidence_per_criterion_is_compiled" in runtime_instruction,
+          "G8: instruction compiler must test digest stability, size bounds, and latest evidence selection")
+    check("compiler_digest_matches_host_canonical_serialization_fixture" in runtime_instruction
+          and "test_digest_matches_the_rust_canonical_serialization_fixture" in read(ROOT / "scripts" / "test-runtime-task-host.py"),
+          "G8: Runtime's Rust compiler digest must match the Claude hook's Python verifier")
+    runtime_task_host = read(SKILL / "scripts" / "runtime_task_host.py")
+    claude_hooks = json.loads(read(ROOT / "hooks" / "hooks.json"))["hooks"]
+    check("subprocess.run" in runtime_task_host and '"--active"' in runtime_task_host
+          and "runtime_bootstrap.runtime_environment" in runtime_task_host
+          and "RCODER_RUNTIME_DISABLE" in runtime_task_host
+          and "additionalContext" in runtime_task_host,
+          "G8: Claude Runtime hook must compile the active task with a sanitized, fail-open CLI bridge")
+    check("_packet_digest" in runtime_task_host and "hmac.compare_digest" in runtime_task_host
+          and "_contains_secret_like_value" in runtime_task_host,
+          "G8: Claude Runtime hook must verify packet integrity and reject secret-like task contents")
+    check(len(claude_hooks.get("UserPromptSubmit", [])) == 2
+          and "runtime_task_host.py" in claude_hooks["UserPromptSubmit"][1]["hooks"][0]["command"]
+          and claude_hooks["UserPromptSubmit"][1]["hooks"][0]["timeout"] == 6,
+          "G8: Claude UserPromptSubmit must run RFC and Runtime context adapters independently")
+    check("test-runtime-task-host.py" in read(ROOT / ".github" / "workflows" / "quality.yml"),
+          "G8: Runtime task host regression suite must run in CI")
+    runtime_discovery = read(ROOT / "runtime" / "crates" / "runtime-core" / "src" / "discovery.rs")
+    workflow = read(ROOT / ".github" / "workflows" / "quality.yml")
+    check("rcoder_mcp.py" in runtime_discovery and "rcoder-mcp.mjs" in runtime_discovery
+          and "a_server_named_rcoder_without_the_rcoder_entrypoint" in runtime_discovery,
+          "G8: Runtime discovery must require an actual RCoder entrypoint rather than an alias")
+    check("cargo fmt --manifest-path runtime/Cargo.toml --all -- --check" in workflow
+          and "cargo test --manifest-path runtime/Cargo.toml --workspace" in workflow
+          and "components: rustfmt" in workflow,
+          "G8: CI must install rustfmt and format/test the Runtime workspace")
     check("hooks/**" in package.get("files", []), "G8: the npm package must ship the hooks directory")
     check("D-019" in read(ROOT / "docs" / "DECISIONS.md") and "D-021" in read(ROOT / "docs" / "DECISIONS.md")
           and "D-024" in read(ROOT / "docs" / "DECISIONS.md")

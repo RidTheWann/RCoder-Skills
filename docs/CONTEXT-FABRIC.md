@@ -82,5 +82,5 @@ A record with expires_at == now is eligible for collection (expires_at <= now). 
 - The SQLite database is unencrypted. The redactor is best-effort and does not guarantee detection of arbitrary sensitive data.
 - Keep .rcoder/ private and do not deliberately store credentials.
 - Native loading and invocation in a live Claude Code process remain **NOT VERIFIED** by the local simulator and CI. The runtime-generated ID fallback is covered by regression tests.
-- The current adapter is Claude Code-specific. OpenCode, Gemini CLI, Codex, and other host integrations are not implemented by this slice.
+- Host adapters exist for Claude Code and for OpenCode 2.4.2 (dual V2/V1 plugin). The OpenCode bridge hydrates per model request, captures raw assistant text per step, and uses the same canary/export rules; see `docs/OPENCODE-V2-ADAPTER.md` for observed evidence. Gemini CLI, Codex, and other hosts are not implemented by this slice.
 - MCP write tools, cross-device synchronization, encryption at rest, vector retrieval, and background GC are not implemented.

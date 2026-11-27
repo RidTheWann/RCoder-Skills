@@ -26,6 +26,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          components: rustfmt
       - name: Static validation
         run: python scripts/validate-all
       - name: Context snapshot regression
@@ -58,6 +61,14 @@ jobs:
         run: python scripts/test-rscan.py
       - name: MCP server protocol and confinement tests
         run: python scripts/test-mcp.py
+      - name: Runtime MCP auto-activation bootstrap tests
+        run: python scripts/test-runtime-bootstrap.py
+      - name: Runtime task host injection regression
+        run: python scripts/test-runtime-task-host.py -v
+      - name: Rust Runtime formatting
+        run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
+      - name: Rust Runtime unit tests
+        run: cargo test --manifest-path runtime/Cargo.toml --workspace
       - name: Shared MCP contract and pagination conformance
         run: python scripts/test-mcp-contract.py
       - name: MCP Streamable HTTP transport conformance
@@ -82,12 +93,18 @@ jobs:
         run: python scripts/test-hooks.py
       - name: OpenCode lifecycle middleware regression
         run: node scripts/test-opencode-plugin.mjs
+      - name: OpenCode V2 RFC/Runtime bridge regression
+        run: python scripts/test-opencode-host.py
+      - name: OpenCode V2 plugin lifecycle regression
+        run: node scripts/test-opencode-v2-plugin.mjs
+      - name: OpenCode V2 host-state contract regression
+        run: node scripts/test-opencode-plugin-host-state.mjs
       - name: Release archive hygiene regression
         run: python scripts/test-package-hygiene.py
       - name: MCP server syntax and host configuration snippets
         shell: bash
         run: |
-          python -m py_compile skills/rcoder/scripts/context_fabric.py skills/rcoder/scripts/context_fabric_host.py skills/rcoder/scripts/rcoder_mcp.py skills/rcoder/scripts/rcoder_mcp_modern.py skills/rcoder/scripts/rcoder_mcp_http.py skills/rcoder/scripts/rcoder_mcp_setup.py skills/rcoder/scripts/rcoder_contract.py skills/rcoder/scripts/skill_authoring.py skills/rcoder/scripts/rcoder_hooks.py
+          python -m py_compile skills/rcoder/scripts/context_fabric.py skills/rcoder/scripts/context_fabric_host.py skills/rcoder/scripts/opencode_host.py skills/rcoder/scripts/runtime_bootstrap.py skills/rcoder/scripts/rcoder_mcp.py skills/rcoder/scripts/rcoder_mcp_modern.py skills/rcoder/scripts/rcoder_mcp_http.py skills/rcoder/scripts/rcoder_mcp_setup.py skills/rcoder/scripts/rcoder_contract.py skills/rcoder/scripts/skill_authoring.py skills/rcoder/scripts/rcoder_hooks.py
           python scripts/rcoder-mcp.py --print-config generic > "$RUNNER_TEMP/mcp-generic.json"
           python skills/rcoder/scripts/rcoder_mcp_modern.py --print-config generic > "$RUNNER_TEMP/mcp-modern.json"
           python -c "import json,sys; json.load(open(sys.argv[1]))" "$RUNNER_TEMP/mcp-modern.json"

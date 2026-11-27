@@ -27,7 +27,8 @@ RCoder is an instruction and tooling layer, not a model or permission grant. Use
 
 Use MCP only when its process-level --root contains the target; tool arguments cannot widen that boundary. Otherwise use installed helper scripts by absolute path. Missing checks are **NOT VERIFIED**.
 
-Use references/specialist-routing.md for ambiguous work. Route architecture to architecture.md; defects to debugging-advanced.md; security to application-security.md plus llm-agent-security.md; MCP/hooks to mcp-transport-engineering.md plus agent-extensions-engineering.md; reverse engineering to reverse-engineering.md; persistent cross-request context to context-fabric.md; context reduction to token-efficiency.md and, when needed, the capsule template.
+Use references/specialist-routing.md for ambiguous work; load only the relevant architecture, debugging, security, MCP/hooks, reverse-engineering, context-fabric, token-efficiency, or rcoder-runtime reference.
+When installed, use rcoder-runtime.md for multi-step task contracts and evidence gates; evidence is caller-attested until independently checked.
 
 RFC Context Fabric is opt-in. In Claude Code, an initialized .rcoder/context-fabric.sqlite3 enables per-prompt injection and Stop response capture. Every request/retry needs a new prompt ID; exported transcripts omit canaries. GC requires an explicit timestamp. See docs/CONTEXT-FABRIC.md.
 

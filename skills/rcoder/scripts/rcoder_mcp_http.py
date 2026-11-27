@@ -15,11 +15,19 @@ from urllib.parse import urlsplit
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import rcoder_contract as contract  # noqa: E402
+import runtime_bootstrap  # noqa: E402
 
 MODERN_SERVER = Path(__file__).resolve().with_name("rcoder_mcp_modern.py")
 VALID_ACCEPT = {"application/json", "text/event-stream"}
 NAME_METHODS = {"tools/call": "name", "resources/read": "uri", "prompts/get": "name"}
 HEADER_MISMATCH = -32020
+
+
+def worker_environment(token_env: str) -> dict[str, str]:
+    """Remove the HTTP bearer token and prevent one-shot workers from spawning sidecars."""
+    environment = {key: value for key, value in os.environ.items() if key != token_env}
+    environment["RCODER_RUNTIME_DISABLE"] = "1"
+    return environment
 
 
 def encode_json(value: dict) -> bytes:
@@ -199,14 +207,15 @@ class Handler(BaseHTTPRequestHandler):
                    "--profile", self.server.profile]
         if self.server.tools:
             command.extend(["--tools", self.server.tools])
+        # HTTP workers are one-request children; only the long-lived HTTP server owns a session.
+        worker_env = worker_environment(self.server.token_env)
         try:
             worker = subprocess.run(
                 command, input=json.dumps(request, ensure_ascii=False) + "\n",
                 text=True, encoding="utf-8", errors="replace",
                 capture_output=True, timeout=self.server.request_timeout, check=False,
                 cwd=self.server.root,
-                env={key: value for key, value in os.environ.items()
-                     if key != self.server.token_env},
+                env=worker_env,
             )
         except subprocess.TimeoutExpired:
             return self._send(504, encode_json(rpc_error(request_id, -32603, "MCP request timed out")), origin=origin)
@@ -233,7 +242,7 @@ def build_parser():
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--path", default="/mcp")
-    parser.add_argument("--root", default=".")
+    parser.add_argument("--root", default=os.environ.get("RCODER_WORKSPACE_ROOT", "."))
     parser.add_argument("--profile", choices=("full", "minimal"), default="full")
     parser.add_argument("--tools", default="")
     parser.add_argument("--token-env", default="RCODER_MCP_TOKEN")
@@ -265,6 +274,11 @@ def main(argv=None):
     root = Path(args.root).expanduser().resolve(strict=True)
     if not root.is_dir():
         raise SystemExit("root must be an existing directory")
+    try:
+        runtime_bootstrap.start_runtime_companion(root)
+    except Exception:  # noqa: BLE001 - Runtime must never prevent HTTP MCP startup
+        if os.environ.get("RCODER_RUNTIME_DEBUG") == "1":
+            sys.stderr.write("RCoder Runtime companion startup failed; MCP remains available.\n")
     server = Server(
         (args.host, args.port), Handler, root=root, token=token, token_env=args.token_env,
         allowed_origins=args.allowed_origin, timeout=args.request_timeout,

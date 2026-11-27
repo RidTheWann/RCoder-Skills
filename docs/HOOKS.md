@@ -69,10 +69,16 @@ The default gate is heuristic and stays opt-in. Set `RCODER_STRICT_STOP=1` in th
 - **Fail open.** Malformed events, oversize events (over 1 MB), an unreadable transcript, and internal errors allow the action and print nothing. A guard that wedged a session would be worse than a missed block.
 - **Guardrail, not sandbox.** The command analysis is lexical. `python -c "open('.env')"`, constructed or obfuscated names, and variable expansion are not detected. Use host permission rules and OS-level isolation for real containment.
 - **Heuristic gate.** The completion gate depends on the transcript layout and on phrasing, so it can miss a claim or flag a harmless one.
-- **Deterministic and local.** The handlers use no network, subprocess, or dynamic code; `scripts/test-hooks.py` checks this with an AST scan.
+- **Deterministic and local.** The guard, post-tool, compaction, and RFC handlers use no network, subprocess, or dynamic code; `scripts/test-hooks.py` checks the canonical `rcoder_hooks.py` handler with an AST scan. The separate Runtime task adapter launches only the installed `rcoder-runtime task compile --active --json` executable with a five-second timeout and an OS-environment allowlist; it never shells or forwards task text as command arguments.
 - **Host contract evidence.** Claude's current hook reference documents `PreToolUse` decisions, `PostToolUse` context, and plain-stdout `PreCompact` instructions. Gemini CLI's current hook reference documents `BeforeTool`/`AfterTool`, top-level deny output, `additionalContext`, and millisecond timeouts. The local regression test checks both output shapes. These are documentation and local payload checks, not proof that either host loaded the plugin or settings.
 - **NOT VERIFIED.** Native discovery and invocation in live Claude Code or Gemini CLI; shell quoting and interpreter fallback on every supported Windows host; token redaction in all host-specific response formats; Gemini's current undocumented `ask` support; and any effect on model outcomes.
 - **Not covered.** The handler does not guard Claude's `PowerShell` tool or arbitrary tools that use unknown argument shapes. Gemini `Stop` and compaction events have no documented equivalent in the checked hook reference.
+
+## Runtime task context
+
+The Claude bundle registers a second `UserPromptSubmit` command for Runtime. It injects a packet only when exactly one active Runtime task exists. The RFC Context Fabric adapter remains a separate hook, and the host combines both `additionalContext` values. Missing task state, ambiguous active tasks, or a Runtime compile failure is fail-open and contributes no additional context. Native Runtime hook activation in a live Claude Code session remains NOT VERIFIED until installed and observed.
+
+OpenCode 2.4.2 uses the V2 plugin lifecycle instead of settings hooks: `ctx.session.hook('context')` injects the Runtime packet and fresh RFC context on every model request; `ctx.tool.hook` applies the guard and output handling; `ctx.event.subscribe()` captures assistant text on `session.step.ended`; and `ctx.session.hook('compaction')` appends the capsule. A single normalized host-state object carries the directory and disable/path options. Observed invocation, canary, and disable evidence is in `docs/OPENCODE-V2-ADAPTER.md`; no claim is made for other versions or hosts.
 
 ## Sources
 

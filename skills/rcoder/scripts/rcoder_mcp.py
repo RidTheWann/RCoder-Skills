@@ -20,6 +20,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import rcoder_contract as contract  # noqa: E402
+import runtime_bootstrap  # noqa: E402
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 REFERENCES = SKILL_DIR / "references"
@@ -1732,7 +1733,8 @@ CONFIG_HOSTS = ("claude-code", "codex", "cursor", "gemini-cli", "vscode", "openc
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         description="RCoder read-only stdio MCP server. Speaks JSON-RPC on stdin/stdout.")
-    parser.add_argument("--root", default=".", help="project root that path arguments are confined to")
+    parser.add_argument("--root", default=os.environ.get("RCODER_WORKSPACE_ROOT", "."),
+                        help="project root that path arguments are confined to")
     parser.add_argument("--profile", choices=("full", "minimal"), default="full",
                         help="tool set to expose (minimal: scan, list/get specialist, validate selection)")
     parser.add_argument("--tools", help="comma-separated tool allowlist (overrides --profile)")
@@ -1757,6 +1759,13 @@ def main(argv=None) -> int:
         State.enabled = requested
     elif args.profile == "minimal":
         State.enabled = set(PROFILES["minimal"])
+    # A running local RCoder MCP server is the Runtime activation signal.
+    # The companion is optional and fail-open; it never writes to protocol stdout.
+    try:
+        runtime_bootstrap.start_runtime_companion(State.root)
+    except Exception:  # noqa: BLE001 - Runtime must never prevent MCP startup
+        if os.environ.get("RCODER_RUNTIME_DEBUG") == "1":
+            sys.stderr.write("RCoder Runtime companion startup failed; MCP remains available.\n")
     return serve()
 
 

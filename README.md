@@ -10,7 +10,7 @@ RCoder helps an AI coding agent move from an unfamiliar codebase to a scoped imp
 [![Agent hosts](https://img.shields.io/badge/Agent%20hosts-20-informational.svg)](#supported-agent-hosts)
 [![Platforms](https://img.shields.io/badge/OS-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg)](#installation)
 
-RCoder is an **instruction and tooling layer**, not an AI model or a standalone agent runtime. The connected coding agent performs the work using the tools and permissions provided by its host. RCoder gives that agent a disciplined way to inspect, plan, route expertise, execute, verify, and report.
+RCoder Skills is an **instruction and tooling layer**, not an AI model or a standalone autonomous agent. The optional **RCoder Runtime** is a separate local control-plane companion that follows the lifetime of a local RCoder MCP process. The connected agent still performs the work using the tools and permissions provided by its host.
 
 ---
 
@@ -30,6 +30,7 @@ RCoder is an **instruction and tooling layer**, not an AI model or a standalone 
 - [Installation](#installation)
 - [Use RCoder with your agent](#use-rcoder-with-your-agent)
 - [Core components](#core-components)
+- [RCoder Runtime](#rcoder-runtime-optional-local-control-plane)
 - [Supported agent hosts](#supported-agent-hosts)
 - [Specialist library](#specialist-library)
 - [Security and execution boundaries](#security-and-execution-boundaries)
@@ -310,6 +311,7 @@ in the active model, CLI, IDE, or agent host.
 | **RFC Context Fabric** | Opt-in, provenance-aware local context persistence with explicit per-request hydration, canary delivery checks, token-free transcript export, and deterministic retention. |
 | **Specialist library** | More than 60 focused engineering references, loaded progressively instead of all at once. |
 | **MCP server** | Exposes supported RCoder and RSaver operations as native tools, resources, and prompts to compatible hosts. |
+| **RCoder Runtime** | Optional Rust control-plane companion, automatically attached to the lifetime of a local RCoder MCP process when installed. Tracks project sessions without taking over host permissions. |
 | **Launcher CLI** | Installs and updates RCoder, configures integrations, runs diagnostics, and manages skills and optional hooks. |
 | **Skill toolkit** | Creates, lints, and packages portable Agent Skills. |
 | **Subagents and commands** | Optional host-specific planner, explorer, reviewer, verifier, and workflow commands. |
@@ -345,6 +347,28 @@ RFC is the Context Fabric development track. It stores typed, source-aware conte
 The first slice includes SHA-256-addressed artifact storage, provenance and confidence fields, whole-item budget selection, session-plus-prompt canary validation, token-free transcript export, secret-pattern redaction, pinned context, and deterministic expiry collection. Its budget is measured in UTF-8 bytes, not provider tokens; use RSaver for token estimates and safe reduction.
 
 The local Python API/CLI now has a native **Claude Code host adapter**: UserPromptSubmit builds and injects a fresh payload through the host's additionalContext channel, and Stop captures the final assistant response for canary verification and token-free RFC transcript storage. The adapter is opt-in: it remains inactive until .rcoder/context-fabric.sqlite3 exists, and it never blocks the host. Other host adapters, MCP write tools, encrypted storage, distributed synchronization, and vector retrieval are not implemented. See [RFC Context Fabric design and usage](docs/CONTEXT-FABRIC.md) and its [agent reference](skills/rcoder/references/context-fabric.md).
+
+### RCoder Runtime — optional local control plane
+
+RCoder Runtime is a separate Rust 2024 executable. When it is installed and a host starts the local Python RCoder MCP stdio server or loopback HTTP service, the MCP process automatically launches a detached Runtime companion. The companion tracks that exact server process and exits when it ends. The HTTP service uses one companion rather than spawning one per request. A project using only unrelated MCP servers (for example, Serena) does not activate RCoder Runtime.
+
+Install and inspect it from the repository root:
+
+```sh
+cargo install --path runtime/apps/rcoder-runtime
+rcoder-runtime detect --project .
+rcoder-runtime status --project .
+
+# Create a task contract with explicit acceptance criteria
+rcoder-runtime task create --project . --objective "Implement a feature" \
+  --acceptance "Focused tests pass" --acceptance "No unrelated files changed" --risk high --json
+rcoder-runtime task transition --project . --id TASK_UUID --to active
+
+# Compile the active task into a bounded context packet
+rcoder-runtime task compile --project . --id TASK_UUID --json
+```
+
+Runtime is fail-open: if the executable is unavailable or startup fails, RCoder MCP continues normally. Set `RCODER_RUNTIME_DISABLE=1` to disable attachment, or `RCODER_RUNTIME_PATH` to use a non-PATH executable. The headless Runtime also provides typed execution contracts, reasoned reopening with fresh evidence cycles, audit-preserved historical evidence, acceptance-evidence gates, and a deterministic SHA-256-digested instruction packet for active tasks. The packaged Claude Code hook injects the unique active task packet on each eligible UserPromptSubmit; other hosts need a dedicated adapter. Host tool permission enforcement, OpenCode/Codex adapters, deeper RFC/RSaver integration, independent evidence verification, and the desktop console remain future stages. See [Runtime architecture and boundaries](docs/RUNTIME.md).
 
 ### MCP server — optional native tools
 
@@ -471,6 +495,7 @@ Useful focused suites:
 
 ```sh
 # Core Python helpers and protocol
+python3 scripts/test-runtime-bootstrap.py
 python3 scripts/test-context-snapshot.py
 python3 scripts/test-rsaver.py
 python3 scripts/test-rscan.py
@@ -492,6 +517,10 @@ node scripts/test-cli-skill.mjs
 node scripts/test-integrations.mjs
 node scripts/test-node-installer.mjs
 
+# Rust Runtime
+cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
+cargo test --manifest-path runtime/Cargo.toml --workspace
+
 # Reproducible distribution
 python3 scripts/package
 python3 scripts/check-dist.py
@@ -505,6 +534,7 @@ The CI workflow runs validation on Linux, Windows, and macOS. Static CI verifies
 
 - [Agent Skill execution kernel](skills/rcoder/SKILL.md)
 - [MCP setup, tools, and transports](docs/MCP.md)
+- [RCoder Runtime architecture and boundaries](docs/RUNTIME.md)
 - [Host compatibility evidence](docs/COMPATIBILITY.md)
 - [Installation matrix](docs/INSTALLATION-MATRIX.md)
 - [Environment discovery](docs/ENVIRONMENT.md)

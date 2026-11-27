@@ -12,17 +12,19 @@ Updated: 2026-11-26. Product version is 1.15.0.
 
 ## Host components
 
-### OpenCode (V1 adapter)
+### OpenCode (dual V2/V1 adapter)
 
 - Project skill: `.opencode/skills/rcoder/`
 - Project plugin: `.opencode/plugins/rcoder.js`
-- Hook: `experimental.chat.system.transform`, aligned with the repository's observed OpenCode 1.19.6 V1 hook types.
+- V2 hooks (observed on 2.4.2): `setup(ctx)` registers `ctx.session.hook('context')`, `ctx.session.hook('compaction')`, `ctx.tool.hook('execute.before'/'after')`, and `ctx.event.subscribe()`.
+- V1 compatibility: `server(options)` retains `experimental.chat.system.transform`, `tool.execute.before`, `tool.execute.after`, and `experimental.session.compacting` for the older API.
+- Runtime/RFC configuration: `<workspace>/.rcoder/opencode.json` or `<workspace>/.opencode/rcoder.json`; keys `runtime_disabled`, `rfc_disabled`, and absolute `runtime_path`. Env and configured plugin options are not forwarded by this host build.
 - Installer: `rcoder integration install opencode --scope project`
 - User scope uses `~/.config/opencode/skills/rcoder/` and `~/.config/opencode/plugins/rcoder.js`.
-- `verify` checks that the plugin and skill files exist; it does not start OpenCode or prove the plugin loaded.
+- `verify` checks that the plugin and skill files exist; it does not start OpenCode or prove the plugin loaded. Native evidence is recorded in `docs/OPENCODE-V2-ADAPTER.md`.
 - Existing MCP configuration is untouched. Configure MCP separately with the MCP setup action.
 
-V2 hooks are not emitted by this adapter. The generated RScan V2 adapter remains a separate artifact and is not treated as the target runtime.
+The generated RScan V2 adapter remains a separate artifact and is not the target runtime for this plugin.
 
 ### Gemini CLI extension
 
@@ -70,11 +72,11 @@ The integration manager prints these commands; it does not claim to execute an i
 | JSON syntax and version parity | Enforced by `scripts/validate-all` and the CI manifest checks |
 | Installer file behavior | Covered by isolated temporary-directory integration tests |
 | Gemini/Codex CLI argument construction | Covered by dry-run tests; live host CLI installation depends on the user's installed host |
-| OpenCode native loading of the new adapter | NOT VERIFIED |
+| OpenCode native loading and invocation of the dual adapter | VERIFIED on 2.4.2 only (`docs/OPENCODE-V2-ADAPTER.md`) |
 | Gemini extension discovery/invocation | NOT VERIFIED |
 | Codex plugin installation/invocation | NOT VERIFIED |
 | Claude Code plugin invocation | NOT VERIFIED |
 | Native MCP tool calls for all 24 tools over HTTP | NOT VERIFIED |
 | Multilingual live routing accuracy | NOT VERIFIED |
 
-The existing OpenCode 1.19.6 skill-discovery and RScan hook evidence predates this new adapter and must not be used as evidence for its activation. CI can raise static/config evidence only; native-host claims require direct host observation.
+The existing OpenCode 1.19.6 skill-discovery and RScan hook evidence predates this new adapter and must not be used as evidence for its activation. The 2.4.2 observation is version-scoped and does not raise the 1.19.6 row. CI can raise static/config evidence only; native-host claims require direct host observation.
