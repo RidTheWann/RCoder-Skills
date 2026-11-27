@@ -320,6 +320,7 @@ def main():
         "runtime/Cargo.toml", "runtime/crates/runtime-core/Cargo.toml",
         "runtime/crates/runtime-core/src/lib.rs", "runtime/crates/runtime-core/src/discovery.rs",
         "runtime/crates/runtime-core/src/session.rs", "runtime/crates/runtime-core/src/task.rs",
+        "runtime/crates/runtime-core/src/instruction.rs",
         "runtime/apps/rcoder-runtime/Cargo.toml",
         "runtime/apps/rcoder-runtime/src/main.rs", "skills/rcoder/scripts/runtime_bootstrap.py",
         "skills/rcoder/references/rcoder-runtime.md", "scripts/test-runtime-bootstrap.py", "docs/RUNTIME.md",
@@ -625,6 +626,20 @@ def main():
           "G8: RCoder Skill must route contract-aware tasks to Runtime guidance")
     check("D-026" in runtime_decisions and "caller-supplied evidence attestations" in runtime_docs,
           "G8: Runtime task evidence boundary must be documented as caller-attested")
+    runtime_instruction = read(ROOT / "runtime" / "crates" / "runtime-core" / "src" / "instruction.rs")
+    check("pub fn compile_task(" in runtime_instruction
+          and "MAX_INSTRUCTION_PACKET_BYTES: usize = 64 * 1024" in runtime_instruction
+          and "digest_sha256" in runtime_instruction
+          and "TaskStatus::Active" in runtime_instruction,
+          "G8: Runtime instruction compiler must produce a bounded digest packet for active tasks only")
+    check("compile_task" in runtime_cli and "TaskCommand::Compile" in runtime_cli
+          and "task compile --project" in runtime_docs
+          and "D-027" in runtime_decisions,
+          "G8: instruction packet compilation must be exposed, documented, and recorded as a decision")
+    check("identical_task_revisions_produce_identical_sha256_packets" in runtime_instruction
+          and "compiler_rejects_oversized_packets_without_truncation" in runtime_instruction
+          and "only_latest_evidence_per_criterion_is_compiled" in runtime_instruction,
+          "G8: instruction compiler must test digest stability, size bounds, and latest evidence selection")
     runtime_discovery = read(ROOT / "runtime" / "crates" / "runtime-core" / "src" / "discovery.rs")
     workflow = read(ROOT / ".github" / "workflows" / "quality.yml")
     check("rcoder_mcp.py" in runtime_discovery and "rcoder-mcp.mjs" in runtime_discovery
