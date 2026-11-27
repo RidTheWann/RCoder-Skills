@@ -47,7 +47,7 @@ This record separates observed runtime facts from capabilities that could not be
 
 Observed in-session tool surface: shell command execution, structured file read, file write, exact file edit, glob file search, regex content search, task delegation to subagents, a to-do state tool, web search, and web fetch. Parallel tool invocation is available and was used for independent read-only probes. File reading can return image and PDF attachments. Working directory is the workspace root; a pre-approved temporary directory exists outside the workspace.
 
-Not established in this environment: context window size, exact reasoning-mode implementation, reliable subagent output quality, web-access policy in other hosts, native OpenCode skill discovery, multimodal input from the user, long-task continuity mechanisms, and the selected model's internal architecture. All of these remain `UNKNOWN` and must not be described as capabilities.
+Not established in this environment: context window size, exact reasoning-mode implementation, reliable subagent output quality, web-access policy in other hosts, multimodal input from the user, long-task continuity mechanisms, and the selected model's internal architecture. All of these remain `UNKNOWN` and must not be described as capabilities. Native OpenCode skill discovery on 1.19.6 and native 2.4.2 request delivery are recorded below and must not be conflated with model-quality claims.
 
 OpenCode plugin/SDK packages at version 1.19.6 exist locally, and the V1 plugin hook names were confirmed from the installed type definitions. Direct execution of the packaged ELF fails, but the CLI runs through the Termux glibc loader (`ld-linux-aarch64.so.1 --library-path <glibc/lib> <opencode-ELF>`). This unlocked live probing on 19 November 2026: `opencode run --format json` produced genuine hy4-flash-free responses and provider token fields; the `rcoder` skill was **natively discovered and invoked** from `.opencode/skills/rcoder/SKILL.md` (permission `skill pattern=rcoder`, `tool_use tool=skill name=rcoder`, direct `SKILL.md` read); and a probe plugin proved that `experimental.chat.system.transform` injects text into model context and fires twice per session. The RScan V1 adapter was generated, loaded by the real CLI, ran `rscan.py` successfully, and the answering agent quoted the injected menu verbatim in two independent sessions. With user-supplied OpenRouter credentials passed per process, the complete 61-case × 2-arm ablation was rerun on `openrouter/tencent/hy4-flash`; no credential was stored in any artifact. PowerShell 7.6.10 and `gh` are available locally; hosted CI results are recorded per run URL, not inferred.
 
@@ -67,9 +67,13 @@ OpenCode plugin/SDK packages at version 1.19.6 exist locally, and the V1 plugin 
 | Live ablation, WITHOUT arm | 0/61 cases (harness ordering + provider quota) | NOT VERIFIED |
 | Provider free usage | `AI_APICallError: Free usage limit reached` | VERIFIED (external blocker) |
 
+## OpenCode 2.4.2 integration probe (2026-11-27)
+
+The installed 2.4.2 executable was exercised through `scripts/test-opencode-native-e2e.py` with an isolated configuration and a local mock provider. Plugin loading, MCP connection, Runtime companion lifecycle, and co-delivery of RFC and Runtime markers in the captured request body are VERIFIED. Other OpenCode builds, hosted-model behavior, and native activation on other operating systems remain NOT VERIFIED.
+
 ## Model note
 
-The session identifies the active model as Hy4 Flash Free (OpenCode). No claim about its architecture, training, context capacity, or tool-calling reliability is made here. Behavioral evaluation methodology is defined in `model-adaptation.md`; a recorded ablation for this model remains `NOT VERIFIED` until one is executed and retained under `evals/results.md`.
+The session identifies the active model as Hy4 Flash Free (OpenCode). No claim about its architecture, training, context capacity, or tool-calling reliability is made here. Behavioral evaluation methodology is defined in `model-adaptation.md`. Two retained ablations exist for the Hy4 Flash family: a quota-blocked 24-trigger run in `evals/runs/v113-live-free-2026-11-19/` (recorded in `evals/results.md`) and a completed 61-case run in `evals/runs/hy4-flash-openrouter-2026-11-19/`. The integration probe above is separate evidence and does not upgrade either model-quality result.
 
 ## Probe log — 2026-11-19 (v1.13 development session, re-probed)
 

@@ -55,7 +55,7 @@ The local API is skills/rcoder/scripts/context_fabric.py and the repository wrap
 - [ ] Source, confidence, and kind remain visible for every selected context item.
 - [ ] Canary acceptance is checked against the raw response; exported transcript contains zero token occurrences.
 - [ ] GC uses an explicit clock and preserves pinned items.
-- [ ] Unencrypted local storage and the Claude-only, fail-open host integration limits are disclosed.
+- [ ] Unencrypted local storage and the fail-open host integration limits are disclosed (Claude Code and OpenCode 2.4.2 adapters exist; other hosts are not covered).
 
 ## Anti-patterns
 - Treating a vector store, SQLite database, content hash, or summary as autonomous model memory.

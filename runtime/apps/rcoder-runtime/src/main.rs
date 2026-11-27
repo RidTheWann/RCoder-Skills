@@ -3,8 +3,10 @@ use std::path::PathBuf;
 use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
 use rcoder_runtime_core::{
-    EvidenceOutcome, RiskLevel, TaskStatus, attach_until_parent_exits, compile_task, create_task,
-    detect_project, get_task, list_sessions, list_tasks, record_evidence, transition_task,
+    ArtifactReference, EvidenceOutcome, RiskLevel, TaskStatus, attach_until_parent_exits,
+    compile_task, create_task, detect_project, get_task, list_sessions, list_tasks,
+    record_evidence, require_artifact_verification, transition_task, verify_artifact_references,
+    verify_task_evidence,
 };
 
 #[derive(Debug, Parser)]
@@ -107,6 +109,33 @@ enum TaskCommand {
         summary: String,
         #[arg(long)]
         source: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Inspect a bounded artifact against a current-cycle evidence record.
+    Verify {
+        #[arg(long, default_value = ".")]
+        project: PathBuf,
+        #[arg(long)]
+        id: String,
+        #[arg(long)]
+        evidence: String,
+        #[arg(long)]
+        artifact: String,
+        #[arg(long = "expect-sha256")]
+        expect_sha256: Option<String>,
+        /// Allowlisted parser identifier for deterministic outcome extraction.
+        #[arg(long)]
+        parser: Option<String>,
+        #[arg(long)]
+        criterion: Option<String>,
+        #[arg(long)]
+        provenance: Option<String>,
+        #[arg(long = "require-digest")]
+        require_digest: bool,
+        /// Opt the criterion into artifact-backed completion verification.
+        #[arg(long)]
+        enforce: bool,
         #[arg(long)]
         json: bool,
     },
@@ -388,6 +417,83 @@ async fn main() -> Result<()> {
                     record_evidence(&project, &id, &criterion, outcome.into(), &summary, &source)?;
                 print_task(&task, json)?;
             }
+            TaskCommand::Verify {
+                project,
+                id,
+                evidence,
+                artifact,
+                expect_sha256,
+                parser,
+                criterion,
+                provenance,
+                require_digest,
+                enforce,
+                json,
+            } => {
+                let report = if let Some(parser) = &parser {
+                    if enforce {
+                        let criterion_id = criterion.as_deref().ok_or_else(|| {
+                            anyhow::anyhow!("--criterion is required when --enforce is used")
+                        })?;
+                        require_artifact_verification(
+                            &project,
+                            &id,
+                            criterion_id,
+                            parser,
+                            require_digest,
+                        )?;
+                    }
+                    let reference = ArtifactReference {
+                        schema_version: 1,
+                        artifact: artifact.clone(),
+                        parser: Some(parser.clone()),
+                        expected_sha256: expect_sha256.clone(),
+                        criterion_id: criterion.clone(),
+                        evidence_id: evidence.clone(),
+                        declared_outcome: None,
+                        provenance: provenance.unwrap_or_else(|| "cli:local".to_string()),
+                    };
+                    let (_, mut reports) = verify_artifact_references(&project, &id, &[reference])?;
+                    reports.remove(0)
+                } else {
+                    if enforce || require_digest {
+                        anyhow::bail!("--parser is required with --enforce or --require-digest");
+                    }
+                    let (_, report) = verify_task_evidence(
+                        &project,
+                        &id,
+                        &evidence,
+                        &artifact,
+                        expect_sha256.as_deref(),
+                    )?;
+                    report
+                };
+                if json {
+                    println!("{}", serde_json::to_string_pretty(&report)?);
+                } else {
+                    println!("Artifact: {}", report.artifact);
+                    println!("Verdict: {}", report.verdict.as_str());
+                    println!(
+                        "Verification state: {}",
+                        report.verification_state().as_str()
+                    );
+                    println!("Detail: {}", report.detail);
+                    println!("Size: {} bytes", report.size_bytes);
+                    println!("SHA-256: {}", report.sha256);
+                    println!("Evidence: {}", report.evidence_id);
+                    println!("Criterion: {}", report.criterion_id);
+                    println!("Provenance: {}", report.provenance);
+                    println!("Observed at: {}", report.inspected_at_unix);
+                    if let Some(outcome) = &report.outcome {
+                        println!(
+                            "Extracted: {} passed, {} failed, {} skipped, {} errors",
+                            outcome.passed, outcome.failed, outcome.skipped, outcome.errors
+                        );
+                    }
+                    println!("Declared claim: {:?}", report.declared_outcome);
+                    println!("Digest match alone is never proof that tests passed");
+                }
+            }
             TaskCommand::Transition {
                 project,
                 id,
@@ -559,6 +665,88 @@ mod cli_tests {
             } => {
                 assert!(matches!(outcome, EvidenceArg::NotRun));
                 assert_eq!(criterion, "AC-001");
+            }
+            other => panic!("unexpected command: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn task_verify_command_parses_artifact_inspection_fields() {
+        let digest = "a".repeat(64);
+        let cli = Cli::try_parse_from([
+            "rcoder-runtime",
+            "task",
+            "verify",
+            "--id",
+            "00000000-0000-4000-8000-000000000001",
+            "--evidence",
+            "00000000-0000-4000-8000-000000000002",
+            "--artifact",
+            "artifacts/test.log",
+            "--expect-sha256",
+            &digest,
+            "--json",
+        ])
+        .expect("parse task verify command");
+
+        match cli.command {
+            Command::Task {
+                command:
+                    TaskCommand::Verify {
+                        artifact,
+                        expect_sha256,
+                        json,
+                        ..
+                    },
+            } => {
+                assert_eq!(artifact, "artifacts/test.log");
+                assert_eq!(expect_sha256.as_deref(), Some(digest.as_str()));
+                assert!(json);
+            }
+            other => panic!("unexpected command: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn task_verify_command_parses_artifact_backed_fields() {
+        let cli = Cli::try_parse_from([
+            "rcoder-runtime",
+            "task",
+            "verify",
+            "--id",
+            "00000000-0000-4000-8000-000000000001",
+            "--evidence",
+            "00000000-0000-4000-8000-000000000002",
+            "--artifact",
+            "artifacts/report.json",
+            "--parser",
+            "rcoder_test_report_v1",
+            "--criterion",
+            "AC-001",
+            "--provenance",
+            "cli:unit",
+            "--require-digest",
+            "--enforce",
+        ])
+        .expect("parse artifact-backed verify command");
+
+        match cli.command {
+            Command::Task {
+                command:
+                    TaskCommand::Verify {
+                        parser,
+                        criterion,
+                        provenance,
+                        require_digest,
+                        enforce,
+                        ..
+                    },
+            } => {
+                assert_eq!(parser.as_deref(), Some("rcoder_test_report_v1"));
+                assert_eq!(criterion.as_deref(), Some("AC-001"));
+                assert_eq!(provenance.as_deref(), Some("cli:unit"));
+                assert!(require_digest);
+                assert!(enforce);
             }
             other => panic!("unexpected command: {other:?}"),
         }

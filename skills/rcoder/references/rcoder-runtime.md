@@ -21,10 +21,10 @@ Confirm `rcoder-runtime` is installed and available on PATH. Inspect the reposit
 1. Create a draft with one objective, observable acceptance criteria, constraints, and a risk level.
 2. Read the returned UUID and inspect the persisted contract.
 3. Move the task to active only when its scope matches the user's request.
-4. Compile the active task with `rcoder-runtime task compile --id TASK_UUID --json`; inspect its trust boundary and digest. With the packaged Claude Code hook enabled, the unique active task packet is injected automatically on each UserPromptSubmit; other hosts need a dedicated adapter.
-5. Execute through the host's authorized tools and record concise evidence after checking each criterion.
+4. Compile the active task with `rcoder-runtime task compile --id TASK_UUID --json`; inspect its trust boundary and digest. With the packaged Claude Code hook enabled, the unique active task packet is injected automatically on each UserPromptSubmit. OpenCode 2.4.2 compiles the same packet through its V2 adapter on real model requests; other hosts still need a dedicated adapter.
+5. Execute through the host's authorized tools and record concise evidence after checking each criterion. When an artifact can be independently inspected, link a bounded `rcoder-runtime task verify --id TASK_UUID --evidence EVIDENCE_UUID --artifact RELATIVE_PATH [--expect-sha256 DIGEST]` report to the current-cycle evidence; the report proves only that the confined bytes existed, not that a check ran or that the claim is true. For deterministic outcome verification, add `--parser rcoder_test_report_v1 --criterion AC-001`; only a strict passing report yields `artifact_verified`. Digest matches are `integrity_only`, and mixed or malformed reports never pass.
 6. Re-run checks after relevant changes; the latest attestation within the current verification cycle controls each criterion.
-7. Move the task to completed only after all criteria have a latest passing attestation in the current cycle. Reopening a completed task starts a new cycle: prior evidence remains auditable but cannot satisfy the new completion gate. Otherwise keep it active or blocked with a reason.
+7. Move the task to completed only after all criteria have a latest passing attestation in the current cycle. Criteria explicitly opted in with `--enforce` also need a current-cycle `artifact_verified` report linked to that latest evidence. Reopening a completed task starts a new cycle: prior evidence and verification reports remain auditable but cannot satisfy the new completion gate. Otherwise keep it active or blocked with a reason.
 
 ## Decision tree
 
@@ -62,7 +62,7 @@ Do not record pass before running the check. Do not treat a source string as pro
 
 ## Verification
 
-Inspect the actual test output, build result, repository diff, and relevant artifacts independently. Runtime checks the task schema and state machine but cannot validate the truth of a caller's evidence. Label external claims VERIFIED, INFERRED, or NOT VERIFIED according to observed evidence.
+Inspect the actual test output, build result, repository diff, and relevant artifacts independently. Runtime checks the task schema and state machine; `task verify` can additionally prove that confined artifact bytes existed and matched a digest, but it cannot validate the truth of a caller's evidence or prove a command ran. Label external claims VERIFIED, INFERRED, or NOT VERIFIED according to observed evidence.
 
 ## Output format
 
