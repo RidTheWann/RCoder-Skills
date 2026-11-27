@@ -125,8 +125,9 @@ class TestCrossPlatformSync(unittest.TestCase):
                 resolve_host_command("opencode"),
                 ["cmd.exe", "/c", "C:\\Tools\\opencode.cmd"],
             )
-        with patch("platform_runtime.shutil.which", return_value="/usr/local/bin/opencode"):
-            self.assertEqual(resolve_host_command("opencode"), ["/usr/local/bin/opencode"])
+        posix_path = "/usr/local/bin/opencode"
+        with patch("platform_runtime.shutil.which", return_value=posix_path):
+            self.assertEqual(resolve_host_command("opencode"), [str(Path(posix_path))])
         with patch("platform_runtime.shutil.which", return_value=None):
             self.assertEqual(resolve_host_command("opencode"), [])
 
