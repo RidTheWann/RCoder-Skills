@@ -23,8 +23,8 @@ Confirm `rcoder-runtime` is installed and available on PATH. Inspect the reposit
 3. Move the task to active only when its scope matches the user's request.
 4. Compile the active task with `rcoder-runtime task compile --id TASK_UUID --json`; inspect its trust boundary and digest. With the packaged Claude Code hook enabled, the unique active task packet is injected automatically on each UserPromptSubmit; other hosts need a dedicated adapter.
 5. Execute through the host's authorized tools and record concise evidence after checking each criterion.
-6. Re-run checks after relevant changes; the latest attestation for a criterion controls its completion status.
-7. Move the task to completed only after all criteria have a latest passing attestation. Otherwise keep it active or blocked with a reason.
+6. Re-run checks after relevant changes; the latest attestation within the current verification cycle controls each criterion.
+7. Move the task to completed only after all criteria have a latest passing attestation in the current cycle. Reopening a completed task starts a new cycle: prior evidence remains auditable but cannot satisfy the new completion gate. Otherwise keep it active or blocked with a reason.
 
 ## Decision tree
 
