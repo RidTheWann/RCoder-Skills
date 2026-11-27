@@ -102,6 +102,35 @@ class RuntimeTaskHostTests(unittest.TestCase):
         self.assertNotIn("ANTHROPIC_API_KEY", kwargs["env"])
         self.assertEqual(kwargs["cwd"], str(self.root))
 
+    def test_digest_matches_the_rust_canonical_serialization_fixture(self) -> None:
+        packet = json.loads(json.dumps(self.packet))
+        packet["task"].update({
+            "id": "00000000-0000-4000-8000-000000000001",
+            "project_root": "/workspace/project",
+            "status": "active",
+            "risk_level": "high",
+            "revision_unix": 200,
+            "objective": "Implement a bounded compiler",
+            "constraints": ["Preserve host permissions"],
+            "acceptance_criteria": [
+                {
+                    "id": "AC-001",
+                    "description": "Focused tests pass",
+                    "latest_evidence": None,
+                },
+                {
+                    "id": "AC-002",
+                    "description": "No unrelated files change",
+                    "latest_evidence": None,
+                },
+            ],
+        })
+        sealed = self.seal_packet(packet)
+        self.assertEqual(
+            sealed["digest_sha256"],
+            "73c0d6cc36c60ff0a64b6790d4f8bf52f47c09f52ae27ab1f3a963c982d9c92d",
+        )
+
     def test_disabled_runtime_does_not_invoke_cli(self) -> None:
         runner = Mock()
         env = dict(self.environment, RCODER_RUNTIME_DISABLE="1")
