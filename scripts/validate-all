@@ -597,7 +597,7 @@ def main():
     runtime_discovery = read(ROOT / "runtime" / "crates" / "runtime-core" / "src" / "discovery.rs")
     workflow = read(ROOT / ".github" / "workflows" / "quality.yml")
     check("rcoder_mcp.py" in runtime_discovery and "rcoder-mcp.mjs" in runtime_discovery
-          and "a server named rcoder without the rcoder entrypoint" in runtime_discovery,
+          and "a_server_named_rcoder_without_the_rcoder_entrypoint" in runtime_discovery,
           "G8: Runtime discovery must require an actual RCoder entrypoint rather than an alias")
     check("cargo fmt --manifest-path runtime/Cargo.toml --all -- --check" in workflow
           and "cargo test --manifest-path runtime/Cargo.toml --workspace" in workflow
