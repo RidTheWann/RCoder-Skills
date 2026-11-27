@@ -40,6 +40,16 @@ class ContextFabricTests(unittest.TestCase):
             "This note expires at timestamp 120.", ttl_seconds=20, now=100,
         )
 
+    def test_ensure_session_registers_a_session_before_any_context_exists(self):
+        result = self.fabric.ensure_session("session-empty", now=100)
+        self.assertTrue(result["created"])
+        self.assertEqual(self.fabric.stats()["sessions"], 1)
+        again = self.fabric.ensure_session("session-empty", now=101)
+        self.assertFalse(again["created"])
+        built = self.fabric.build_context("session-empty", "prompt-empty", now=102)
+        self.assertIn("session_id: session-empty", built["text"])
+        self.assertEqual(built["selected_item_ids"], [])
+
     def test_explicit_hydration_and_per_prompt_identity(self):
         self.put_basics()
         first = self.fabric.build_context("session-01", "prompt-001", now=110)

@@ -357,8 +357,9 @@ class ContextFabric:
                 token_digest = _sha256(ack_token)
                 canary_block = (
                     "\n[CONTEXT_FABRIC_CANARY]\n"
-                    "For delivery verification, echo this exact token once on its own line "
-                    f"in your response: {ack_token}\n"
+                    "For delivery verification, append this exact HTML comment as the final line "
+                    "of your response, without presenting it as user-facing prose: "
+                    f"<!-- RFC-ACK: {ack_token} -->\n"
                 )
             base = header + canary_block
             if len(base.encode("utf-8")) > budget_bytes:

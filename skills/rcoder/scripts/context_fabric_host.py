@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
-from context_fabric import ContextFabric, DEFAULT_BUDGET_BYTES, ID_RE
+from context_fabric import ContextFabric, DEFAULT_BUDGET_BYTES, ID_RE, PromptAlreadyPrepared
 
 MAX_EVENT_BYTES = 1_000_000
 DISABLE_ENV = "RCODER_HOOKS_DISABLE"
@@ -137,8 +137,14 @@ def handle_user_prompt_submit(event: dict) -> Optional[dict]:
     token_path = _canary_path(root, session_id, prompt_id, create=True)
     if token_path is None:
         return None
+    # A duplicate hook invocation for the same prompt must not overwrite its canary.
+    if token_path.exists():
+        return None
     token = secrets.token_urlsafe(24)
-    _write_private_token(token_path, token)
+    try:
+        _write_private_token(token_path, token)
+    except FileExistsError:
+        return None
     try:
         built = fabric.build_context(
             session_id,
@@ -146,6 +152,12 @@ def handle_user_prompt_submit(event: dict) -> Optional[dict]:
             budget_bytes=DEFAULT_BUDGET_BYTES,
             ack_token=token,
         )
+    except PromptAlreadyPrepared:
+        try:
+            token_path.unlink()
+        except OSError:
+            pass
+        return None
     except BaseException:
         try:
             token_path.unlink()

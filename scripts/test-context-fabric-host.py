@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -73,7 +74,7 @@ class ContextFabricHostTests(unittest.TestCase):
         self.assertNotEqual(stored_digest, token)
 
     def test_stop_captures_response_and_exports_no_canary(self):
-        output = host.handle_user_prompt_submit(self.event)
+        host.handle_user_prompt_submit(self.event)
         token = self.token_path().read_text(encoding="utf-8").strip()
         response = f"Task result is ready.\n<!-- RFC-ACK: {token} -->"
         result = host.handle_stop({
@@ -161,7 +162,7 @@ class ContextFabricHostTests(unittest.TestCase):
             self.assertIsNone(host.handle_user_prompt_submit(event))
 
     def test_disabled_environment_switches_off_injection_and_capture(self):
-        with unittest.mock.patch.dict(os.environ, {"RCODER_RFC_DISABLE": "1"}):
+        with patch.dict(os.environ, {"RCODER_RFC_DISABLE": "1"}):
             self.assertIsNone(host.handle_user_prompt_submit(self.event))
             self.assertIsNone(host.handle_stop(self.event))
 
