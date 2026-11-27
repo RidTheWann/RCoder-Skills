@@ -247,8 +247,12 @@ class RuntimeTaskHostTests(unittest.TestCase):
                 name = target.id if isinstance(target, ast.Name) else getattr(target, "attr", "")
                 self.assertNotIn(name, {"eval", "exec", "system", "popen", "__import__"})
                 self.assertFalse(
-                    any(keyword.arg == "shell" and keyword.value.value is True
-                        for keyword in node.keywords if keyword.arg == "shell")
+                    any(
+                        keyword.arg == "shell"
+                        and isinstance(keyword.value, ast.Constant)
+                        and keyword.value.value is True
+                        for keyword in node.keywords
+                    )
                 )
         self.assertFalse(imported & forbidden_imports)
 
