@@ -520,7 +520,7 @@ def main():
     hooks_file = ROOT / "hooks" / "hooks.json"
     check(hooks_file.is_file(), "G8: plugin hooks/hooks.json missing (D-019)")
     hook_events = load_json(hooks_file).get("hooks", {}) if hooks_file.is_file() else {}
-    check(set(hook_events) == {"SessionStart", "PreToolUse", "PostToolUse", "PreCompact", "UserPromptSubmit", "Stop"},
+    check(set(hook_events) == {"SessionStart", "PreToolUse", "PostToolUse", "PreCompact", "UserPromptSubmit", "Stop", "SessionEnd"},
           "G8: plugin hook events must match the reviewed Claude lifecycle and RFC host set (D-019/D-024)")
     for entry in hook_events.get("SessionStart", []):
         check(entry.get("matcher") == "startup", "G8: the plugin hook must match startup only")
@@ -556,12 +556,13 @@ def main():
     rfc_host = ROOT / "skills" / "rcoder" / "scripts" / "context_fabric_host.py"
     rfc_host_source = read(rfc_host) if rfc_host.is_file() else ""
     check(bool(rfc_host_source) and all(token in rfc_host_source for token in
-          ("def handle_user_prompt_submit", "def handle_stop", "hookSpecificOutput",
-           "additionalContext", "last_assistant_message")),
+          ("def handle_user_prompt_submit", "def handle_stop", "def handle_session_end",
+           "hookSpecificOutput", "additionalContext", "last_assistant_message")),
           "G8: RFC Claude host adapter is incomplete (D-024)")
     expected_rfc_hooks = {
         "UserPromptSubmit": "user-prompt-submit",
         "Stop": "stop",
+        "SessionEnd": "session-end",
     }
     for event, phase in expected_rfc_hooks.items():
         entries = hook_events.get(event, [])

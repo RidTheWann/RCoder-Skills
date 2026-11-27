@@ -34,7 +34,7 @@ A model request has only the context actually supplied to that request. A databa
 - Need another host adapter, MCP write tools, encryption, sync, or vector retrieval -> those capabilities are not present in this slice.
 
 ## Tool strategy
-The local API is skills/rcoder/scripts/context_fabric.py and the repository wrapper is scripts/context-fabric.py. The Claude Code adapter is skills/rcoder/scripts/context_fabric_host.py and is registered in hooks/hooks.json. It activates only when .rcoder/context-fabric.sqlite3 already exists; run the stats command once to initialize it. The adapter stores a per-delivery canary in .rcoder/private/rfc-canaries with restrictive permissions and removes it after Stop capture. The SQLite store is local and unencrypted. Keep .rcoder private, and do not rely on best-effort redaction as a complete secret detector.
+The local API is skills/rcoder/scripts/context_fabric.py and the repository wrapper is scripts/context-fabric.py. The Claude Code adapter is skills/rcoder/scripts/context_fabric_host.py and is registered in hooks/hooks.json. It activates only when .rcoder/context-fabric.sqlite3 already exists; run the stats command once to initialize it. The adapter stores a per-delivery canary in .rcoder/private/rfc-canaries with restrictive permissions and retains it across repeated Stop events, then removes it at the next prompt or SessionEnd. The SQLite store is local and unencrypted. Keep .rcoder private, and do not rely on best-effort redaction as a complete secret detector.
 
 ## Advanced techniques
 - Use content SHA-256 as a deduplication key for identical sanitized artifacts, not as proof that source evidence is true.

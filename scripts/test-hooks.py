@@ -316,14 +316,15 @@ for node in ast.walk(tree):
 check(not imported & {"subprocess", "socket", "ssl", "urllib", "http", "requests", "asyncio", "ctypes", "pickle"},
       f"rcoder_hooks.py imports a forbidden module: {sorted(imported)}")
 bundle_hooks = json.loads((ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
-check(set(bundle_hooks) == {"SessionStart", "PreToolUse", "PostToolUse", "PreCompact", "UserPromptSubmit", "Stop"},
+check(set(bundle_hooks) == {"SessionStart", "PreToolUse", "PostToolUse", "PreCompact", "UserPromptSubmit", "Stop", "SessionEnd"},
       "the bundled hook manifest enables tool lifecycle and RFC host-injection handlers")
 check("rcoder_hooks.py\" guard" in bundle_hooks["PreToolUse"][0]["hooks"][0]["command"]
       and "rcoder_hooks.py\" post-tool" in bundle_hooks["PostToolUse"][0]["hooks"][0]["command"]
       and "rcoder_hooks.py\" pre-compact" in bundle_hooks["PreCompact"][0]["hooks"][0]["command"],
       "all bundled lifecycle entries call the full canonical skill handler")
 check('context_fabric_host.py" user-prompt-submit' in bundle_hooks["UserPromptSubmit"][0]["hooks"][0]["command"]
-      and 'context_fabric_host.py" stop' in bundle_hooks["Stop"][0]["hooks"][0]["command"],
-      "the Claude plugin routes prompt injection and response capture to the RFC host adapter")
+      and 'context_fabric_host.py" stop' in bundle_hooks["Stop"][0]["hooks"][0]["command"]
+      and 'context_fabric_host.py" session-end' in bundle_hooks["SessionEnd"][0]["hooks"][0]["command"],
+      "the Claude plugin routes prompt injection, response capture, and session cleanup to the RFC host adapter")
 
 print(f"rcoder_hooks: {CHECKS} checks passed")
