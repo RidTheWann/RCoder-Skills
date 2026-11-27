@@ -79,9 +79,10 @@ def main():
         assert "start_new_session" not in windows_options
 
         # The legacy server's actual startup path must invoke the companion before serving.
-        with patch.object(rcoder_mcp.runtime_bootstrap, "start_runtime_companion") as start, \
+        with patch.dict(os.environ, {"RCODER_WORKSPACE_ROOT": str(project)}), \
+             patch.object(rcoder_mcp.runtime_bootstrap, "start_runtime_companion") as start, \
              patch.object(rcoder_mcp, "serve", return_value=0):
-            assert rcoder_mcp.main(["--root", str(project)]) == 0
+            assert rcoder_mcp.main([]) == 0
             start.assert_called_once_with(project)
 
         # Printing configuration is an installer-preview operation, not an MCP session.
@@ -98,10 +99,11 @@ def main():
         # The long-lived loopback HTTP process owns one session; per-request workers are disabled.
         fake_server = Mock()
         fake_server.server_port = 8765
-        with patch.dict(os.environ, {"RCODER_MCP_TOKEN": "x" * 40}), \
-             patch.object(rcoder_mcp_http, "Server", return_value=fake_server), \
+        with patch.dict(os.environ, {
+            "RCODER_MCP_TOKEN": "x" * 40, "RCODER_WORKSPACE_ROOT": str(project)
+        }), patch.object(rcoder_mcp_http, "Server", return_value=fake_server), \
              patch.object(rcoder_mcp_http.runtime_bootstrap, "start_runtime_companion") as start:
-            assert rcoder_mcp_http.main(["--root", str(project), "--port", "0"]) == 0
+            assert rcoder_mcp_http.main(["--port", "0"]) == 0
             start.assert_called_once_with(project)
             fake_server.serve_forever.assert_called_once()
             fake_server.server_close.assert_called_once()
