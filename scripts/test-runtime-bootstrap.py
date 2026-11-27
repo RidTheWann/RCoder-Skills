@@ -41,11 +41,20 @@ def main():
             )
         missing.assert_not_called()
 
+        clean_env = runtime_bootstrap.runtime_environment({
+            "PATH": "/usr/bin", "HOME": "/home/test", "RCODER_TEST_API_KEY": "do-not-inherit",
+            "OPENAI_API_KEY": "also-secret", "LANG": "en_US.UTF-8"
+        })
+        assert clean_env == {
+            "PATH": "/usr/bin", "HOME": "/home/test", "LANG": "en_US.UTF-8"
+        }
+
         unix_launch = Mock()
-        assert runtime_bootstrap.start_runtime_companion(
+        with patch.dict(os.environ, {"PATH": "/usr/bin", "RCODER_TEST_API_KEY": "do-not-inherit"}):
+            assert runtime_bootstrap.start_runtime_companion(
             project, runtime_binary="/opt/rcoder-runtime", parent_pid=1234,
-            platform="linux", popen=unix_launch
-        )
+                platform="linux", popen=unix_launch
+            )
         command = unix_launch.call_args.args[0]
         options = unix_launch.call_args.kwargs
         assert command == [
@@ -57,6 +66,8 @@ def main():
         assert options["stderr"] == runtime_bootstrap.subprocess.DEVNULL
         assert options["start_new_session"] is True
         assert options["close_fds"] is True
+        assert options["env"]["PATH"] == "/usr/bin"
+        assert "RCODER_TEST_API_KEY" not in options["env"]
 
         windows_launch = Mock()
         assert runtime_bootstrap.start_runtime_companion(
