@@ -4,7 +4,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "skills" / "rcoder" / "scripts"
@@ -32,9 +32,11 @@ def main():
                 os.environ["RCODER_RUNTIME_DISABLE"] = previous
 
         missing = Mock()
-        assert not runtime_bootstrap.start_runtime_companion(
-            project, runtime_binary="", popen=missing
-        )
+        with patch.dict(os.environ, {"RCODER_RUNTIME_PATH": ""}), \
+             patch.object(runtime_bootstrap.shutil, "which", return_value=None):
+            assert not runtime_bootstrap.start_runtime_companion(
+                project, runtime_binary="", popen=missing
+            )
         missing.assert_not_called()
 
         unix_launch = Mock()
