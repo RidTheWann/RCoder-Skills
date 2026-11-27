@@ -364,7 +364,7 @@ rcoder-runtime task create --project . --objective "Implement a feature" \
   --acceptance "Focused tests pass" --acceptance "No unrelated files changed" --risk high --json
 ```
 
-Runtime is fail-open: if the executable is unavailable or startup fails, RCoder MCP continues normally. Set `RCODER_RUNTIME_DISABLE=1` to disable attachment, or `RCODER_RUNTIME_PATH` to use a non-PATH executable. The headless Runtime also provides typed execution contracts with guarded task transitions and acceptance-evidence gates. Host tool permission enforcement, instruction injection, RFC/RSaver integration, independent evidence verification, and the desktop console remain future stages. See [Runtime architecture and boundaries](docs/RUNTIME.md).
+Runtime is fail-open: if the executable is unavailable or startup fails, RCoder MCP continues normally. Set `RCODER_RUNTIME_DISABLE=1` to disable attachment, or `RCODER_RUNTIME_PATH` to use a non-PATH executable. The headless Runtime also provides typed execution contracts with guarded task transitions and acceptance-evidence gates; completed tasks can be reopened with a reason when regressions need re-verification. Host tool permission enforcement, instruction injection, RFC/RSaver integration, independent evidence verification, and the desktop console remain future stages. See [Runtime architecture and boundaries](docs/RUNTIME.md).
 
 ### MCP server — optional native tools
 
