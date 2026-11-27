@@ -21,9 +21,10 @@ Confirm `rcoder-runtime` is installed and available on PATH. Inspect the reposit
 1. Create a draft with one objective, observable acceptance criteria, constraints, and a risk level.
 2. Read the returned UUID and inspect the persisted contract.
 3. Move the task to active only when its scope matches the user's request.
-4. Execute through the host's authorized tools and record concise evidence after checking each criterion.
-5. Re-run checks after relevant changes; the latest attestation for a criterion controls its completion status.
-6. Move the task to completed only after all criteria have a latest passing attestation. Otherwise keep it active or blocked with a reason.
+4. Compile the active task with `rcoder-runtime task compile --id TASK_UUID --json`; inspect its trust boundary and digest. With the packaged Claude Code hook enabled, the unique active task packet is injected automatically on each UserPromptSubmit; other hosts need a dedicated adapter.
+5. Execute through the host's authorized tools and record concise evidence after checking each criterion.
+6. Re-run checks after relevant changes; the latest attestation for a criterion controls its completion status.
+7. Move the task to completed only after all criteria have a latest passing attestation. Otherwise keep it active or blocked with a reason.
 
 ## Decision tree
 
@@ -36,7 +37,7 @@ Confirm `rcoder-runtime` is installed and available on PATH. Inspect the reposit
 
 ## Tool strategy
 
-Use `rcoder-runtime task create`, `list`, `show`, `compile`, `evidence`, and `transition`. Prefer `--json` for machine-readable output. The compiler accepts active tasks only, returns a SHA-256-digested packet, and rejects payloads above 64 KiB without truncating them. Store short command or artifact references in evidence sources, not full logs. Use normal host tools for repository edits and verification.
+Use `rcoder-runtime task create`, `list`, `show`, `compile`, `evidence`, and `transition`. Prefer `--json` for machine-readable output. The compiler accepts active tasks only, returns a SHA-256-digested packet, and rejects payloads above 64 KiB without truncating them. The Claude hook injects only when exactly one task is active; no task or ambiguous active tasks produce no context. Store short command or artifact references in evidence sources, not full logs. Use normal host tools for repository edits and verification.
 
 ## Advanced techniques
 
