@@ -93,12 +93,18 @@ jobs:
         run: python scripts/test-hooks.py
       - name: OpenCode lifecycle middleware regression
         run: node scripts/test-opencode-plugin.mjs
+      - name: OpenCode V2 RFC/Runtime bridge regression
+        run: python scripts/test-opencode-host.py
+      - name: OpenCode V2 plugin lifecycle regression
+        run: node scripts/test-opencode-v2-plugin.mjs
+      - name: OpenCode V2 host-state contract regression
+        run: node scripts/test-opencode-plugin-host-state.mjs
       - name: Release archive hygiene regression
         run: python scripts/test-package-hygiene.py
       - name: MCP server syntax and host configuration snippets
         shell: bash
         run: |
-          python -m py_compile skills/rcoder/scripts/context_fabric.py skills/rcoder/scripts/context_fabric_host.py skills/rcoder/scripts/runtime_bootstrap.py skills/rcoder/scripts/rcoder_mcp.py skills/rcoder/scripts/rcoder_mcp_modern.py skills/rcoder/scripts/rcoder_mcp_http.py skills/rcoder/scripts/rcoder_mcp_setup.py skills/rcoder/scripts/rcoder_contract.py skills/rcoder/scripts/skill_authoring.py skills/rcoder/scripts/rcoder_hooks.py
+          python -m py_compile skills/rcoder/scripts/context_fabric.py skills/rcoder/scripts/context_fabric_host.py skills/rcoder/scripts/opencode_host.py skills/rcoder/scripts/runtime_bootstrap.py skills/rcoder/scripts/rcoder_mcp.py skills/rcoder/scripts/rcoder_mcp_modern.py skills/rcoder/scripts/rcoder_mcp_http.py skills/rcoder/scripts/rcoder_mcp_setup.py skills/rcoder/scripts/rcoder_contract.py skills/rcoder/scripts/skill_authoring.py skills/rcoder/scripts/rcoder_hooks.py
           python scripts/rcoder-mcp.py --print-config generic > "$RUNNER_TEMP/mcp-generic.json"
           python skills/rcoder/scripts/rcoder_mcp_modern.py --print-config generic > "$RUNNER_TEMP/mcp-modern.json"
           python -c "import json,sys; json.load(open(sys.argv[1]))" "$RUNNER_TEMP/mcp-modern.json"

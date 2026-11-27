@@ -78,6 +78,8 @@ The default gate is heuristic and stays opt-in. Set `RCODER_STRICT_STOP=1` in th
 
 The Claude bundle registers a second `UserPromptSubmit` command for Runtime. It injects a packet only when exactly one active Runtime task exists. The RFC Context Fabric adapter remains a separate hook, and the host combines both `additionalContext` values. Missing task state, ambiguous active tasks, or a Runtime compile failure is fail-open and contributes no additional context. Native Runtime hook activation in a live Claude Code session remains NOT VERIFIED until installed and observed.
 
+OpenCode 2.4.2 uses the V2 plugin lifecycle instead of settings hooks: `ctx.session.hook('context')` injects the Runtime packet and fresh RFC context on every model request; `ctx.tool.hook` applies the guard and output handling; `ctx.event.subscribe()` captures assistant text on `session.step.ended`; and `ctx.session.hook('compaction')` appends the capsule. A single normalized host-state object carries the directory and disable/path options. Observed invocation, canary, and disable evidence is in `docs/OPENCODE-V2-ADAPTER.md`; no claim is made for other versions or hosts.
+
 ## Sources
 
 - Claude Code hooks: https://code.claude.com/docs/en/hooks
