@@ -682,6 +682,13 @@ mod tests {
         )
         .expect("reopen with a reason");
         assert_eq!(reopened.status, TaskStatus::Active);
+        assert_eq!(reopened.evidence.len(), 1, "historical evidence remains auditable");
+        assert_eq!(reopened.completion_evidence_start_index, 1);
+        assert_eq!(latest_outcome(&reopened, "AC-001"), None);
+        assert!(
+            transition_task(&root, &task.id, TaskStatus::Completed, None).is_err(),
+            "a reopened task must not reuse its pre-reopen passing evidence"
+        );
 
         record_evidence(
             &root,
@@ -692,6 +699,8 @@ mod tests {
             "CI run 101",
         )
         .expect("record later failure");
+        assert_eq!(latest_outcome(&get_task(&root, &task.id).expect("read failed task"), "AC-001"),
+            Some(EvidenceOutcome::Fail));
         assert!(transition_task(&root, &task.id, TaskStatus::Completed, None).is_err());
 
         let repaired = record_evidence(
@@ -722,6 +731,29 @@ mod tests {
         );
         assert!(get_task(&root, "00000000-0000-4000-8000-000000000001").is_err());
         assert!(!root.join(".rcoder").exists());
+        fs::remove_dir_all(root).expect("remove fixture");
+    }
+
+    #[test]
+    fn legacy_task_contracts_default_to_the_first_evidence_cycle() {
+        let root = fixture();
+        let task = create_task(
+            &root,
+            "Read an older task contract",
+            &["Tests pass".to_string()],
+            &[],
+            RiskLevel::Low,
+        )
+        .expect("create task");
+        let mut serialized = serde_json::to_value(&task).expect("serialize task");
+        serialized
+            .as_object_mut()
+            .expect("task JSON object")
+            .remove("completion_evidence_start_index");
+
+        let restored: TaskContract =
+            serde_json::from_value(serialized).expect("deserialize legacy contract");
+        assert_eq!(restored.completion_evidence_start_index, 0);
         fs::remove_dir_all(root).expect("remove fixture");
     }
 
