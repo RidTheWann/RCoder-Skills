@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use anyhow::{Context, Result};
 use serde::Serialize;
@@ -169,6 +169,7 @@ fn contains_rcoder_entrypoint(value: &Value, depth: usize) -> bool {
 mod tests {
     use super::*;
     use std::fs;
+    use std::path::PathBuf;
     use uuid::Uuid;
 
     fn fixture() -> PathBuf {
