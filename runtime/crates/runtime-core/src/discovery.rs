@@ -120,15 +120,7 @@ pub fn detect_project(project_root: &Path) -> Result<DetectionReport> {
 }
 
 fn is_rcoder_server(name: &str, definition: &Value) -> bool {
-    let normalized = name
-        .trim()
-        .to_ascii_lowercase()
-        .replace(' ', "-")
-        .replace('_', "-");
-    if normalized == "rcoder" || normalized.starts_with("rcoder-") {
-        return true;
-    }
-
+    let _ = name; // Server aliases are not proof of implementation identity.
     let Some(object) = definition.as_object() else {
         return false;
     };
@@ -151,13 +143,21 @@ fn contains_rcoder_entrypoint(value: &Value, depth: usize) -> bool {
     match value {
         Value::String(text) => {
             let normalized = text.to_ascii_lowercase().replace('\\', "/");
-            normalized.contains("rcoder_mcp.py")
-                || normalized.contains("rcoder_mcp_modern.py")
-                || normalized.contains("rcoder-mcp")
-                || normalized
-                    .split_whitespace()
-                    .any(|token| token == "rcoder_mcp" || token == "rcoder-mcp")
-                || normalized == "rcoder_mcp"
+            normalized.split_whitespace().any(|raw_token| {
+                let token = raw_token.trim_matches(['"', '\\'', ',']);
+                let basename = token.rsplit('/').next().unwrap_or(token);
+                matches!(
+                    basename,
+                    "rcoder_mcp.py"
+                        | "rcoder_mcp_modern.py"
+                        | "rcoder_mcp"
+                        | "rcoder-mcp"
+                        | "rcoder-mcp.mjs"
+                        | "rcoder-mcp.exe"
+                        | "rcoder-mcp.cmd"
+                        | "rcoder-mcp.bat"
+                )
+            })
         }
         Value::Array(items) => items
             .iter()
@@ -236,6 +236,21 @@ mod tests {
         let report = detect_project(&root).expect("detect project");
         assert_eq!(report.issues.len(), 1);
         assert_eq!(report.servers.len(), 1);
+
+        fs::remove_dir_all(root).expect("remove fixture");
+    }
+
+    #[test]
+    fn a_server_named_rcoder_without_the_rcoder_entrypoint_is_not_a_match() {
+        let root = fixture();
+        fs::write(
+            root.join(".mcp.json"),
+            r#"{"mcpServers":{"rcoder":{"command":"python","args":["some-other-server.py"]}}}"#,
+        )
+        .expect("write config");
+
+        let report = detect_project(&root).expect("detect project");
+        assert!(report.servers.is_empty());
 
         fs::remove_dir_all(root).expect("remove fixture");
     }
