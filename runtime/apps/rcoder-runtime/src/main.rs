@@ -201,6 +201,35 @@ fn print_task(task: &rcoder_runtime_core::TaskContract, json: bool) -> Result<()
             }
         }
         println!("Evidence records: {}", task.evidence.len());
+        if !task.evidence.is_empty() {
+            println!("Evidence history:");
+            for evidence in &task.evidence {
+                println!(
+                    "  {} {} @ {} — {} ({})",
+                    evidence.criterion_id,
+                    format!("{:?}", evidence.outcome).to_ascii_lowercase(),
+                    evidence.recorded_at_unix,
+                    evidence.summary,
+                    evidence.source
+                );
+            }
+        }
+        if !task.history.is_empty() {
+            println!("State history:");
+            for transition in &task.history {
+                println!(
+                    "  {} -> {} @ {}{}",
+                    transition.from.as_str(),
+                    transition.to.as_str(),
+                    transition.transitioned_at_unix,
+                    transition
+                        .reason
+                        .as_deref()
+                        .map(|reason| format!(" — {reason}"))
+                        .unwrap_or_default()
+                );
+            }
+        }
     }
     Ok(())
 }
