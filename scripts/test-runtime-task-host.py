@@ -80,7 +80,8 @@ class RuntimeTaskHostTests(unittest.TestCase):
 
         args, kwargs = runner.call_args
         self.assertEqual(args[0][-2:], ["--active", "--json"])
-        self.assertIn("task", args[0])
+        self.assertEqual(args[0][1:3], ["task", "compile"])
+        self.assertIn("--project", args[0])
         self.assertIn("compile", args[0])
         self.assertEqual(kwargs["timeout"], runtime_task_host.HOOK_TIMEOUT_SECONDS)
         self.assertEqual(kwargs["env"]["RCODER_RUNTIME_DISABLE"], "1")
