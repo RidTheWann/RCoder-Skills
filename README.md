@@ -350,7 +350,7 @@ The local Python API/CLI now has a native **Claude Code host adapter**: UserProm
 
 ### RCoder Runtime — optional local control plane
 
-RCoder Runtime is a separate Rust 2024 executable. When it is installed and a host starts the local Python RCoder MCP server, the MCP process automatically launches a detached Runtime companion. The companion tracks that exact MCP process and exits when it ends. A project using only unrelated MCP servers (for example, Serena) does not activate RCoder Runtime.
+RCoder Runtime is a separate Rust 2024 executable. When it is installed and a host starts the local Python RCoder MCP stdio server or loopback HTTP service, the MCP process automatically launches a detached Runtime companion. The companion tracks that exact server process and exits when it ends. The HTTP service uses one companion rather than spawning one per request. A project using only unrelated MCP servers (for example, Serena) does not activate RCoder Runtime.
 
 Install and inspect it from the repository root:
 
