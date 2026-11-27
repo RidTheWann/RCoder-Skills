@@ -620,8 +620,7 @@ mod tests {
             "CI run 100",
         )
         .expect("record initial pass");
-        transition_task(&root, &task.id, TaskStatus::Completed, None)
-            .expect("complete task");
+        transition_task(&root, &task.id, TaskStatus::Completed, None).expect("complete task");
 
         assert!(transition_task(&root, &task.id, TaskStatus::Active, None).is_err());
         let reopened = transition_task(
