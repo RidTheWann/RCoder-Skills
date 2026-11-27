@@ -90,6 +90,21 @@ Compilation is permitted only while the task is `active`; draft, blocked, comple
 
 **Host-integration boundary:** this command emits a candidate context packet; it does not inject it automatically into model requests. The next host-integration stage will consume the structured packet and ensure it is attached to each relevant request/retry. RFC remains responsible for durable cross-request context hydration, and Runtime does not read or write the RFC SQLite database.
 
+## Claude Code per-request task injection
+
+The packaged Claude Code hook manifest registers a separate `UserPromptSubmit` command for Runtime alongside the existing RFC Context Fabric adapter. On each prompt, `runtime_task_host.py` checks for an existing, non-symlinked task store and invokes:
+
+```sh
+rcoder-runtime task compile --project PROJECT_ROOT --active --json
+```
+
+When exactly one task is active, the hook returns the packet through `hookSpecificOutput.additionalContext`. The packet is therefore supplied on every eligible prompt/retry, while RFC continues to supply its independent durable context. The host combines `additionalContext` values returned by multiple hooks for the same event.
+
+The hook is fail-open: no task store, no active task, multiple active tasks, an unavailable Runtime executable, invalid output, or a timeout yields no additional context and does not block the prompt. It does not create task directories. The Runtime child process receives only the OS environment allowlist and has sidecar startup disabled to prevent recursive attachment. The hook uses a fixed executable argument vector; task text never becomes shell input.
+
+This initial injection adapter targets Claude Code's documented `UserPromptSubmit` event. Other hosts can consume `task compile --json` through their own adapters in later integration slices. Native hook activation in a live Claude Code session remains **NOT VERIFIED** until installed and observed.
+
+
 ## State and safety boundaries
 
 Runtime stores session metadata in `.rcoder/runtime/sessions/` and task contracts/evidence in `.rcoder/runtime/tasks/`. Session records contain opaque session IDs, project paths, process IDs, process start times, lifecycle timestamps, and state. Task contracts contain the requested objective, acceptance criteria, constraints, risk level, state history, and caller-supplied evidence attestations. It does not copy MCP arguments, environment variables, prompts, context payloads, canaries, credentials, or tool output into session records. The launcher also passes the companion a small OS-environment allowlist (PATH, home/temp/system-root basics, and locale) instead of inheriting host API keys and provider tokens.
