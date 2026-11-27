@@ -104,7 +104,7 @@ class RuntimeTaskHostTests(unittest.TestCase):
 
     def test_digest_matches_the_rust_canonical_serialization_fixture(self) -> None:
         packet = json.loads(json.dumps(self.packet))
-        packet["task"].update({
+        packet["task"] = {
             "id": "00000000-0000-4000-8000-000000000001",
             "project_root": "/workspace/project",
             "status": "active",
@@ -124,7 +124,7 @@ class RuntimeTaskHostTests(unittest.TestCase):
                     "latest_evidence": None,
                 },
             ],
-        })
+        }
         sealed = self.seal_packet(packet)
         self.assertEqual(
             sealed["digest_sha256"],
