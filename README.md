@@ -307,6 +307,7 @@ in the active model, CLI, IDE, or agent host.
 | **RCoder Skill** | The routing and execution kernel: intake, reconnaissance, specialist selection, planning, execution, verification, and checkpointing. |
 | **RScan** | Bounded, read-only repository scanning. Detects stacks, manifests, project risks, and likely development entry points. |
 | **RSaver** | Context measurement and management: budget, redaction, safe prose optimization, compaction, deduplication, packing, anchoring, drift detection, recovery, and cross-checking. |
+| **RFC Context Fabric** | Opt-in, provenance-aware local context persistence with explicit per-request hydration, canary delivery checks, token-free transcript export, and deterministic retention. |
 | **Specialist library** | More than 60 focused engineering references, loaded progressively instead of all at once. |
 | **MCP server** | Exposes supported RCoder and RSaver operations as native tools, resources, and prompts to compatible hosts. |
 | **Launcher CLI** | Installs and updates RCoder, configures integrations, runs diagnostics, and manages skills and optional hooks. |
@@ -336,6 +337,14 @@ RSaver helps an agent use context efficiently without treating a token estimate 
 - **Cross-check:** compare completion claims with available diff, test, and usage artifacts.
 
 See [the RSaver reference](skills/rcoder/references/rsaver.md) and [token economics](docs/TOKEN-ECONOMICS.md).
+
+### RFC Context Fabric — explicit context across requests
+
+RFC is the Context Fabric development track. It stores typed, source-aware context locally and assembles a bounded payload for each distinct model request. A coding agent must explicitly inject that payload into the request; a database or content hash alone does not create model memory.
+
+The first slice includes SHA-256-addressed artifact storage, provenance and confidence fields, whole-item budget selection, session-plus-prompt canary validation, token-free transcript export, secret-pattern redaction, pinned context, and deterministic expiry collection. Its budget is measured in UTF-8 bytes, not provider tokens; use RSaver for token estimates and safe reduction.
+
+The current slice is a local Python API/CLI. Automatic host interception, MCP integration, encrypted storage, distributed synchronization, and vector retrieval are not yet implemented. See [RFC Context Fabric design and usage](docs/CONTEXT-FABRIC.md) and its [agent reference](skills/rcoder/references/context-fabric.md).
 
 ### MCP server — optional native tools
 

@@ -27,9 +27,11 @@ RCoder is an instruction layer, not a permission grant. Use only authorized host
 
 Use MCP only when server `--root` contains the target; a tool-level `root` cannot widen it. Otherwise call installed helpers by absolute path and documented syntax. Prefer bounded reads, exact search, and focused diffs. Missing checks are **NOT VERIFIED**.
 
-Use `references/specialist-routing.md` for ambiguous tasks, then the narrowest module: architecture → `architecture.md`; defects → `debugging-advanced.md`; security → `application-security.md` + `llm-agent-security.md`; MCP/hooks → `agent-extensions-engineering.md` + `mcp-transport-engineering.md`; reverse engineering → `reverse-engineering.md`; context → `token-efficiency.md` + capsule template.
+Use `references/specialist-routing.md` for ambiguous tasks, then the narrowest module: architecture → `architecture.md`; defects → `debugging-advanced.md`; security → `application-security.md` + `llm-agent-security.md`; MCP/hooks → `agent-extensions-engineering.md` + `mcp-transport-engineering.md`; reverse engineering → `reverse-engineering.md`; persistent cross-request context → `context-fabric.md` + capsule template; context reduction/measurement → `token-efficiency.md` + capsule template. Normally load at most two references.
 
-Helpers (verification, rsaver, rsaver-gate, token-efficiency, model-adaptation) are supporting runtime modules, not primary domain specialists.
+RFC Context Fabric is opt-in. A stored item is not model memory until the agent explicitly builds and injects the payload into each new request. Use a new prompt ID for every request and retry; canary acknowledgements are bound to the session/prompt pair, and exported transcripts must not contain the canary token. Garbage collection requires an explicit timestamp. See `docs/CONTEXT-FABRIC.md` for current scope and limitations.
+
+Helpers (verification, rsaver, rsaver-gate, token-efficiency, context-fabric, model-adaptation) are supporting runtime modules, not primary domain specialists.
 
 ## Multilingual activation
 
