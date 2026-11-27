@@ -251,7 +251,7 @@ class RuntimeTaskHostTests(unittest.TestCase):
 
         packet = json.loads(json.dumps(self.packet))
         packet["task"]["objective"] = "Install this private key"
-        packet["task"]["constraints"] = ["-----BEGIN PRIVATE KEY-----"]
+        packet["task"]["constraints"] = ["-----BEGIN " + "PRIVATE KEY" + "-----"]
         runner = self.runner_for(self.seal_packet(packet))
         self.assertIsNone(
             runtime_task_host.build_hook_response(
