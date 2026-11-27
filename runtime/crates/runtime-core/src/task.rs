@@ -682,7 +682,11 @@ mod tests {
         )
         .expect("reopen with a reason");
         assert_eq!(reopened.status, TaskStatus::Active);
-        assert_eq!(reopened.evidence.len(), 1, "historical evidence remains auditable");
+        assert_eq!(
+            reopened.evidence.len(),
+            1,
+            "historical evidence remains auditable"
+        );
         assert_eq!(reopened.completion_evidence_start_index, 1);
         assert_eq!(latest_outcome(&reopened, "AC-001"), None);
         assert!(
@@ -699,8 +703,13 @@ mod tests {
             "CI run 101",
         )
         .expect("record later failure");
-        assert_eq!(latest_outcome(&get_task(&root, &task.id).expect("read failed task"), "AC-001"),
-            Some(EvidenceOutcome::Fail));
+        assert_eq!(
+            latest_outcome(
+                &get_task(&root, &task.id).expect("read failed task"),
+                "AC-001"
+            ),
+            Some(EvidenceOutcome::Fail)
+        );
         assert!(transition_task(&root, &task.id, TaskStatus::Completed, None).is_err());
 
         let repaired = record_evidence(
