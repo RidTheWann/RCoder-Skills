@@ -1,0 +1,17 @@
+[package]
+name = "rcoder-runtime"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "rcoder-runtime"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+rcoder-runtime-core = { path = "../../crates/runtime-core" }
+serde_json.workspace = true
+tokio.workspace = true
