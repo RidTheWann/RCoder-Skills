@@ -5,6 +5,7 @@ RCoder follows Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- RCoder Runtime preview: Rust 2024 lifecycle core, project-local MCP manifest detection, automatic sidecar attachment to local RCoder stdio/loopback HTTP MCP process lifetimes, lock-backed session status, and cross-platform CI tests. Tool permission enforcement and task execution orchestration are not part of this slice.
 - RFC Context Fabric foundation and Claude Code host injection: local SQLite/content-addressed context storage, explicit per-request hydration through UserPromptSubmit, session/prompt-scoped canaries, Stop response capture, token-free transcript export, credential-pattern redaction, and deterministic timestamp-injected garbage collection. Host injection remains opt-in until the workspace store exists; the adapter fails open and does not block the host.
 - RSaver `optimize`: opt-in, content-aware prose phrase tightening via CLI and read-only MCP, with token-estimate gating, SHA-256 receipts, and preservation of code, structured data, logs, Markdown structures, and normative constraints.
 - Deterministic SSOT command and manifest synchronization with byte-exact LF checks; one unified parity gate validates generated Markdown/TOML, TOML syntax, manifest versions, contract JSON, SKILL references, and cross-platform path/line-ending rules.
