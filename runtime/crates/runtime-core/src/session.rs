@@ -191,7 +191,10 @@ pub fn list_sessions(project_root: &Path) -> Result<Vec<SessionSnapshot>> {
             Err(error) => return Err(error.into()),
         };
         if metadata.file_type().is_symlink() || !metadata.is_dir() {
-            anyhow::bail!("refusing to inspect non-directory or symlink at {}", directory.display());
+            anyhow::bail!(
+                "refusing to inspect non-directory or symlink at {}",
+                directory.display()
+            );
         }
     }
 
