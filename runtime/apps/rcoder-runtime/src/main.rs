@@ -77,10 +77,11 @@ async fn main() -> Result<()> {
             } else {
                 for session in sessions {
                     println!(
-                        "{}  session={}  parent_pid={}  runtime_pid={}  started_at={}",
+                        "{}  session={}  parent_pid={}  parent_start={}  runtime_pid={}  started_at={}",
                         session.state,
                         session.session_id,
                         session.parent_pid,
+                        session.parent_start_time,
                         session.runtime_pid,
                         session.started_at_unix
                     );
