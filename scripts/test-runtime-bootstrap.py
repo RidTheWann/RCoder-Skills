@@ -11,6 +11,7 @@ SCRIPTS = ROOT / "skills" / "rcoder" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import runtime_bootstrap  # noqa: E402
+import rcoder_mcp  # noqa: E402
 
 
 def main():
@@ -64,6 +65,17 @@ def main():
         windows_options = windows_launch.call_args.kwargs
         assert windows_options["creationflags"] == 0x00000008 | 0x08000000
         assert "start_new_session" not in windows_options
+
+        # The legacy server's actual startup path must invoke the companion before serving.
+        with patch.object(rcoder_mcp.runtime_bootstrap, "start_runtime_companion") as start, \
+             patch.object(rcoder_mcp, "serve", return_value=0):
+            assert rcoder_mcp.main(["--root", str(project)]) == 0
+            start.assert_called_once_with(project)
+
+        # Printing configuration is an installer-preview operation, not an MCP session.
+        with patch.object(rcoder_mcp.runtime_bootstrap, "start_runtime_companion") as start:
+            assert rcoder_mcp.main(["--print-config", "generic"]) == 0
+            start.assert_not_called()
 
         broken_launch = Mock(side_effect=OSError("cannot start"))
         assert not runtime_bootstrap.start_runtime_companion(
