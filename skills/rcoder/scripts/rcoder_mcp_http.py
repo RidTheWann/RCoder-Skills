@@ -278,7 +278,7 @@ def main(argv=None):
         runtime_bootstrap.start_runtime_companion(root)
     except Exception:  # noqa: BLE001 - Runtime must never prevent HTTP MCP startup
         if os.environ.get("RCODER_RUNTIME_DEBUG") == "1":
-            sys.stderr.write("RCoder Runtime companion startup failed; MCP remains available.\\n")
+            sys.stderr.write("RCoder Runtime companion startup failed; MCP remains available.\n")
     server = Server(
         (args.host, args.port), Handler, root=root, token=token, token_env=args.token_env,
         allowed_origins=args.allowed_origin, timeout=args.request_timeout,
