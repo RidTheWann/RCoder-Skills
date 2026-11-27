@@ -78,6 +78,12 @@ def main():
             assert rcoder_mcp.main(["--print-config", "generic"]) == 0
             start.assert_not_called()
 
+        # HTTP workers must not create duplicate short-lived sessions or inherit the bearer token.
+        with patch.dict(os.environ, {"RCODER_MCP_TOKEN": "secret-token"}):
+            worker_env = rcoder_mcp_http.worker_environment("RCODER_MCP_TOKEN")
+        assert "RCODER_MCP_TOKEN" not in worker_env
+        assert worker_env["RCODER_RUNTIME_DISABLE"] == "1"
+
         # The long-lived loopback HTTP process owns one session; per-request workers are disabled.
         fake_server = Mock()
         fake_server.server_port = 8765
