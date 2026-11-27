@@ -5,12 +5,15 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
+import subprocess
 import sys
 import tempfile
 import time
 import unittest
 from pathlib import Path
+from typing import Optional
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -253,6 +256,171 @@ class OpenCodeHostTests(unittest.TestCase):
                     {"cwd": empty, "session_id": self.session_id, "request_id": "oc-request-001"}
                 )
         self.assertEqual(result, {"runtime": {"text": packet_text}})
+
+    def _runtime_binary(self) -> Optional[str]:
+        candidates = []
+        explicit = os.environ.get("RCODER_RUNTIME_PATH")
+        if explicit:
+            candidates.append(explicit)
+        on_path = shutil.which("rcoder-runtime")
+        if on_path:
+            candidates.append(on_path)
+        candidates.append(str(ROOT / "runtime" / "target" / "debug" / "rcoder-runtime"))
+        for candidate in candidates:
+            path = Path(candidate)
+            if path.is_file():
+                return str(path.resolve())
+        cargo = shutil.which("cargo")
+        if not cargo:
+            return None
+        try:
+            subprocess.run(
+                [
+                    cargo,
+                    "build",
+                    "--manifest-path",
+                    str(ROOT / "runtime" / "Cargo.toml"),
+                    "-p",
+                    "rcoder-runtime",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=180,
+                check=True,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return None
+        built = ROOT / "runtime" / "target" / "debug" / "rcoder-runtime"
+        return str(built) if built.is_file() else None
+
+    def _cli_json(self, binary: str, *args: str) -> dict:
+        environment = {
+            "PATH": os.environ.get("PATH", ""),
+            "HOME": str(self.root),
+            "RCODER_RUNTIME_PATH": binary,
+        }
+        completed = subprocess.run(
+            [binary, *args],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=environment,
+            check=True,
+        )
+        return json.loads(completed.stdout)
+
+    def test_artifact_backed_verification_reaches_opencode_runtime_context(self) -> None:
+        binary = self._runtime_binary()
+        if binary is None:
+            self.skipTest("rcoder-runtime binary is unavailable")
+        reports = self.root / "reports"
+        reports.mkdir(exist_ok=True)
+        (reports / "unit.json").write_text(
+            json.dumps(
+                {
+                    "schema": "rcoder-test-report/v1",
+                    "criterion_id": "AC-001",
+                    "summary": {
+                        "passed": 2,
+                        "failed": 0,
+                        "skipped": 0,
+                        "errors": 0,
+                    },
+                    "cases": [
+                        {"name": "one", "outcome": "pass"},
+                        {"name": "two", "outcome": "pass"},
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        task = self._cli_json(
+            binary,
+            "task",
+            "create",
+            "--project",
+            str(self.root),
+            "--objective",
+            "OpenCode verification summary",
+            "--acceptance",
+            "Artifact-backed tests pass",
+            "--risk",
+            "high",
+            "--json",
+        )
+        task_id = task["id"]
+        self._cli_json(
+            binary,
+            "task",
+            "transition",
+            "--project",
+            str(self.root),
+            "--id",
+            task_id,
+            "--to",
+            "active",
+            "--json",
+        )
+        evidenced = self._cli_json(
+            binary,
+            "task",
+            "evidence",
+            "--project",
+            str(self.root),
+            "--id",
+            task_id,
+            "--criterion",
+            "AC-001",
+            "--outcome",
+            "pass",
+            "--summary",
+            "caller claim",
+            "--source",
+            "reports/unit.json",
+            "--json",
+        )
+        evidence_id = evidenced["evidence"][-1]["id"]
+        verified = self._cli_json(
+            binary,
+            "task",
+            "verify",
+            "--project",
+            str(self.root),
+            "--id",
+            task_id,
+            "--evidence",
+            evidence_id,
+            "--artifact",
+            "reports/unit.json",
+            "--parser",
+            "rcoder_test_report_v1",
+            "--criterion",
+            "AC-001",
+            "--provenance",
+            "cli:opencode-test",
+            "--enforce",
+            "--json",
+        )
+        self.assertEqual(verified["verification_state"], "artifact_verified")
+        self.assertEqual(verified["declared_outcome"], "pass")
+
+        with patch.dict(os.environ, {"RCODER_RUNTIME_PATH": binary}):
+            payload = opencode_host.handle_context(self.event())
+        self.assertIn("runtime", payload)
+        self.assertIn("rfc", payload)
+        text = payload["runtime"]["text"]
+        self.assertIn("RCoder Runtime active task packet", text)
+        self.assertIn("artifact_verified", text)
+        self.assertIn("rcoder_test_report_v1", text)
+        self.assertIn("cli:opencode-test", text)
+        packet = json.loads(text[text.index("{"):])
+        summary = packet["task"]["verifications"][0]
+        self.assertEqual(summary["state"], "artifact_verified")
+        self.assertEqual(summary["declared_outcome"], "pass")
+        self.assertNotIn("artifact", summary)
+        self.assertNotIn("detail", summary)
+        self.assertNotIn("raw", summary)
 
     def test_runtime_failure_does_not_block_rfc_context(self) -> None:
         with patch.object(

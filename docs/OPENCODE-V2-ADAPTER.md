@@ -111,3 +111,41 @@ Regression coverage: `scripts/test-opencode-host.py`,
 `scripts/test-opencode-v2-plugin.mjs`, and
 `scripts/test-opencode-plugin-host-state.mjs`; all are registered in
 `.github/workflows/quality.yml`.
+
+### Native 2.4.2 end-to-end request delivery (VERIFIED)
+
+`python3 scripts/test-opencode-native-e2e.py` starts the **installed OpenCode executable**
+(`opencode run --standalone`) in an isolated workspace with isolated XDG config/data/state
+directories, an OpenAI-compatible local mock provider, the real `.opencode/plugins/rcoder.js`,
+and an RCoder MCP entrypoint. No public model API or real credential is used.
+
+Observed with OpenCode 2.4.2 on aarch64 PRoot Debian 13:
+
+- The host logged `loading plugin` for the isolated plugin path and invoked V2 `setup`.
+- The host logged `mcp connected server=rcoder tools=...` with the isolated workspace directory.
+- The mock provider captured the actual outgoing `/v1/chat/completions` body. A single system
+  message contained both `RFC_E2E_MARKER_<id>` (inside the RFC payload with its `RFC-ACK` canary)
+  and `RUNTIME_E2E_MARKER_<id>` (inside the compiled Runtime packet).
+- All four independence configurations behaved correctly: each subsystem injected only when
+  enabled; disabling one did not suppress the other; both disabled injected neither.
+- Retries produced distinct RFC prompt identities/canaries; a session with no stored context
+  produced no RFC delivery claim.
+- A missing Runtime binary failed open for the packet adapter and produced no companion session;
+  the MCP process with an invalid Runtime path also failed open without blocking routing.
+- Direct MCP stdio JSON-RPC covered `initialize`, `notifications/initialized`, `tools/list`,
+  and a real `tools/call`, with bounded stderr and a stopped companion bound to the fixture root.
+
+Session IDs must start with `ses` in this build, and `PWD` must be set to the fixture root when
+launching the host; both are enforced by the regression fixture. Live hosted-model behavior,
+other OpenCode builds, and other platforms remain NOT VERIFIED.
+
+### Artifact-backed Runtime summaries
+
+The bridge remains transport glue. When an active task carries Runtime artifact
+verification observations, the compiled packet includes a compact
+`task.verifications` summary with the verifier state (for example
+`artifact_verified`) beside the caller's declared outcome. The bridge neither
+parses artifacts nor changes a caller claim into a verified result; RFC
+hydration remains a separate payload. `scripts/test-opencode-host.py` asserts
+that a strict passing report reaches the Runtime context with its structured
+summary and that raw report content is not injected.

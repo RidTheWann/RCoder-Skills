@@ -7,14 +7,23 @@ mod discovery;
 mod instruction;
 mod session;
 mod task;
+mod verification;
 
 pub use discovery::{ConfigIssue, DetectedServer, DetectionReport, detect_project};
 pub use instruction::{
-    CompiledCriterion, CompiledEvidence, CompiledTask, InstructionPacket, InstructionPolicy,
-    compile_task,
+    CompiledCriterion, CompiledEvidence, CompiledTask, CompiledVerification, InstructionPacket,
+    InstructionPolicy, compile_task,
 };
 pub use session::{SessionSnapshot, attach_until_parent_exits, list_sessions};
 pub use task::{
     AcceptanceCriterion, EvidenceOutcome, EvidenceRecord, RiskLevel, StatusTransition,
-    TaskContract, TaskStatus, create_task, get_task, list_tasks, record_evidence, transition_task,
+    TaskContract, TaskStatus, create_task, get_task, list_tasks, record_evidence,
+    require_artifact_verification, transition_task, verify_artifact_references,
+    verify_task_evidence,
+};
+pub use verification::{
+    ALLOWED_PARSERS, ArtifactReference, ArtifactVerificationRequirement, ExtractedOutcome,
+    MAX_ARTIFACT_BYTES, MAX_ARTIFACT_REFERENCES, MAX_VERIFICATION_RECORDS, OutcomeError,
+    OutcomeExtraction, VerificationReport, VerificationState, VerificationVerdict, extract_outcome,
+    inspect_artifact, stable_snapshot_matches,
 };

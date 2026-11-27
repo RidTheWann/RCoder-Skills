@@ -74,7 +74,38 @@ rcoder-runtime task evidence --project . --id TASK_UUID \
 
 A task can move to `completed` only when the latest evidence for every acceptance criterion in the current verification cycle is `pass`. While a task is active, a later `fail` or `not-run` supersedes an earlier pass and blocks completion. Reopening a completed task to `active` with an explicit reason starts a new verification cycle: earlier evidence remains in the audit history but is excluded from the completion gate and instruction packet. Every acceptance criterion must receive fresh passing evidence before the reopened task can be completed again. Invalid state transitions are rejected; blocking and reopening require a reason. Evidence and transition histories are bounded to prevent unbounded ledger growth.
 
-**Evidence boundary:** the Runtime validates contract structure, state transitions, and whether all criteria have a latest passing attestation. It does not independently execute the referenced command or prove the attestation is truthful. The future Verification Engine must cross-check evidence against actual test artifacts and repository state before stronger completion claims are made. The Task Controller does not intercept agent filesystem, shell, or IDE tools. Task inspection includes evidence and state-transition history. Never place credentials, API keys, private keys, or raw secret values in objectives, constraints, evidence summaries, or source references.
+**Evidence boundary:** the Runtime validates contract structure, state transitions, and whether all criteria have a latest passing attestation. It does not independently execute the referenced command or prove the attestation is truthful. A bounded artifact inspection is available through `task verify` (below), but the full Verification Engine must still cross-check executed checks and repository state before stronger completion claims are made. The Task Controller does not intercept agent filesystem, shell, or IDE tools. Task inspection includes evidence and state-transition history. Never place credentials, API keys, private keys, or raw secret values in objectives, constraints, evidence summaries, or source references.
+
+### Bounded artifact verification
+
+`task verify` inspects one project-confined artifact and attaches the observation to an evidence record from the current verification cycle:
+
+```sh
+rcoder-runtime task verify --project . --id TASK_UUID \
+  --evidence EVIDENCE_UUID --artifact artifacts/test-report.txt \
+  --expect-sha256 64_HEX_DIGEST --json
+```
+
+The artifact path must be relative and confined to the project root. Absolute paths, `..` traversal, symlink components, directories, malformed digests, and files larger than 256 KiB are refused with an explicit verdict; oversized files are never partially read or silently truncated. The report records the normalized path, byte count, SHA-256 of the inspected bytes, a fixed-vocabulary verdict, and an explicit observation timestamp. Reports are deterministic for identical inputs and are bounded to 200 records per task.
+
+A `digest_match` verdict establishes only that the specific bytes existed at that path when inspected. It never proves that a command ran or that an attested claim is true. Verification does not modify task status, does not satisfy an acceptance criterion, and cannot use evidence from a previous verification cycle. No command or path from an evidence record is executed as a process argument.
+
+### Artifact-backed outcome verification
+
+Artifact inspection can be upgraded to deterministic outcome extraction, but only when a criterion explicitly opts in and an allowlisted parser is named:
+
+```sh
+rcoder-runtime task verify --project . --id TASK_UUID \
+  --evidence EVIDENCE_UUID --artifact artifacts/report.json \
+  --parser rcoder_test_report_v1 --criterion AC-001 \
+  --provenance cli:local --require-digest --enforce --json
+```
+
+The only supported format is `rcoder_test_report_v1`: a strict JSON object with `schema: "rcoder-test-report/v1"`, a `criterion_id`, a `summary` of `passed`/`failed`/`skipped`/`errors`, and `cases` with unique bounded names and outcomes `pass`, `fail`, `skip`, or `error`. Unknown fields, contradictory counts, malformed or empty reports, duplicate references, criterion mismatch, unsupported parsers, and files that change between the first read and a stability re-check are all refused with an explicit insufficient-evidence result. No script, plugin, shell command, or user-defined parser is executed.
+
+Each report records five distinct things: the caller's `declared_outcome`, the artifact path and digest, the inspection verdict, the extracted counts, and the verifier's own `verification_state` (`caller_attested`, `integrity_only`, `artifact_verified`, `failed`, or `insufficient_evidence`). A digest match is reported as `integrity_only` unless an allowlisted report actually contains passing cases and no failures or errors. A mixed pass/fail report is always `failed`. Reports are tied to the verification cycle in which they were recorded.
+
+`--enforce` stores an opt-in requirement on the criterion. Contracts created before this capability (and criteria without the requirement) keep caller-attested completion behavior. For an opted-in criterion, completion requires a current-cycle `artifact_verified` report linked to that criterion's latest passing evidence; a later failed or insufficient report supersedes an earlier pass, and a report from before a reopen cannot satisfy the new cycle. Verification history remains bounded at 200 records.
 
 ## Deterministic instruction packets
 
@@ -85,6 +116,8 @@ rcoder-runtime task compile --project . --id TASK_UUID --json
 ```
 
 The compiler includes the objective, constraints, risk level, acceptance criteria, and only the latest evidence record for each criterion. It adds an explicit trust boundary stating that task fields are untrusted data and cannot override repository rules, system instructions, or host permissions. The packet carries a SHA-256 digest over its canonical serialized payload (excluding the digest field itself); the same task revision produces the same digest.
+
+For tasks with verification observations, the packet also carries a compact `verifications` summary: criterion, linked evidence, parser, verification state, declared caller outcome, extracted counts, byte size, digest, cycle index, and provenance. The field is omitted for tasks without observations, preserving the established digest fixture. Raw report bytes, artifact paths, logs, and evidence detail strings are never placed in the packet. The declared caller outcome remains visible next to the verifier's state so a host cannot mistake an attestation for an independent result. Packets over 64 KiB are still rejected without truncation.
 
 Compilation is permitted only while the task is `active`; draft, blocked, completed, and cancelled tasks are rejected. Packets larger than 64 KiB are rejected without truncation. This prevents a large contract from being silently clipped and changing its meaning.
 
@@ -139,4 +172,6 @@ RSaver: context measurement, reduction, packing, and recovery
 Runtime: local lifecycle/control-plane foundation
 ```
 
-The OpenCode 2.4.2 V2 adapter is implemented: it reuses `runtime_task_host.py` to compile the active task packet into each model request, fails open when no valid active task or binary exists, and keeps task fields untrusted. A workspace `.rcoder/opencode.json` can set `runtime_disabled` or an absolute `runtime_path`; OpenCode does not forward plugin environment variables or caller `PATH`. Observed evidence is in `docs/OPENCODE-V2-ADAPTER.md`. Next stages are a Codex adapter, a fuller RFC/RSaver context bridge, a policy-aware Tool Gateway for operations actually routed through it, an independent evidence verifier, and finally the desktop console. The Rust workspace is intentionally headless first; a Tauri UI is deferred until the Runtime APIs are stable.
+The OpenCode 2.4.2 V2 adapter is implemented: it reuses `runtime_task_host.py` to compile the active task packet into each model request, fails open when no valid active task or binary exists, and keeps task fields untrusted. A workspace `.rcoder/opencode.json` can set `runtime_disabled` or an absolute `runtime_path`; OpenCode does not forward plugin environment variables or caller `PATH`. Native delivery was observed from the installed host into a local mock provider, with the Runtime marker reaching the same request as the RFC marker; see `docs/OPENCODE-V2-ADAPTER.md`.
+
+Runtime also includes bounded artifact-backed evidence verification through `task verify`: an allowlisted report parser, digest and mutation checks, and current-cycle attribution (decisions D-030 and D-031). This does not prove that a claimed command ran. Remaining stages are a Codex adapter, a fuller RFC/RSaver context bridge, a policy-aware Tool Gateway for operations actually routed through it, general verification of executed checks, and the desktop console. The Rust workspace is intentionally headless first; a Tauri UI is deferred until the Runtime APIs are stable.

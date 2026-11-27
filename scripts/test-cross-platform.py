@@ -2,10 +2,12 @@
 """Cross-platform parity tests for Windows, Linux, and macOS portability."""
 from __future__ import annotations
 
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "rcoder" / "scripts"
@@ -14,7 +16,12 @@ sys.path.insert(0, str(SCRIPTS))
 import rcoder_mcp  # noqa: E402
 import rsaver  # noqa: E402
 from platform_runtime import (  # noqa: E402
+    isolated_host_environment,
+    link_or_copy,
     normalize_portable_mcp_config,
+    portable_temp_root,
+    resolve_host_command,
+    resolve_node_command,
     resolve_python_command,
     to_native_path,
     to_posix_rel,
@@ -108,6 +115,65 @@ class TestCrossPlatformSync(unittest.TestCase):
             schema = rcoder_mcp.TOOL_INDEX[name][3]
             self.assertFalse(schema["additionalProperties"])
             self.assertTrue(schema["type"] == "object")
+
+    def test_node_and_host_resolvers_are_safe_vectors(self) -> None:
+        node = resolve_node_command()
+        self.assertTrue(node)
+        self.assertTrue(all(isinstance(part, str) for part in node))
+        with patch("platform_runtime.shutil.which", return_value="C:\\Tools\\opencode.cmd"):
+            self.assertEqual(
+                resolve_host_command("opencode"),
+                ["cmd.exe", "/c", "C:\\Tools\\opencode.cmd"],
+            )
+        posix_path = "/usr/local/bin/opencode"
+        with patch("platform_runtime.shutil.which", return_value=posix_path):
+            self.assertEqual(resolve_host_command("opencode"), [str(Path(posix_path))])
+        with patch("platform_runtime.shutil.which", return_value=None):
+            self.assertEqual(resolve_host_command("opencode"), [])
+
+    def test_isolated_environment_removes_credentials_per_os(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            workspace = Path(temporary)
+            with patch.dict(os.environ, {
+                "OPENAI_API_KEY": "must-not-inherit",
+                "ANTHROPIC_API_KEY": "must-not-inherit",
+                "OPENCODE_SESSION_ID": "ses-ambient",
+                "AI_AGENT": "opencode",
+                "XDG_CONFIG_HOME": "/ambient/config",
+            }), patch("platform_runtime.os.name", "posix"):
+                posix = isolated_host_environment(
+                    workspace, mock_key="local-fixture", python_command=["/usr/bin/python3"])
+            self.assertNotIn("OPENAI_API_KEY", posix)
+            self.assertNotIn("ANTHROPIC_API_KEY", posix)
+            self.assertNotIn("OPENCODE_SESSION_ID", posix)
+            self.assertNotIn("AI_AGENT", posix)
+            self.assertEqual(posix["XDG_CONFIG_HOME"], str(workspace / "xdg" / "config"))
+            self.assertEqual(posix["PWD"], str(workspace))
+
+            with patch("platform_runtime.os.name", "nt"):
+                windows = isolated_host_environment(
+                    workspace, mock_key="local-fixture", python_command=["python.exe"])
+            self.assertEqual(windows["APPDATA"], str(workspace / "appdata"))
+            self.assertEqual(windows["USERPROFILE"], str(workspace))
+            self.assertNotIn("XDG_CONFIG_HOME", windows)
+
+    def test_link_or_copy_falls_back_when_symlinks_are_unavailable(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            source = base / "source"
+            source.mkdir()
+            (source / "SKILL.md").write_text("fixture", encoding="utf-8")
+            destination = base / "destination"
+            with patch.object(Path, "symlink_to", side_effect=OSError("no symlink")):
+                link_or_copy(source, destination)
+            self.assertEqual((destination / "SKILL.md").read_text(encoding="utf-8"), "fixture")
+
+    def test_portable_temp_root_uses_system_temp(self) -> None:
+        with tempfile.TemporaryDirectory() as system_temp:
+            with patch("platform_runtime.tempfile.gettempdir", return_value=system_temp):
+                result = portable_temp_root("rcoder-e2e")
+            self.assertEqual(result, Path(system_temp) / "rcoder-e2e")
+            self.assertTrue(result.is_dir())
 
 
 if __name__ == "__main__":

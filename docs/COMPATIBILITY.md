@@ -12,7 +12,7 @@ Do not read this table as a compatibility guarantee. It records the specific kin
 | T3 — Invocation verified | The host was observed loading and following the skill on a task. | "This host invoked the skill." |
 | T4 — Behavioral evaluation | A pinned ablation meets the `evals/rubric.md` pass rule. | "RCoder measurably changed outcomes on this task." |
 
-T0 and T1 are supported by repository evidence for the general host matrix. OpenCode has specific historical T2/T3 evidence for Agent Skill discovery and the earlier RScan V1 hook on version 1.19.6. That evidence does not extend to the new RCoder V1 plugin adapter documented below. New adapter discovery/invocation tiers and all other hosts remain `NOT VERIFIED` unless directly observed. Do not advertise compatibility using T0 evidence alone.
+T0 and T1 are supported by repository evidence for the general host matrix. OpenCode has specific historical T2/T3 evidence for Agent Skill discovery and the earlier RScan V1 hook on version 1.19.6. That evidence does not extend to the new RCoder V1 plugin adapter documented below. OpenCode 2.4.2 V2 plugin loading, MCP connection, and request delivery are now directly observed in the dedicated section below; all other adapter tiers, builds, and hosts remain `NOT VERIFIED` unless directly observed. Do not advertise compatibility using T0 evidence alone.
 
 ## Catalog
 
@@ -45,7 +45,18 @@ All twenty hosts share one canonical `skills/rcoder/` folder; roots are defined 
 
 `opencode` is not on `PATH`, and direct execution of the bundled ELF fails on Termux. The CLI runs when invoked through the installed glibc loader, which reported version `1.19.6`. Version-matched local evidence: `@opencode-ai/plugin` and `@opencode-ai/sdk` both report `1.19.6`; their type definitions expose V1 hooks (`chat.message`, `experimental.chat.system.transform`) and no `session.start`. Official V1 and V2 plugin contracts were reviewed; V2 (`Plugin.define`, `ctx.session.hook`) must not be applied to the installed V1 runtime, so the adapter requires an explicit `--api` choice.
 
-With the loader-based CLI, native discovery from `.opencode/skills/rcoder/SKILL.md` was directly observed: the model invoked the `skill` tool with `name: "rcoder"`, read `SKILL.md`, and loaded specialist references. A separate probe plugin confirmed that `experimental.chat.system.transform` reaches model context and fires multiple times per session. The generated V1 RScan adapter loaded in the real CLI, ran the scanner, and the answering agent quoted the injected menu verbatim in two independent sessions, confirming end-to-end injection and per-session behavior. The V2 adapter is syntax-checked only and remains NOT VERIFIED at runtime.
+With the loader-based CLI, native discovery from `.opencode/skills/rcoder/SKILL.md` was directly observed: the model invoked the `skill` tool with `name: "rcoder"`, read `SKILL.md`, and loaded specialist references. A separate probe plugin confirmed that `experimental.chat.system.transform` reaches model context and fires multiple times per session. The generated V1 RScan adapter loaded in the real CLI, ran the scanner, and the answering agent quoted the injected menu verbatim in two independent sessions, confirming end-to-end injection and per-session behavior. At that time (OpenCode 1.19.6) the V2 adapter was syntax-checked only and remained NOT VERIFIED at runtime.
+
+## OpenCode 2.4.2 native request delivery (re-probed 2026-11-27)
+
+The 1.19.6 limitation above is **superseded for OpenCode 2.4.2 only**. With the installed 2.4.2 executable, an isolated workspace, a local OpenAI-compatible mock provider, and the real `.opencode/plugins/rcoder.js`:
+
+- **VERIFIED:** the host loaded the plugin through its V2 `setup` lifecycle and connected the configured RCoder MCP server.
+- **VERIFIED:** the actual outgoing `/v1/chat/completions` body captured by the mock provider contained both the RFC payload with its canary and the compiled Runtime task packet in the same system message.
+- **VERIFIED:** the Runtime companion attached to that MCP process, recorded one session bound to the fixture root, reached `stopped` state, and left no orphan process.
+- **NOT VERIFIED:** hosted-model behavior, other OpenCode builds, and native activation on Windows, macOS, or Termux-native OpenCode.
+
+Reproduce with `python3 scripts/test-opencode-native-e2e.py`; method and limits are recorded in `docs/OPENCODE-V2-ADAPTER.md` and decision D-032.
 
 Consequences:
 

@@ -3,6 +3,7 @@
 //! This module records the execution contract; it does not intercept host tools
 //! or grant permission to perform filesystem and process operations.
 
+use std::collections::HashSet;
 use std::fs::{self, File, OpenOptions};
 use std::io::Write;
 use std::path::Path;
@@ -12,6 +13,13 @@ use anyhow::{Context, Result};
 use fs2::FileExt;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+use crate::verification::{
+    ArtifactReference, ArtifactVerificationRequirement, ExtractedOutcome, MAX_ARTIFACT_REFERENCES,
+    MAX_VERIFICATION_RECORDS, VerificationReport, VerificationState, VerificationVerdict,
+    extract_outcome, inspect_artifact, normalized_relative, read_bounded_snapshot, sha256_hex,
+    stable_snapshot_matches,
+};
 
 const MAX_OBJECTIVE_CHARS: usize = 10_000;
 const MAX_CRITERIA: usize = 50;
@@ -66,6 +74,10 @@ pub enum EvidenceOutcome {
 pub struct AcceptanceCriterion {
     pub id: String,
     pub description: String,
+    /// Opt-in requirement for independently verified artifact evidence. Legacy
+    /// contracts omit it and keep caller-attested completion behavior.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artifact_verification: Option<ArtifactVerificationRequirement>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -102,6 +114,10 @@ pub struct TaskContract {
     /// acceptance criteria after a completed task has been reopened.
     #[serde(default)]
     pub completion_evidence_start_index: usize,
+    /// Read-only artifact observations produced by Runtime. They are separate
+    /// from caller attestations and never satisfy a criterion on their own.
+    #[serde(default)]
+    pub verifications: Vec<VerificationReport>,
     pub history: Vec<StatusTransition>,
     pub created_at_unix: u64,
     pub updated_at_unix: u64,
@@ -255,6 +271,11 @@ fn read_task_locked(directory: &Path, id: &str) -> Result<TaskContract> {
     if task.completion_evidence_start_index > task.evidence.len() {
         anyhow::bail!("task completion evidence boundary exceeds its evidence history");
     }
+    for criterion in &task.acceptance_criteria {
+        if let Some(requirement) = &criterion.artifact_verification {
+            requirement.validate()?;
+        }
+    }
     Ok(task)
 }
 
@@ -330,6 +351,7 @@ pub fn create_task(
                     "acceptance criterion",
                     MAX_CRITERION_CHARS,
                 )?,
+                artifact_verification: None,
             })
         })
         .collect::<Result<Vec<_>>>()?;
@@ -353,6 +375,7 @@ pub fn create_task(
         status: TaskStatus::Draft,
         evidence: Vec::new(),
         completion_evidence_start_index: 0,
+        verifications: Vec::new(),
         history: Vec::new(),
         created_at_unix: now,
         updated_at_unix: now,
@@ -447,6 +470,245 @@ pub fn record_evidence(
     Ok(task)
 }
 
+/// Opt a criterion into artifact-backed verification. Existing contracts keep
+/// caller-attested completion until this requirement is explicitly recorded.
+pub fn require_artifact_verification(
+    project_root: &Path,
+    task_id: &str,
+    criterion_id: &str,
+    parser: &str,
+    require_digest: bool,
+) -> Result<TaskContract> {
+    let requirement = ArtifactVerificationRequirement {
+        parser: parser.to_string(),
+        require_digest,
+    };
+    requirement.validate()?;
+    let Some((directory, _)) = existing_task_directory(project_root)? else {
+        anyhow::bail!("Runtime task store does not exist for this project");
+    };
+    let id = canonical_task_id(task_id)?;
+    let lock = lock_task(&directory, &id)?;
+    let mut task = read_task_locked(&directory, &id)?;
+    let criterion = task
+        .acceptance_criteria
+        .iter_mut()
+        .find(|criterion| criterion.id == criterion_id)
+        .with_context(|| format!("unknown acceptance criterion: {criterion_id}"))?;
+    if let Some(existing) = &criterion.artifact_verification {
+        if existing != &requirement {
+            anyhow::bail!("criterion already requires a different verification policy");
+        }
+    } else {
+        criterion.artifact_verification = Some(requirement);
+    }
+    task.updated_at_unix = unix_now();
+    write_task_locked(&directory, &task)?;
+    let _ = FileExt::unlock(&lock);
+    Ok(task)
+}
+
+/// Inspect bounded artifact references and attach independent observations to
+/// current-cycle evidence. A digest match alone never produces a passing state.
+pub fn verify_artifact_references(
+    project_root: &Path,
+    task_id: &str,
+    references: &[ArtifactReference],
+) -> Result<(TaskContract, Vec<VerificationReport>)> {
+    if references.is_empty() {
+        anyhow::bail!("at least one artifact reference is required");
+    }
+    if references.len() > MAX_ARTIFACT_REFERENCES {
+        anyhow::bail!("at most {MAX_ARTIFACT_REFERENCES} artifact references are accepted");
+    }
+    for reference in references {
+        reference.validate()?;
+    }
+    let mut unique_pairs = HashSet::new();
+    for reference in references {
+        if !unique_pairs.insert((&reference.evidence_id, &reference.artifact)) {
+            anyhow::bail!("duplicate artifact reference for the same evidence record");
+        }
+    }
+
+    let Some((directory, _)) = existing_task_directory(project_root)? else {
+        anyhow::bail!("Runtime task store does not exist for this project");
+    };
+    let id = canonical_task_id(task_id)?;
+    let lock = lock_task(&directory, &id)?;
+    let mut task = read_task_locked(&directory, &id)?;
+    if task.verifications.len() + references.len() > MAX_VERIFICATION_RECORDS {
+        anyhow::bail!(
+            "task verification history is full ({MAX_VERIFICATION_RECORDS} records maximum)"
+        );
+    }
+
+    let mut reports = Vec::with_capacity(references.len());
+    for reference in references {
+        let evidence_index = task
+            .evidence
+            .iter()
+            .position(|evidence| evidence.id == reference.evidence_id)
+            .with_context(|| format!("unknown evidence record: {}", reference.evidence_id))?;
+        if evidence_index < task.completion_evidence_start_index {
+            anyhow::bail!("evidence belongs to a previous verification cycle");
+        }
+        let evidence = &task.evidence[evidence_index];
+        if let Some(criterion_id) = &reference.criterion_id {
+            if criterion_id != &evidence.criterion_id {
+                anyhow::bail!("artifact reference criterion does not match its evidence record");
+            }
+        }
+        if let Some(declared) = &reference.declared_outcome {
+            if declared != &evidence.outcome {
+                anyhow::bail!("declared outcome does not match the evidence record");
+            }
+        }
+        let criterion_id = evidence.criterion_id.clone();
+        let declared_outcome = evidence.outcome;
+
+        let mut report = inspect_artifact(
+            project_root,
+            &reference.evidence_id,
+            &criterion_id,
+            &reference.artifact,
+            reference.expected_sha256.as_deref(),
+            unix_now(),
+        );
+
+        if report.verdict.is_integrity_ok()
+            && !stable_snapshot_matches(project_root, &reference.artifact, &report.sha256)
+        {
+            report.verdict = VerificationVerdict::MutatedDuringInspection;
+            report.detail =
+                "artifact changed between inspection and outcome extraction".to_string();
+        }
+
+        if let Some(parser) = &reference.parser {
+            if report.verdict.is_integrity_ok() {
+                if let Some(relative) = normalized_relative(&reference.artifact) {
+                    if let Some(bytes) = read_bounded_snapshot(project_root, &relative) {
+                        if sha256_hex(&bytes) == report.sha256 {
+                            match extract_outcome(&bytes, parser, &criterion_id) {
+                                Ok(outcome) => {
+                                    let state = match outcome.outcome {
+                                        ExtractedOutcome::Pass => {
+                                            VerificationState::ArtifactVerified
+                                        }
+                                        ExtractedOutcome::Fail => VerificationState::Failed,
+                                        ExtractedOutcome::Insufficient => {
+                                            VerificationState::InsufficientEvidence
+                                        }
+                                    };
+                                    report.outcome = Some(outcome);
+                                    report.verification_state = Some(state);
+                                }
+                                Err(error) => {
+                                    report.detail = error.detail().to_string();
+                                    report.verification_state =
+                                        Some(VerificationState::InsufficientEvidence);
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                report.verification_state = Some(VerificationState::InsufficientEvidence);
+            }
+        } else {
+            report.verification_state =
+                Some(if report.verdict == VerificationVerdict::DigestMatch {
+                    VerificationState::IntegrityOnly
+                } else {
+                    VerificationState::InsufficientEvidence
+                });
+        }
+        if report.verification_state.is_none() {
+            report.verification_state = Some(VerificationState::InsufficientEvidence);
+        }
+        report.declared_outcome = Some(declared_outcome);
+        report.provenance = reference.provenance.clone();
+        report.cycle_start_index = task.completion_evidence_start_index;
+        task.verifications.push(report.clone());
+        reports.push(report);
+    }
+
+    task.updated_at_unix = unix_now();
+    write_task_locked(&directory, &task)?;
+    let _ = FileExt::unlock(&lock);
+    Ok((task, reports))
+}
+
+/// Backward-compatible integrity-only inspection used by the original CLI.
+pub fn verify_task_evidence(
+    project_root: &Path,
+    task_id: &str,
+    evidence_id: &str,
+    artifact: &str,
+    expected_sha256: Option<&str>,
+) -> Result<(TaskContract, VerificationReport)> {
+    let evidence_id = Uuid::parse_str(evidence_id)
+        .map(|id| id.to_string())
+        .context("evidence ID must be a UUID")?;
+    let reference = ArtifactReference {
+        schema_version: 1,
+        artifact: artifact.to_string(),
+        parser: None,
+        expected_sha256: expected_sha256.map(str::to_string),
+        criterion_id: None,
+        evidence_id,
+        declared_outcome: None,
+        provenance: "cli:local".to_string(),
+    };
+    let (task, mut reports) = verify_artifact_references(project_root, task_id, &[reference])?;
+    let report = reports.remove(0);
+    Ok((task, report))
+}
+
+/// True when an opt-in criterion has a current-cycle, artifact-backed pass
+/// linked to its latest evidence. Later failed or insufficient observations
+/// supersede earlier passing ones.
+fn artifact_verification_satisfied(task: &TaskContract, criterion_id: &str) -> bool {
+    let Some(requirement) = task
+        .acceptance_criteria
+        .iter()
+        .find(|criterion| criterion.id == criterion_id)
+        .and_then(|criterion| criterion.artifact_verification.as_ref())
+    else {
+        return true;
+    };
+    let cycle = task.completion_evidence_start_index;
+    let Some(evidence) = task
+        .evidence
+        .iter()
+        .skip(cycle)
+        .rev()
+        .find(|evidence| evidence.criterion_id == criterion_id)
+    else {
+        return false;
+    };
+    if evidence.outcome != EvidenceOutcome::Pass {
+        return false;
+    }
+    let last =
+        task.verifications.iter().rev().find(|report| {
+            report.cycle_start_index == cycle && report.criterion_id == criterion_id
+        });
+    match last {
+        Some(report) => {
+            report.evidence_id == evidence.id
+                && report.verification_state() == VerificationState::ArtifactVerified
+                && report
+                    .outcome
+                    .as_ref()
+                    .is_some_and(|outcome| outcome.parser == requirement.parser)
+                && (!requirement.require_digest
+                    || report.verdict == VerificationVerdict::DigestMatch)
+        }
+        None => false,
+    }
+}
+
 pub fn transition_task(
     project_root: &Path,
     task_id: &str,
@@ -484,12 +746,15 @@ pub fn transition_task(
         let missing: Vec<&str> = task
             .acceptance_criteria
             .iter()
-            .filter(|criterion| latest_outcome(&task, &criterion.id) != Some(EvidenceOutcome::Pass))
+            .filter(|criterion| {
+                latest_outcome(&task, &criterion.id) != Some(EvidenceOutcome::Pass)
+                    || !artifact_verification_satisfied(&task, &criterion.id)
+            })
             .map(|criterion| criterion.id.as_str())
             .collect();
         if !missing.is_empty() {
             anyhow::bail!(
-                "cannot complete task; acceptance criteria without latest passing evidence: {}",
+                "cannot complete task; acceptance criteria without latest passing or artifact-verified evidence: {}",
                 missing.join(", ")
             );
         }
@@ -531,6 +796,7 @@ pub fn transition_task(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::verification::{ArtifactReference, VerificationState, VerificationVerdict};
     use std::path::PathBuf;
     use uuid::Uuid;
 
@@ -792,5 +1058,476 @@ mod tests {
         );
         fs::remove_dir_all(root).expect("remove root");
         fs::remove_dir_all(outside).expect("remove outside");
+    }
+
+    #[test]
+    fn verification_records_artifact_inspection_linked_to_current_evidence() {
+        let root = fixture();
+        fs::create_dir(root.join("artifacts")).expect("create artifact dir");
+        fs::write(root.join("artifacts/result.txt"), b"verified bytes").expect("write artifact");
+
+        let task = create_task(
+            &root,
+            "Verify artifact",
+            &["Check artifact".to_string()],
+            &[],
+            RiskLevel::Low,
+        )
+        .expect("create task");
+        let task = transition_task(&root, &task.id, TaskStatus::Active, None).expect("activate");
+        let task = record_evidence(
+            &root,
+            &task.id,
+            "AC-001",
+            EvidenceOutcome::Pass,
+            "artifact recorded",
+            "artifacts/result.txt",
+        )
+        .expect("record evidence");
+        let evidence = &task.evidence[0];
+        let preview = inspect_artifact(
+            &root,
+            &evidence.id,
+            "AC-001",
+            "artifacts/result.txt",
+            None,
+            0,
+        );
+
+        let (updated, report) = verify_task_evidence(
+            &root,
+            &task.id,
+            &evidence.id,
+            "artifacts/result.txt",
+            Some(&preview.sha256),
+        )
+        .expect("verify artifact");
+        assert_eq!(report.verdict, VerificationVerdict::DigestMatch);
+        assert_eq!(report.evidence_id, evidence.id);
+        assert_eq!(report.criterion_id, "AC-001");
+        assert_eq!(updated.verifications.len(), 1);
+
+        let stored = get_task(&root, &task.id).expect("reload task");
+        assert_eq!(stored.verifications.len(), 1);
+        assert_eq!(stored.verifications[0], report);
+        fs::remove_dir_all(root).expect("remove root");
+    }
+
+    #[test]
+    fn verification_cannot_use_evidence_from_a_previous_cycle() {
+        let root = fixture();
+        fs::write(root.join("result.txt"), b"payload").expect("write artifact");
+        let task = create_task(
+            &root,
+            "Verify cycle",
+            &["Check".to_string()],
+            &[],
+            RiskLevel::Low,
+        )
+        .expect("create task");
+        let task = transition_task(&root, &task.id, TaskStatus::Active, None).expect("activate");
+        let task = record_evidence(
+            &root,
+            &task.id,
+            "AC-001",
+            EvidenceOutcome::Pass,
+            "first pass",
+            "result.txt",
+        )
+        .expect("record evidence");
+        let old_evidence = task.evidence[0].id.clone();
+        let task = transition_task(&root, &task.id, TaskStatus::Completed, None).expect("complete");
+        let task = transition_task(
+            &root,
+            &task.id,
+            TaskStatus::Active,
+            Some("reopen to inspect"),
+        )
+        .expect("reopen");
+
+        assert!(
+            verify_task_evidence(&root, &task.id, &old_evidence, "result.txt", None).is_err(),
+            "previous-cycle evidence must not be linked to a new verification"
+        );
+        let stored = get_task(&root, &task.id).expect("reload task");
+        assert!(stored.verifications.is_empty());
+        fs::remove_dir_all(root).expect("remove root");
+    }
+
+    #[test]
+    fn a_passing_verification_does_not_satisfy_a_failing_criterion() {
+        let root = fixture();
+        fs::write(root.join("result.txt"), b"payload").expect("write artifact");
+        let task = create_task(
+            &root,
+            "Verify is not completion",
+            &["Check".to_string()],
+            &[],
+            RiskLevel::Low,
+        )
+        .expect("create task");
+        let task = transition_task(&root, &task.id, TaskStatus::Active, None).expect("activate");
+        let task = record_evidence(
+            &root,
+            &task.id,
+            "AC-001",
+            EvidenceOutcome::Fail,
+            "check failed",
+            "result.txt",
+        )
+        .expect("record evidence");
+        let evidence = &task.evidence[0];
+        let preview = inspect_artifact(&root, &evidence.id, "AC-001", "result.txt", None, 0);
+        let (_, report) = verify_task_evidence(
+            &root,
+            &task.id,
+            &evidence.id,
+            "result.txt",
+            Some(&preview.sha256),
+        )
+        .expect("verify artifact");
+        assert_eq!(report.verdict, VerificationVerdict::DigestMatch);
+
+        assert!(
+            transition_task(&root, &task.id, TaskStatus::Completed, None).is_err(),
+            "artifact inspection must never satisfy an acceptance criterion"
+        );
+        fs::remove_dir_all(root).expect("remove root");
+    }
+
+    #[test]
+    fn verification_history_is_bounded() {
+        let root = fixture();
+        fs::write(root.join("result.txt"), b"payload").expect("write artifact");
+        let task = create_task(
+            &root,
+            "Verify bounds",
+            &["Check".to_string()],
+            &[],
+            RiskLevel::Low,
+        )
+        .expect("create task");
+        let task = transition_task(&root, &task.id, TaskStatus::Active, None).expect("activate");
+        let task = record_evidence(
+            &root,
+            &task.id,
+            "AC-001",
+            EvidenceOutcome::Pass,
+            "pass",
+            "result.txt",
+        )
+        .expect("record evidence");
+        let evidence_id = task.evidence[0].id.clone();
+        for _ in 0..MAX_VERIFICATION_RECORDS {
+            verify_task_evidence(&root, &task.id, &evidence_id, "result.txt", None)
+                .expect("record verification");
+        }
+        assert!(
+            verify_task_evidence(&root, &task.id, &evidence_id, "result.txt", None).is_err(),
+            "verification history must be bounded"
+        );
+        fs::remove_dir_all(root).expect("remove root");
+    }
+
+    fn write_test_report(
+        root: &Path,
+        name: &str,
+        cases: &[(&str, &str)],
+        passed: u32,
+        failed: u32,
+    ) {
+        let skipped = cases.iter().filter(|case| case.1 == "skip").count() as u32;
+        let errors = cases.iter().filter(|case| case.1 == "error").count() as u32;
+        let report = serde_json::json!({
+            "schema": "rcoder-test-report/v1",
+            "criterion_id": "AC-001",
+            "summary": {
+                "passed": passed,
+                "failed": failed,
+                "skipped": skipped,
+                "errors": errors,
+            },
+            "cases": cases.iter().map(|(case, outcome)| serde_json::json!({
+                "name": case,
+                "outcome": outcome,
+            })).collect::<Vec<_>>(),
+        });
+        fs::write(
+            root.join(name),
+            serde_json::to_vec(&report).expect("serialize report fixture"),
+        )
+        .expect("write report fixture");
+    }
+
+    fn verified_task_fixture(root: &Path) -> TaskContract {
+        write_test_report(root, "report.json", &[("unit-one", "pass")], 1, 0);
+        let task = create_task(
+            root,
+            "Artifact-backed verification",
+            &["Focused tests pass".to_string()],
+            &[],
+            RiskLevel::High,
+        )
+        .expect("create task");
+        let task = transition_task(root, &task.id, TaskStatus::Active, None).expect("activate");
+        record_evidence(
+            root,
+            &task.id,
+            "AC-001",
+            EvidenceOutcome::Pass,
+            "caller claims tests passed",
+            "report.json",
+        )
+        .expect("record evidence")
+    }
+
+    fn reference_for(
+        task: &TaskContract,
+        parser: Option<&str>,
+        digest: Option<&str>,
+    ) -> ArtifactReference {
+        ArtifactReference {
+            schema_version: 1,
+            artifact: "report.json".to_string(),
+            parser: parser.map(str::to_string),
+            expected_sha256: digest.map(str::to_string),
+            criterion_id: Some("AC-001".to_string()),
+            evidence_id: task.evidence[0].id.clone(),
+            declared_outcome: Some(EvidenceOutcome::Pass),
+            provenance: "cli:unit".to_string(),
+        }
+    }
+
+    #[test]
+    fn artifact_verified_report_satisfies_an_opted_in_criterion() {
+        let root = fixture();
+        let task = verified_task_fixture(&root);
+        let digest = {
+            let bytes = fs::read(root.join("report.json")).expect("read report");
+            crate::verification::sha256_hex(&bytes)
+        };
+        require_artifact_verification(&root, &task.id, "AC-001", "rcoder_test_report_v1", true)
+            .expect("require artifact verification");
+        let (task, reports) = verify_artifact_references(
+            &root,
+            &task.id,
+            &[reference_for(
+                &task,
+                Some("rcoder_test_report_v1"),
+                Some(&digest),
+            )],
+        )
+        .expect("verify artifact");
+        assert_eq!(
+            reports[0].verification_state(),
+            VerificationState::ArtifactVerified
+        );
+        assert_eq!(reports[0].outcome.as_ref().unwrap().passed, 1);
+        assert_eq!(reports[0].declared_outcome, Some(EvidenceOutcome::Pass));
+        let task = transition_task(&root, &task.id, TaskStatus::Completed, None)
+            .expect("complete with independently verified evidence");
+        assert_eq!(task.status, TaskStatus::Completed);
+        fs::remove_dir_all(root).expect("remove root");
+    }
+
+    #[test]
+    fn digest_match_without_allowlisted_report_cannot_satisfy_opted_in_criterion() {
+        let root = fixture();
+        let task = verified_task_fixture(&root);
+        let digest = {
+            let bytes = fs::read(root.join("report.json")).expect("read report");
+            crate::verification::sha256_hex(&bytes)
+        };
+        require_artifact_verification(&root, &task.id, "AC-001", "rcoder_test_report_v1", false)
+            .expect("require artifact verification");
+        let (_, reports) = verify_artifact_references(
+            &root,
+            &task.id,
+            &[reference_for(&task, None, Some(&digest))],
+        )
+        .expect("inspect artifact");
+        assert_eq!(
+            reports[0].verification_state(),
+            VerificationState::IntegrityOnly
+        );
+        assert!(
+            transition_task(&root, &task.id, TaskStatus::Completed, None).is_err(),
+            "a digest match alone must never satisfy artifact-backed completion"
+        );
+        fs::remove_dir_all(root).expect("remove root");
+    }
+
+    #[test]
+    fn failing_mixed_and_insufficient_reports_block_completion() {
+        for (label, cases, passed, failed) in [
+            ("failing", vec![("unit-one", "fail")], 0, 1),
+            (
+                "mixed",
+                vec![("unit-one", "pass"), ("unit-two", "fail")],
+                1,
+                1,
+            ),
+            ("empty", vec![], 0, 0),
+            ("malformed", vec![("unit-one", "unknown")], 0, 0),
+        ] {
+            let root = fixture();
+            let task = verified_task_fixture(&root);
+            write_test_report(&root, "report.json", &cases, passed, failed);
+            require_artifact_verification(
+                &root,
+                &task.id,
+                "AC-001",
+                "rcoder_test_report_v1",
+                false,
+            )
+            .expect("require artifact verification");
+            let (_, reports) = verify_artifact_references(
+                &root,
+                &task.id,
+                &[reference_for(&task, Some("rcoder_test_report_v1"), None)],
+            )
+            .expect("verify artifact");
+            assert_ne!(
+                reports[0].verification_state(),
+                VerificationState::ArtifactVerified,
+                "{label} must not become artifact verified"
+            );
+            assert!(
+                transition_task(&root, &task.id, TaskStatus::Completed, None).is_err(),
+                "{label} report must not satisfy completion"
+            );
+            fs::remove_dir_all(root).expect("remove root");
+        }
+    }
+
+    #[test]
+    fn digest_mismatch_and_unsupported_parser_cannot_produce_a_pass() {
+        let root = fixture();
+        let task = verified_task_fixture(&root);
+        require_artifact_verification(&root, &task.id, "AC-001", "rcoder_test_report_v1", true)
+            .expect("require artifact verification");
+        let mut mismatch =
+            reference_for(&task, Some("rcoder_test_report_v1"), Some(&"0".repeat(64)));
+        let (_, reports) = verify_artifact_references(&root, &task.id, &[mismatch.clone()])
+            .expect("verify mismatched digest");
+        assert_eq!(reports[0].verdict, VerificationVerdict::DigestMismatch);
+        assert_eq!(
+            reports[0].verification_state(),
+            VerificationState::InsufficientEvidence
+        );
+
+        mismatch.parser = Some("arbitrary_script".to_string());
+        mismatch.expected_sha256 = None;
+        assert!(verify_artifact_references(&root, &task.id, &[mismatch]).is_err());
+        assert!(
+            transition_task(&root, &task.id, TaskStatus::Completed, None).is_err(),
+            "neither outcome may satisfy completion"
+        );
+        fs::remove_dir_all(root).expect("remove root");
+    }
+
+    #[test]
+    fn reopened_task_requires_fresh_artifact_verification() {
+        let root = fixture();
+        let task = verified_task_fixture(&root);
+        let digest = {
+            let bytes = fs::read(root.join("report.json")).expect("read report");
+            crate::verification::sha256_hex(&bytes)
+        };
+        require_artifact_verification(&root, &task.id, "AC-001", "rcoder_test_report_v1", false)
+            .expect("require artifact verification");
+        let (_task, _) = verify_artifact_references(
+            &root,
+            &task.id,
+            &[reference_for(
+                &task,
+                Some("rcoder_test_report_v1"),
+                Some(&digest),
+            )],
+        )
+        .expect("verify artifact");
+        let task = transition_task(&root, &task.id, TaskStatus::Completed, None)
+            .expect("first completion");
+        let task = transition_task(
+            &root,
+            &task.id,
+            TaskStatus::Active,
+            Some("reopen for recheck"),
+        )
+        .expect("reopen");
+        let old_evidence = task.evidence[0].id.clone();
+        let task = record_evidence(
+            &root,
+            &task.id,
+            "AC-001",
+            EvidenceOutcome::Pass,
+            "fresh claim",
+            "report.json",
+        )
+        .expect("fresh evidence");
+
+        assert!(
+            verify_artifact_references(
+                &root,
+                &task.id,
+                &[ArtifactReference {
+                    evidence_id: old_evidence,
+                    ..reference_for(&task, Some("rcoder_test_report_v1"), None)
+                }],
+            )
+            .is_err(),
+            "previous-cycle evidence must not be verifiable"
+        );
+        assert!(
+            transition_task(&root, &task.id, TaskStatus::Completed, None).is_err(),
+            "stale verification must not complete a reopened task"
+        );
+
+        let fresh = ArtifactReference {
+            evidence_id: task.evidence.last().expect("fresh evidence").id.clone(),
+            ..reference_for(&task, Some("rcoder_test_report_v1"), None)
+        };
+        verify_artifact_references(&root, &task.id, &[fresh]).expect("verify fresh evidence");
+        transition_task(&root, &task.id, TaskStatus::Completed, None)
+            .expect("complete after fresh verification");
+        fs::remove_dir_all(root).expect("remove root");
+    }
+
+    #[test]
+    fn duplicate_references_and_criterion_mismatch_are_refused() {
+        let root = fixture();
+        let task = verified_task_fixture(&root);
+        let reference = reference_for(&task, Some("rcoder_test_report_v1"), None);
+        assert!(
+            verify_artifact_references(&root, &task.id, &[reference.clone(), reference]).is_err(),
+            "duplicate references must be refused"
+        );
+        let mut mismatched = reference_for(&task, Some("rcoder_test_report_v1"), None);
+        mismatched.criterion_id = Some("AC-002".to_string());
+        assert!(verify_artifact_references(&root, &task.id, &[mismatched]).is_err());
+        fs::remove_dir_all(root).expect("remove root");
+    }
+
+    #[test]
+    fn legacy_contracts_stay_caller_attested() {
+        let root = fixture();
+        let task = verified_task_fixture(&root);
+        let digest = {
+            let bytes = fs::read(root.join("report.json")).expect("read report");
+            crate::verification::sha256_hex(&bytes)
+        };
+        let (_, reports) = verify_artifact_references(
+            &root,
+            &task.id,
+            &[reference_for(&task, None, Some(&digest))],
+        )
+        .expect("integrity-only inspection");
+        assert_eq!(
+            reports[0].verification_state(),
+            VerificationState::IntegrityOnly
+        );
+        transition_task(&root, &task.id, TaskStatus::Completed, None)
+            .expect("legacy contract keeps caller-attested completion");
+        fs::remove_dir_all(root).expect("remove root");
     }
 }

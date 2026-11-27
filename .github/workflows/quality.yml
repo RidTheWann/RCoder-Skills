@@ -99,6 +99,8 @@ jobs:
         run: node scripts/test-opencode-v2-plugin.mjs
       - name: OpenCode V2 host-state contract regression
         run: node scripts/test-opencode-plugin-host-state.mjs
+      - name: Native OpenCode end-to-end request delivery (local mock provider)
+        run: python scripts/test-opencode-native-e2e.py
       - name: Release archive hygiene regression
         run: python scripts/test-package-hygiene.py
       - name: MCP server syntax and host configuration snippets

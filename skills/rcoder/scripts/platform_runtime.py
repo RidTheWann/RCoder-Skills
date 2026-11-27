@@ -6,6 +6,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -75,6 +76,95 @@ def resolve_python_command() -> list[str]:
             except (OSError, subprocess.SubprocessError):
                 pass
     return ["python3"]
+
+
+def portable_temp_root(namespace: str) -> Path:
+    """Return a per-OS temporary namespace that honors TMPDIR/TEMP."""
+    root = Path(tempfile.gettempdir()) / namespace
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def resolve_node_command() -> list[str]:
+    """Return a Node.js invocation string vector for the current OS."""
+    for name in ("node", "node.exe"):
+        found = shutil.which(name)
+        if found:
+            return [found]
+    return ["node"]
+
+
+def resolve_host_command(name: str = "opencode") -> list[str]:
+    """Return an executable vector, wrapping Windows script launchers safely."""
+    found = shutil.which(name)
+    if not found:
+        return []
+    path = Path(found)
+    if path.suffix.lower() in {".cmd", ".bat"}:
+        return ["cmd.exe", "/c", str(path)]
+    return [str(path)]
+
+
+def isolated_host_environment(
+    workspace: Path,
+    *,
+    mock_key: str,
+    python_command: list[str] | None = None,
+) -> dict[str, str]:
+    """Build a sanitized host environment isolated to one fixture workspace.
+
+    Provider credentials and ambient OpenCode session state are removed. The
+    remaining keys follow the host's per-OS configuration conventions.
+    """
+    environment = dict(os.environ)
+    for key in list(environment):
+        upper = key.upper()
+        if any(fragment in upper for fragment in ("OPENAI_API", "ANTHROPIC_API", "GOOGLE_API")):
+            environment.pop(key, None)
+        if upper.startswith("OPENCODE_") or upper in ("OPENCODE", "AI_AGENT"):
+            environment.pop(key, None)
+    for key in (
+        "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "PWD", "OLDPWD",
+        "APPDATA", "LOCALAPPDATA", "USERPROFILE",
+    ):
+        environment.pop(key, None)
+    python = python_command or resolve_python_command()
+    environment.update({
+        "MOCK_API_KEY": mock_key,
+        "RCODER_OPENCODE_DEBUG": "1",
+        "RCODER_PYTHON": python[0],
+        "HOME": str(workspace),
+    })
+    if os.name == "nt":
+        environment.update({
+            "APPDATA": str(workspace / "appdata"),
+            "LOCALAPPDATA": str(workspace / "localappdata"),
+            "USERPROFILE": str(workspace),
+            "TEMP": str(workspace / "tmp"),
+            "TMP": str(workspace / "tmp"),
+        })
+    else:
+        environment.update({
+            "XDG_CONFIG_HOME": str(workspace / "xdg" / "config"),
+            "XDG_DATA_HOME": str(workspace / "xdg" / "data"),
+            "XDG_STATE_HOME": str(workspace / "xdg" / "state"),
+            "PWD": str(workspace),
+            "OLDPWD": str(workspace),
+        })
+    return environment
+
+
+def link_or_copy(source: Path, destination: Path) -> None:
+    """Prefer a symlink; fall back to a bounded copy where symlinks are unavailable."""
+    try:
+        destination.symlink_to(source, target_is_directory=source.is_dir())
+        return
+    except (OSError, NotImplementedError, AttributeError):
+        pass
+    if source.is_dir():
+        shutil.copytree(source, destination, symlinks=True)
+    else:
+        shutil.copy2(source, destination)
 
 
 def normalize_portable_mcp_config(config: dict[str, Any]) -> dict[str, Any]:
