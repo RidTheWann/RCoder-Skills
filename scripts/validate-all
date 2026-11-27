@@ -316,7 +316,12 @@ def main():
     for required in (
         "scripts/rcoder.mjs", "scripts/install.ps1", "scripts/install.sh",
         "scripts/test-node-installer.mjs", "scripts/test-installers.sh",
-        "scripts/test-installers.ps1",         "scripts/test-context-snapshot.py", "scripts/rsaver.py",
+        "scripts/test-installers.ps1", "scripts/test-context-snapshot.py", "scripts/rsaver.py",
+        "runtime/Cargo.toml", "runtime/crates/runtime-core/Cargo.toml",
+        "runtime/crates/runtime-core/src/lib.rs", "runtime/crates/runtime-core/src/discovery.rs",
+        "runtime/crates/runtime-core/src/session.rs", "runtime/apps/rcoder-runtime/Cargo.toml",
+        "runtime/apps/rcoder-runtime/src/main.rs", "skills/rcoder/scripts/runtime_bootstrap.py",
+        "scripts/test-runtime-bootstrap.py", "docs/RUNTIME.md",
         "skills/rcoder/scripts/rsaver.py", "scripts/test-rsaver.py",
         "skills/rcoder/scripts/rsaver_guard.py",
         "scripts/rscan.py", "skills/rcoder/scripts/rscan.py", "scripts/test-rscan.py",
@@ -572,6 +577,22 @@ def main():
               and handlers[0].get("timeout") == 10 and phase in command
               and "skills/rcoder/scripts/context_fabric_host.py" in command,
               f"G8: {event} must invoke the bundled RFC host adapter with a bounded timeout")
+    runtime_mcp = read(SKILL / "scripts" / "rcoder_mcp.py")
+    runtime_http = read(SKILL / "scripts" / "rcoder_mcp_http.py")
+    runtime_bootstrap = read(SKILL / "scripts" / "runtime_bootstrap.py")
+    check("start_runtime_companion(State.root)" in runtime_mcp,
+          "G8: local stdio MCP must activate the optional Runtime companion")
+    check("start_runtime_companion(root)" in runtime_http
+          and 'worker_env["RCODER_RUNTIME_DISABLE"] = "1"' in runtime_http
+          and "def worker_environment(" in runtime_http,
+          "G8: loopback HTTP MCP must own one Runtime session and suppress per-request worker sidecars")
+    check("RCODER_RUNTIME_DISABLE" in runtime_bootstrap
+          and "RCODER_RUNTIME_PATH" in runtime_bootstrap
+          and "start_new_session" in runtime_bootstrap,
+          "G8: Runtime bootstrap must remain opt-out, configurable, and detached")
+    check("D-025" in read(ROOT / "docs" / "DECISIONS.md")
+          and (ROOT / "docs" / "RUNTIME.md").is_file(),
+          "G8: D-025 and Runtime architecture docs must describe the local MCP lifecycle")
     check("hooks/**" in package.get("files", []), "G8: the npm package must ship the hooks directory")
     check("D-019" in read(ROOT / "docs" / "DECISIONS.md") and "D-021" in read(ROOT / "docs" / "DECISIONS.md")
           and "D-024" in read(ROOT / "docs" / "DECISIONS.md")
