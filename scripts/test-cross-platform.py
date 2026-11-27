@@ -138,7 +138,8 @@ class TestCrossPlatformSync(unittest.TestCase):
                 "ANTHROPIC_API_KEY": "must-not-inherit",
                 "OPENCODE_SESSION_ID": "ses-ambient",
                 "AI_AGENT": "opencode",
-            }):
+                "XDG_CONFIG_HOME": "/ambient/config",
+            }), patch("platform_runtime.os.name", "posix"):
                 posix = isolated_host_environment(
                     workspace, mock_key="local-fixture", python_command=["/usr/bin/python3"])
             self.assertNotIn("OPENAI_API_KEY", posix)
@@ -148,9 +149,7 @@ class TestCrossPlatformSync(unittest.TestCase):
             self.assertEqual(posix["XDG_CONFIG_HOME"], str(workspace / "xdg" / "config"))
             self.assertEqual(posix["PWD"], str(workspace))
 
-            with patch.object(sys, "platform", "win32"), patch(
-                "platform_runtime.os.name", "nt"
-            ):
+            with patch("platform_runtime.os.name", "nt"):
                 windows = isolated_host_environment(
                     workspace, mock_key="local-fixture", python_command=["python.exe"])
             self.assertEqual(windows["APPDATA"], str(workspace / "appdata"))
@@ -169,8 +168,11 @@ class TestCrossPlatformSync(unittest.TestCase):
             self.assertEqual((destination / "SKILL.md").read_text(encoding="utf-8"), "fixture")
 
     def test_portable_temp_root_uses_system_temp(self) -> None:
-        with patch("platform_runtime.tempfile.gettempdir", return_value="/fixture/tmp"):
-            self.assertEqual(portable_temp_root("rcoder-e2e"), Path("/fixture/tmp/rcoder-e2e"))
+        with tempfile.TemporaryDirectory() as system_temp:
+            with patch("platform_runtime.tempfile.gettempdir", return_value=system_temp):
+                result = portable_temp_root("rcoder-e2e")
+            self.assertEqual(result, Path(system_temp) / "rcoder-e2e")
+            self.assertTrue(result.is_dir())
 
 
 if __name__ == "__main__":

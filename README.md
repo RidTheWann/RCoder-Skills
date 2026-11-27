@@ -1,8 +1,10 @@
 # RCoder
 
-**A model-agnostic engineering workflow for AI coding agents.**
+**A calmer way to use AI coding agents: less guessing, more evidence.**
 
-RCoder helps an AI coding agent move from an unfamiliar codebase to a scoped implementation, relevant specialist guidance, verification, and an evidence-backed handoff. It brings repository reconnaissance, 60+ specialist references, context-management tools, MCP integration, and cross-host Agent Skills packaging into one workflow.
+RCoder is a small instruction and tooling layer you add to the agent you already use. It helps the agent look around the repository, pick the right guidance, do the work, and show what was actually checked. It does not replace your model, your editor, or your host's permission system.
+
+You do not need a new model, a separate app, or a background service to start.
 
 [![Quality CI](https://github.com/RidTheWann/RCoder-Skills/actions/workflows/quality.yml/badge.svg)](https://github.com/RidTheWann/RCoder-Skills/actions/workflows/quality.yml)
 [![Security: A — Skills Directory](https://www.skillsdirectory.com/api/skills/ridthewann-rcoder/badge)](https://www.skillsdirectory.com/skills/ridthewann-rcoder)
@@ -10,126 +12,129 @@ RCoder helps an AI coding agent move from an unfamiliar codebase to a scoped imp
 [![Agent hosts](https://img.shields.io/badge/Agent%20hosts-20-informational.svg)](#supported-agent-hosts)
 [![Platforms](https://img.shields.io/badge/OS-Windows%20%7C%20Linux%20%7C%20macOS%20%7C%20Termux-informational.svg)](#cross-platform-support)
 
-RCoder Skills is an **instruction and tooling layer**, not an AI model or a standalone autonomous agent. The optional **RCoder Runtime** is a separate local control-plane companion that follows the lifetime of a local RCoder MCP process. The connected agent still performs the work using the tools and permissions provided by its host.
+---
 
-### At a glance
+## Which path should I take?
 
-| Dimension | Status | Evidence |
-|---|---|---|
-| Product version | 1.16.0 | Package manifests and `skills/rcoder/SKILL.md` |
-| Workflow and specialists | 60+ progressive references | [Specialist library](#specialist-library) |
-| Context subsystems | RSaver optimization and RFC persistence | [Core components](#core-components) |
-| Local control plane | Rust 2024 Runtime, version 0.1.0 | [RCoder Runtime](#rcoder-runtime-optional-local-control-plane) |
-| Evidence verification | Bounded artifact-backed outcome checks | [Before and after](#integration-before-and-after) |
-| Host integration | OpenCode V2, Claude and other adapters | [Supported agent hosts](#supported-agent-hosts) |
-| Local verification | 58 Rust tests, host/RFC suites, 5 native E2E cases, 4650 repository checks | [Development and verification](#development-and-verification) |
-| CI status | Local suites VERIFIED; GitHub Actions NOT VERIFIED for latest local changes | [Development and verification](#development-and-verification) |
+| I want to... | Start here |
+|---|---|
+| Install it and try it | [Quick start](#quick-start) |
+| Understand what it does | [How RCoder works](#how-rcoder-works) |
+| See proof that it helps | [Before and after](#before-and-after-evidence) |
+| Know if my OS is supported | [Cross-platform support](#cross-platform-support) |
+| Add Runtime or RFC | [Core components](#core-components) |
+| Run the tests myself | [Development and verification](#development-and-verification) |
 
 ---
 
-## Start here
+## Quick start
 
-| Goal | Go to |
-|---|---|
-| Install on Windows, Linux, macOS, WSL or Termux | [Installation](#installation) |
-| Understand the engineering loop | [How RCoder works](#how-rcoder-works) |
-| See measured model-behavior evidence | [Model behavior evidence](#model-behavior-evidence) |
-| See real host-integration evidence | [Integration before and after](#integration-before-and-after) |
-| Check operating-system support | [Cross-platform support](#cross-platform-support) |
-| Follow a recorded complex task | [API migration walkthrough](#recorded-complex-task-api-migration) |
+The whole setup is one install command and one check. Pick your shell.
 
-### Contents
+**Windows (PowerShell)**
 
-- **Overview:** [Why RCoder](#why-rcoder) · [How RCoder works](#how-rcoder-works)
-- **Evidence:** [Before-and-after evidence](#before-and-after-evidence) · [Recorded complex task](#recorded-complex-task-api-migration)
-- **Setup:** [Installation](#installation) · [Cross-platform support](#cross-platform-support) · [Use RCoder with your agent](#use-rcoder-with-your-agent)
-- **Architecture:** [Core components](#core-components) · [RCoder Runtime](#rcoder-runtime-optional-local-control-plane) · [Supported agent hosts](#supported-agent-hosts)
-- **Operations:** [Specialist library](#specialist-library) · [Security boundaries](#security-and-execution-boundaries) · [Development and verification](#development-and-verification)
-- **Reference:** [Documentation](#documentation) · [License](#license)
+```powershell
+irm https://raw.githubusercontent.com/RidTheWann/RCoder-Skills/main/install.ps1 | iex
+```
+
+**Linux, macOS, WSL, Termux**
+
+```sh
+git clone https://github.com/RidTheWann/RCoder-Skills.git
+cd RCoder-Skills
+sh ./install.sh --target agents --scope project
+```
+
+**Node.js / npm**
+
+```sh
+npx -y github:RidTheWann/RCoder-Skills
+```
+
+Open a new terminal, then confirm the launcher is available:
+
+```sh
+rcoder doctor --json
+```
+
+That is it. Your agent will find `skills/rcoder/SKILL.md` and follow it when the task is engineering work. Need another host or user scope? See [Installation](#installation).
+
+> **No Rust required for normal use.** The Rust Runtime is optional and only needed for local task contracts and artifact-backed verification.
 
 ---
 
 ## Why RCoder?
 
-A coding agent can produce code quickly and still make the wrong change: it may misunderstand the repository, load irrelevant files, choose the wrong specialist, miss a compatibility constraint, or declare success without running a check.
+A coding agent can write code quickly and still miss the point: wrong files, wrong specialist, forgotten constraints, or a "done" claim without a check.
 
-RCoder addresses those failure points with a repeatable engineering loop:
+RCoder adds a repeatable loop that is easy to inspect:
 
-| Common problem | How RCoder helps |
-|---|---|
-| The repository is unfamiliar or large | **RScan** builds a bounded, read-only map of project structure, detected stacks, risks, and likely next steps. |
-| The task crosses multiple engineering domains | The **specialist router** selects one primary reference and only the supporting expertise the task needs. |
-| The task is too broad to execute safely | The workflow requires acceptance criteria, a scoped plan, reversible changes, and a verification map. |
-| Context is becoming expensive or unreliable | **RSaver** measures, budgets, redacts, compresses, anchors, and recovers context with integrity checks. |
-| A completion claim needs evidence | Verification tools compare claims with diffs, test artifacts, and observed results. |
-| Different hosts expose different capabilities | The Agent Skill, CLI, MCP server, plugins, and installers provide host-aware integration paths. |
+1. **Look first.** A bounded repository snapshot replaces guessing.
+2. **Load only what matters.** Specialist guidance is disclosed progressively, not dumped into every prompt.
+3. **Do the work with host tools.** RCoder never grants permissions or bypasses approvals.
+4. **Verify against evidence.** Claims are separated from artifacts, digests, and observed results.
+5. **Hand off cleanly.** A capsule records what was done, what is unknown, and what to do next.
 
-The objective is not simply to generate more code. It is to make engineering work more **focused, reviewable, reproducible, and honest about what has and has not been verified**.
+The goal is not more code. It is work that is **focused, reviewable, reproducible, and honest about what has not been verified**.
+
+---
 
 ## How RCoder works
 
-RCoder's execution kernel defines seven stages. The active AI agent carries them out using the capabilities available in its host.
-
 ```text
-User request
-    |
-    v
-1. INTAKE       Deliverable, acceptance criteria, constraints, authorization
-    |
-    v
-2. RECON        Repository map, stack, tests, Git state, risk signals
-    |
-    v
-3. ROUTE        One primary specialist + only distinct supporting references
-    |
-    v
-4. PLAN         Ordered steps, acceptance criteria, risks, verification map
-    |
-    v
-5. EXECUTE      Small, reversible changes using authorized host tools
-    |
-    v
-6. VERIFY       Focused tests, lint/build checks, diff and claim cross-check
-    |
-    v
-7. CHECKPOINT   Changes, evidence, unknowns, risks, and next action
+objective -> repository recon -> specialist choice -> implementation
+          -> verification -> evidence-backed handoff
 ```
 
-### What this means in practice
+Four subsystems stay separate on purpose:
 
-1. **Understand the request first.** The agent identifies what must change, what must not change, the acceptance criteria, repository rules, and any authorization boundary.
-2. **Inspect before editing.** RScan and bounded file reads reveal the project structure and the smallest relevant surface. RScan itself is read-only.
-3. **Load expertise on demand.** The agent chooses one primary specialist and loads only the necessary supporting references, rather than flooding context with the entire library.
-4. **Plan risky work.** Multi-file, architectural, security-sensitive, and deployment changes get explicit steps, acceptance criteria, risks, and checks.
-5. **Do the implementation.** When execution is authorized, the agent continues beyond the plan and uses the host's real editing and terminal tools. RCoder does not invent unavailable tools.
-6. **Verify the result.** The agent runs proportionate checks, inspects the actual diff, and labels evidence as `VERIFIED`, `INFERRED`, or `NOT VERIFIED`.
-7. **Leave a usable handoff.** A context capsule records the current objective, constraints, changed files, verification, unresolved risks, and next action.
+| Piece | Plain-language role |
+|---|---|
+| **RCoder** | The workflow and routing instructions. |
+| **RSaver** | Measures and safely reduces context without rewriting source files. |
+| **RFC Context Fabric** | Remembers typed context across requests with provenance and canaries. |
+| **RCoder Runtime** | An optional local control plane for task contracts and verification. |
 
-**Autonomy has a boundary:** RCoder encourages the agent to carry an authorized task through implementation and verification, but it does not grant permissions, bypass host approvals, or turn an unavailable tool into an available one. The `/plan` command is intentionally plan-only; a normal implementation request should ask the agent to carry out the work.
+Host adapters (OpenCode, Claude Code, and others) only carry information into the real request. They are not a second task engine or a second database. See [Core components](#core-components) and [Supported agent hosts](#supported-agent-hosts).
 
 ---
 
 ## Before-and-after evidence
 
-Two separate questions are answered here: **does RCoder change agent behavior on a pinned model?** and **does the integration actually deliver context through a real host?** They require different evidence, so they are reported separately with explicit evidence tiers.
-
 ### Integration before and after
 
-The following comparison describes the local engineering state before and after this phase. It is **not** a model-quality benchmark: it measures whether the installed host actually transports RCoder context into a model request.
+**The short version**
 
-| Capability | Before | After (observed locally) | Evidence tier |
+**Before:** we could show that the adapters existed and that unit tests passed. We could not show that a real editor actually sent our context to a model.
+
+**Now:** we start the installed OpenCode app, point it at a local fake model, and read the exact request the app sends. The RFC memory and the Runtime task context arrive **in the same request**, with their provenance intact.
+
+That is the difference between *"the code looks right"* and *"the host actually delivered it."*
+
+| Question | Before | After | Why it matters |
 |---|---|---|---|
-| Native host request delivery | Adapter functions were exercised directly; no host-generated request had been captured. | The installed OpenCode 2.4.2 process loaded the real plugin, connected the RCoder MCP server, and the local mock provider captured the actual `/v1/chat/completions` body. | VERIFIED |
-| RFC and Runtime in one request | Independent hydration and packet compilation were tested separately; co-delivery was unproven. | One captured system message contained `RFC_E2E_MARKER_<id>` with its `RFC-ACK` canary **and** `RUNTIME_E2E_MARKER_<id>` from the compiled task packet. | VERIFIED |
-| Subsystem independence | Configuration-level unit tests only. | All four enable/disable configurations ran through the real host; disabling one subsystem did not suppress the other. | VERIFIED |
-| Retry identity and missing context | Canary lifecycle was covered offline. | Retries produced distinct RFC prompt identities; a session with no stored context produced no delivery claim. | VERIFIED |
-| Runtime companion lifecycle | Offline session-state tests only. | Exactly one companion session per fixture reached `stopped`, bound to the fixture root, with no orphan process. | VERIFIED |
-| Evidence verification | Caller attestations only. | Bounded artifact inspection with an allowlisted parser, digest checks, mutation re-check, cycle isolation and 58 passing Rust tests. | VERIFIED |
-| Cross-platform fixture | Hardcoded `/tmp`, symlinks, XDG variables and literal `node`/`opencode` names. | Portable resolvers plus copy fallback; 13 parity tests pass and the native E2E suite still passes on Linux. | VERIFIED on POSIX; **NOT VERIFIED** on Windows/macOS |
+| Does the plugin really load? | Checked by reading config and plugin files. | The real OpenCode process logs the plugin loading from the isolated workspace. | A file on disk is not the same as a loaded plugin. |
+| Does context reach a model? | Adapter functions were called directly in tests. | The local mock provider captures the actual outgoing request body. | The host, not the test, is now the source of the request. |
+| Do RFC and Runtime work together? | Tested separately. | Both markers appear in one request, with the RFC canary and Runtime digest. | Neither subsystem can fake the other's delivery. |
+| Does one failure break everything? | Only configuration-level checks. | Four enable/disable combinations, missing context, retries, and a broken Runtime path were exercised. | Fail-open behavior is proven, not assumed. |
+| Is my OS covered? | Fixture assumed POSIX paths and symlinks. | Portable resolvers with per-OS environment handling; Windows/macOS code paths unit-tested. | Lower friction on Windows and macOS, with honest limits. |
 
-**Observed environment:** aarch64 PRoot Debian 13 (trixie), OpenCode 2.4.2, Rust/Cargo 1.85.1, Python 3.13.5, Node 20.19.2. The mock provider used only a local loopback endpoint and a synthetic key; no public model API or real credential was contacted. GitHub Actions was not run, so CI evidence remains **NOT VERIFIED**.
+<details>
+<summary><strong>Show the detailed evidence and commands</strong></summary>
 
-**Reproduce locally:**
+All rows below are **VERIFIED locally** on aarch64 PRoot Debian 13 (trixie), OpenCode 2.4.2, Rust/Cargo 1.85.1, Python 3.13.5, Node 20.19.2. The provider was a loopback mock with a synthetic key; no public API or real credential was contacted.
+
+| Capability | Before | After (observed) | Evidence tier |
+|---|---|---|---|
+| Native host request delivery | No host-generated request captured. | Installed OpenCode loaded the real plugin, connected RCoder MCP, and the mock provider captured `/v1/chat/completions`. | VERIFIED |
+| RFC and Runtime in one request | Co-delivery unproven. | One system message contained `RFC_E2E_MARKER_<id>` with its `RFC-ACK` canary and `RUNTIME_E2E_MARKER_<id>`. | VERIFIED |
+| Subsystem independence | Configuration-level unit tests only. | All four enable/disable configurations ran through the real host. | VERIFIED |
+| Retry identity and missing context | Canary lifecycle covered offline. | Retries used distinct prompt identities; absent context produced no delivery claim. | VERIFIED |
+| Runtime companion lifecycle | Offline session-state tests. | One companion per fixture reached `stopped`, bound to the fixture root, with no orphan process. | VERIFIED |
+| Evidence verification | Caller attestations only. | Allowlisted parser, digest and mutation checks, cycle isolation, 58 passing Rust tests. | VERIFIED |
+| Cross-platform fixture | Hardcoded `/tmp`, symlinks, XDG variables, literal command names. | Portable resolvers plus copy fallback; 13 parity tests pass and native E2E still passes on Linux. | VERIFIED on POSIX; NOT VERIFIED on Windows/macOS |
+
+Reproduce locally:
 
 ```sh
 python3 scripts/test-cross-platform.py
@@ -137,13 +142,15 @@ python3 scripts/test-opencode-native-e2e.py
 cargo test --manifest-path runtime/Cargo.toml --workspace
 ```
 
-See [OpenCode V2 adapter evidence](docs/OPENCODE-V2-ADAPTER.md) for the captured request structure and [decision D-032](docs/DECISIONS.md) for the rationale.
+**What this still does not prove:** hosted-model behavior, other OpenCode builds, native activation on Windows/macOS/Termux-native builds, or GitHub Actions results. Read [details](docs/OPENCODE-V2-ADAPTER.md) and [decision D-032](docs/DECISIONS.md).
 
-### Model behavior evidence
+</details>
 
-RCoder maintains a reproducible evaluation protocol that runs the same prompts and fixtures **with and without the skill**. The comparison below comes from the completed live run on **2026-11-19**.
+### Model behavior, separately
 
-<details open>
+The model-quality comparison is a different experiment and is **not** upgraded by the integration work above:
+
+<details>
 <summary><strong>Live ablation: WITHOUT RCoder vs WITH RCoder</strong></summary>
 
 | Metric | WITHOUT RCoder | WITH RCoder | Difference |
@@ -155,18 +162,29 @@ RCoder maintains a reproducible evaluation protocol that runs the same prompts a
 | Behavioral scenarios passed | 4 / 19 | 6 / 19 | +2 scenarios |
 | Scenario rubric pass rate | 0.500 | 0.592 | +0.092 |
 
-**Test scope:** 42 trigger prompts and 19 behavioral scenarios, each run in both arms with the model, host, prompts, tools, permissions, fixture, and rubric held constant. The completed run used OpenCode CLI 1.19.6 and `openrouter/tencent/hy4-flash`; the WITH arm used RCoder v1.11.0.
+Scope: 42 trigger prompts and 19 behavioral scenarios, both arms, with model, host, prompts, tools, permissions, fixture, and rubric held constant. Completed on OpenCode CLI 1.19.6 with `openrouter/tencent/hy4-flash`; the WITH arm used RCoder v1.11.0.
 
-**Important limitations:**
-
-- These figures describe one pinned model, host, skill version, and dataset. They are not a guarantee for every model or supported host, and they are not a measurement of the current v1.16.0 release.
-- The scenario rubric was scored by the same pinned model over bounded transcript summaries. Same-model judging bias is disclosed in the retained report.
-- Specialist selection remained a weakness: exact-match was **4 of 24 scored prompts (16.7%)** in this run. Activating RCoder does not guarantee that every specialist choice is correct.
-- The results show a measured change in this experiment, not universal model improvement or statistical significance.
+**Important:** this is one pinned model, host, skill version, and dataset. It is not a guarantee for every model or host, is not a measurement of the current v1.16.0 release, and the same model scored the rubric. Specialist exact-match was 4/24 (16.7%) in this run. See [run summary](evals/runs/hy4-flash-openrouter-2026-11-19/SUMMARY.md), [scorer output](evals/runs/hy4-flash-openrouter-2026-11-19/score-final.json), [per-case evidence](evals/runs/hy4-flash-openrouter-2026-11-19/evidence.json), and the [protocol](docs/LIVE-BENCHMARK.md).
 
 </details>
 
-**Inspect the source evidence:** [Run summary](evals/runs/hy4-flash-openrouter-2026-11-19/SUMMARY.md) · [Scorer output](evals/runs/hy4-flash-openrouter-2026-11-19/score-final.json) · [Per-case evidence](evals/runs/hy4-flash-openrouter-2026-11-19/evidence.json) · [Evaluation protocol](docs/LIVE-BENCHMARK.md).
+---
+
+## Common questions
+
+**Do I need Rust?** No. The Rust Runtime is optional. Install the skill and your agent can follow the workflow without it.
+
+**Do I need a paid model or API key?** No. The native E2E test uses a local fake provider and a synthetic key.
+
+**Does RCoder take permissions away from my editor?** No. It never bypasses or replaces host approvals.
+
+**Does "artifact_verified" mean the tests really ran?** It means a bounded artifact existed and matched an allowlisted, strictly parsed report. It does not prove a command ran or that a claim is true.
+
+**Is Windows/macOS supported?** The portable code paths and unit tests exist, but native host activation on those OSes is NOT VERIFIED here. See [Cross-platform support](#cross-platform-support).
+
+**Why does `cargo fmt` fail on my Termux image?** Some images ship a rustup proxy without a default toolchain. Use `rustfmt --edition 2024 --check <sources>`; the source contract is unchanged.
+
+---
 
 ## Recorded complex task: API migration
 

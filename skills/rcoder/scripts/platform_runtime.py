@@ -123,6 +123,11 @@ def isolated_host_environment(
             environment.pop(key, None)
         if upper.startswith("OPENCODE_") or upper in ("OPENCODE", "AI_AGENT"):
             environment.pop(key, None)
+    for key in (
+        "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "PWD", "OLDPWD",
+        "APPDATA", "LOCALAPPDATA", "USERPROFILE",
+    ):
+        environment.pop(key, None)
     python = python_command or resolve_python_command()
     environment.update({
         "MOCK_API_KEY": mock_key,
