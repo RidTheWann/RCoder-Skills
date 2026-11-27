@@ -59,8 +59,8 @@ fn ensure_real_directory(path: &Path) -> Result<()> {
     if !path.exists() {
         fs::create_dir(path).with_context(|| format!("cannot create {}", path.display()))?;
     }
-    let metadata = fs::symlink_metadata(path)
-        .with_context(|| format!("cannot inspect {}", path.display()))?;
+    let metadata =
+        fs::symlink_metadata(path).with_context(|| format!("cannot inspect {}", path.display()))?;
     if metadata.file_type().is_symlink() || !metadata.is_dir() {
         anyhow::bail!("refusing non-directory or symlink at {}", path.display());
     }
@@ -141,8 +141,7 @@ pub async fn attach_until_parent_exits(project_root: &Path, parent_pid: u32) -> 
         .create_new(true)
         .open(&lock_path)
         .with_context(|| format!("cannot create session lock {}", lock_path.display()))?;
-    FileExt::try_lock_exclusive(&lock_file)
-        .context("cannot acquire the Runtime session lock")?;
+    FileExt::try_lock_exclusive(&lock_file).context("cannot acquire the Runtime session lock")?;
 
     let mut record = SessionRecord {
         session_id,
@@ -191,10 +190,7 @@ pub fn list_sessions(project_root: &Path) -> Result<Vec<SessionSnapshot>> {
             Err(error) => return Err(error.into()),
         };
         if metadata.file_type().is_symlink() || !metadata.is_dir() {
-            anyhow::bail!(
-                "refusing to inspect non-directory or symlink at {}",
-                directory.display()
-            );
+            anyhow::bail!("refusing to inspect non-directory or symlink at {}", directory.display());
         }
     }
 
