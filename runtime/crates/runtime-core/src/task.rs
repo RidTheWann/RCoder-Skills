@@ -171,6 +171,34 @@ fn prepare_task_directory(project_root: &Path) -> Result<(std::path::PathBuf, St
     Ok((tasks_dir, root.display().to_string()))
 }
 
+fn existing_task_directory(project_root: &Path) -> Result<Option<(std::path::PathBuf, String)>> {
+    let root = project_root
+        .canonicalize()
+        .with_context(|| format!("cannot resolve project root: {}", project_root.display()))?;
+    if !root.is_dir() {
+        anyhow::bail!("project root is not a directory");
+    }
+
+    let rcoder_dir = root.join(".rcoder");
+    let runtime_dir = rcoder_dir.join("runtime");
+    let tasks_dir = runtime_dir.join("tasks");
+    for directory in [&rcoder_dir, &runtime_dir, &tasks_dir] {
+        match fs::symlink_metadata(directory) {
+            Ok(metadata) => {
+                if metadata.file_type().is_symlink() || !metadata.is_dir() {
+                    anyhow::bail!(
+                        "refusing non-directory or symlink at {}",
+                        directory.display()
+                    );
+                }
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(error) => return Err(error.into()),
+        }
+    }
+    Ok(Some((tasks_dir, root.display().to_string())))
+}
+
 fn canonical_task_id(value: &str) -> Result<String> {
     Uuid::parse_str(value)
         .map(|id| id.to_string())
@@ -325,7 +353,9 @@ pub fn create_task(
 }
 
 pub fn list_tasks(project_root: &Path) -> Result<Vec<TaskContract>> {
-    let (directory, _) = prepare_task_directory(project_root)?;
+    let Some((directory, _)) = existing_task_directory(project_root)? else {
+        return Ok(Vec::new());
+    };
     let mut tasks = Vec::new();
     for entry in fs::read_dir(&directory)? {
         let entry = entry?;
@@ -351,7 +381,9 @@ pub fn list_tasks(project_root: &Path) -> Result<Vec<TaskContract>> {
 }
 
 pub fn get_task(project_root: &Path, task_id: &str) -> Result<TaskContract> {
-    let (directory, _) = prepare_task_directory(project_root)?;
+    let Some((directory, _)) = existing_task_directory(project_root)? else {
+        anyhow::bail!("Runtime task store does not exist for this project");
+    };
     let id = canonical_task_id(task_id)?;
     let lock = lock_task(&directory, &id)?;
     let task = read_task_locked(&directory, &id)?;
@@ -367,7 +399,9 @@ pub fn record_evidence(
     summary: &str,
     source: &str,
 ) -> Result<TaskContract> {
-    let (directory, _) = prepare_task_directory(project_root)?;
+    let Some((directory, _)) = existing_task_directory(project_root)? else {
+        anyhow::bail!("Runtime task store does not exist for this project");
+    };
     let id = canonical_task_id(task_id)?;
     let lock = lock_task(&directory, &id)?;
     let mut task = read_task_locked(&directory, &id)?;
@@ -409,7 +443,9 @@ pub fn transition_task(
     to: TaskStatus,
     reason: Option<&str>,
 ) -> Result<TaskContract> {
-    let (directory, _) = prepare_task_directory(project_root)?;
+    let Some((directory, _)) = existing_task_directory(project_root)? else {
+        anyhow::bail!("Runtime task store does not exist for this project");
+    };
     let id = canonical_task_id(task_id)?;
     let lock = lock_task(&directory, &id)?;
     let mut task = read_task_locked(&directory, &id)?;
@@ -658,6 +694,19 @@ mod tests {
         );
         transition_task(&root, &task.id, TaskStatus::Completed, None)
             .expect("complete after re-verification");
+        fs::remove_dir_all(root).expect("remove fixture");
+    }
+
+    #[test]
+    fn listing_and_reading_tasks_do_not_create_runtime_state() {
+        let root = fixture();
+        assert!(list_tasks(&root).expect("list absent task store").is_empty());
+        assert!(get_task(
+            &root,
+            "00000000-0000-4000-8000-000000000001"
+        )
+        .is_err());
+        assert!(!root.join(".rcoder").exists());
         fs::remove_dir_all(root).expect("remove fixture");
     }
 
