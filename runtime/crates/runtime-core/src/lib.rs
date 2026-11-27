@@ -6,5 +6,5 @@
 mod discovery;
 mod session;
 
-pub use discovery::{ConfigIssue, DetectionReport, DetectedServer, detect_project};
+pub use discovery::{ConfigIssue, DetectedServer, DetectionReport, detect_project};
 pub use session::{SessionSnapshot, attach_until_parent_exits, list_sessions};
