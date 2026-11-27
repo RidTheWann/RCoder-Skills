@@ -63,6 +63,8 @@ jobs:
         run: python scripts/test-mcp.py
       - name: Runtime MCP auto-activation bootstrap tests
         run: python scripts/test-runtime-bootstrap.py
+      - name: Runtime task host injection regression
+        run: python scripts/test-runtime-task-host.py -v
       - name: Rust Runtime formatting
         run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
       - name: Rust Runtime unit tests
