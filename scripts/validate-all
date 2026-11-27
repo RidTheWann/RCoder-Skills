@@ -609,6 +609,14 @@ def main():
     check("cannot complete task; acceptance criteria" in runtime_task
           and "latest_failing_evidence_reopens_a_completion_blocker" in runtime_task,
           "G8: task completion must require latest passing evidence for every criterion")
+    check("completed_task_can_be_reopened_and_a_new_failure_blocks_completion" in runtime_task
+          and "TaskStatus::Completed, TaskStatus::Active" in runtime_task
+          and "a reason is required when blocking or reopening a task" in runtime_task,
+          "G8: completed tasks must reopen only with a reason and re-enter the evidence gate")
+    check("MAX_EVIDENCE_RECORDS" in runtime_task and "MAX_TRANSITIONS" in runtime_task,
+          "G8: Runtime task evidence and transition histories must have explicit bounds")
+    check('"Evidence history:"' in runtime_cli and '"State history:"' in runtime_cli,
+          "G8: Runtime task inspection must display evidence and state-transition history")
     check("TaskCommand::Create" in runtime_cli and "TaskCommand::Evidence" in runtime_cli
           and "TaskCommand::Transition" in runtime_cli,
           "G8: Runtime CLI must expose task contract and evidence operations")
