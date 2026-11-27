@@ -165,13 +165,13 @@ class RuntimeTaskHostTests(unittest.TestCase):
         cases = []
         wrong_status = json.loads(json.dumps(self.packet))
         wrong_status["task"]["status"] = "blocked"
-        cases.append(wrong_status)
+        cases.append(self.seal_packet(wrong_status))
         wrong_digest = json.loads(json.dumps(self.packet))
         wrong_digest["digest_sha256"] = "b" * 64
         cases.append(wrong_digest)
         wrong_root = json.loads(json.dumps(self.packet))
         wrong_root["task"]["project_root"] = str(self.root.parent)
-        cases.append(wrong_root)
+        cases.append(self.seal_packet(wrong_root))
         for packet in cases:
             with self.subTest(packet=packet):
                 runner = self.runner_for(packet)
@@ -188,6 +188,49 @@ class RuntimeTaskHostTests(unittest.TestCase):
             runtime_task_host.build_hook_response(event, environment=self.environment, runner=runner)
         )
         runner.assert_not_called()
+
+    def test_packet_fields_are_schema_checked_after_digest_validation(self) -> None:
+        wrong_criterion = json.loads(json.dumps(self.packet))
+        wrong_criterion["task"]["acceptance_criteria"][0]["id"] = "AC-099"
+        packet = self.seal_packet(wrong_criterion)
+        runner = self.runner_for(packet)
+        self.assertIsNone(
+            runtime_task_host.build_hook_response(
+                self.event(), environment=self.environment, runner=runner
+            )
+        )
+
+        wrong_policy = json.loads(json.dumps(self.packet))
+        wrong_policy["policy"]["host_permissions_remain_authoritative"] = False
+        packet = self.seal_packet(wrong_policy)
+        runner = self.runner_for(packet)
+        self.assertIsNone(
+            runtime_task_host.build_hook_response(
+                self.event(), environment=self.environment, runner=runner
+            )
+        )
+
+    def test_adapter_has_no_network_or_dynamic_execution(self) -> None:
+        source = ADAPTER_PATH.read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        forbidden_imports = {
+            "socket", "ssl", "urllib", "http", "requests", "ctypes", "pickle"
+        }
+        imported = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                imported.update(alias.name.split(".")[0] for alias in node.names)
+            elif isinstance(node, ast.ImportFrom):
+                imported.add((node.module or "").split(".")[0])
+            elif isinstance(node, ast.Call):
+                target = node.func
+                name = target.id if isinstance(target, ast.Name) else getattr(target, "attr", "")
+                self.assertNotIn(name, {"eval", "exec", "system", "popen", "__import__"})
+                self.assertFalse(
+                    any(keyword.arg == "shell" and keyword.value.value is True
+                        for keyword in node.keywords if keyword.arg == "shell")
+                )
+        self.assertFalse(imported & forbidden_imports)
 
     def test_symlinked_task_store_is_ignored(self) -> None:
         if os.name == "nt":
