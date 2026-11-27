@@ -194,15 +194,14 @@ fn lock_task(directory: &Path, id: &str) -> Result<File> {
         .truncate(false)
         .open(&path)
         .with_context(|| format!("cannot open task lock {}", path.display()))?;
-    FileExt::lock_exclusive(&file)
-        .with_context(|| format!("cannot lock task {}", id))?;
+    FileExt::lock_exclusive(&file).with_context(|| format!("cannot lock task {}", id))?;
     Ok(file)
 }
 
 fn read_task_locked(directory: &Path, id: &str) -> Result<TaskContract> {
     let path = task_path(directory, id);
-    let metadata = fs::symlink_metadata(&path)
-        .with_context(|| format!("task {id} does not exist"))?;
+    let metadata =
+        fs::symlink_metadata(&path).with_context(|| format!("task {id} does not exist"))?;
     if metadata.file_type().is_symlink() || !metadata.is_file() {
         anyhow::bail!("refusing non-file or symlink at {}", path.display());
     }
@@ -210,7 +209,10 @@ fn read_task_locked(directory: &Path, id: &str) -> Result<TaskContract> {
     let task: TaskContract =
         serde_json::from_slice(&bytes).context("task contract JSON is invalid")?;
     if task.schema_version != 1 {
-        anyhow::bail!("unsupported task contract schema version: {}", task.schema_version);
+        anyhow::bail!(
+            "unsupported task contract schema version: {}",
+            task.schema_version
+        );
     }
     if task.id != id {
         anyhow::bail!("task contract ID does not match its storage filename");
@@ -222,7 +224,10 @@ fn write_task_locked(directory: &Path, task: &TaskContract) -> Result<()> {
     let destination = task_path(directory, &task.id);
     if let Ok(metadata) = fs::symlink_metadata(&destination) {
         if metadata.file_type().is_symlink() || !metadata.is_file() {
-            anyhow::bail!("refusing to replace non-file or symlink at {}", destination.display());
+            anyhow::bail!(
+                "refusing to replace non-file or symlink at {}",
+                destination.display()
+            );
         }
     }
 
@@ -366,7 +371,11 @@ pub fn record_evidence(
     if task.status != TaskStatus::Active {
         anyhow::bail!("evidence can be recorded only while a task is active");
     }
-    if !task.acceptance_criteria.iter().any(|criterion| criterion.id == criterion_id) {
+    if !task
+        .acceptance_criteria
+        .iter()
+        .any(|criterion| criterion.id == criterion_id)
+    {
         anyhow::bail!("unknown acceptance criterion: {criterion_id}");
     }
 
@@ -410,7 +419,11 @@ pub fn transition_task(
             | (TaskStatus::Blocked, TaskStatus::Cancelled)
     );
     if !allowed {
-        anyhow::bail!("invalid task state transition: {} -> {}", from.as_str(), to.as_str());
+        anyhow::bail!(
+            "invalid task state transition: {} -> {}",
+            from.as_str(),
+            to.as_str()
+        );
     }
 
     if to == TaskStatus::Completed {
@@ -467,8 +480,14 @@ mod tests {
             "Unit tests pass".to_string(),
             "No credential is written to logs".to_string(),
         ];
-        let task = create_task(&root, "Implement a bounded task controller", &acceptance, &[], RiskLevel::High)
-            .expect("create task");
+        let task = create_task(
+            &root,
+            "Implement a bounded task controller",
+            &acceptance,
+            &[],
+            RiskLevel::High,
+        )
+        .expect("create task");
         assert_eq!(task.status, TaskStatus::Draft);
         assert_eq!(task.acceptance_criteria[0].id, "AC-001");
 
@@ -476,12 +495,24 @@ mod tests {
         assert_eq!(active.status, TaskStatus::Active);
         assert!(transition_task(&root, &task.id, TaskStatus::Completed, None).is_err());
 
-        record_evidence(&root, &task.id, "AC-001", EvidenceOutcome::Pass,
-            "The focused unit suite passed", "cargo test -p rcoder-runtime-core")
-            .expect("record first pass");
-        record_evidence(&root, &task.id, "AC-002", EvidenceOutcome::Pass,
-            "No secret-like value appears in the evidence export", "runtime security regression")
-            .expect("record second pass");
+        record_evidence(
+            &root,
+            &task.id,
+            "AC-001",
+            EvidenceOutcome::Pass,
+            "The focused unit suite passed",
+            "cargo test -p rcoder-runtime-core",
+        )
+        .expect("record first pass");
+        record_evidence(
+            &root,
+            &task.id,
+            "AC-002",
+            EvidenceOutcome::Pass,
+            "No secret-like value appears in the evidence export",
+            "runtime security regression",
+        )
+        .expect("record second pass");
         let completed = transition_task(&root, &task.id, TaskStatus::Completed, None)
             .expect("complete with evidence");
         assert_eq!(completed.status, TaskStatus::Completed);
@@ -495,13 +526,33 @@ mod tests {
     fn latest_failing_evidence_reopens_a_completion_blocker() {
         let root = fixture();
         let acceptance = vec!["Build passes".to_string()];
-        let task = create_task(&root, "Build a component", &acceptance, &[], RiskLevel::Medium)
-            .expect("create task");
+        let task = create_task(
+            &root,
+            "Build a component",
+            &acceptance,
+            &[],
+            RiskLevel::Medium,
+        )
+        .expect("create task");
         transition_task(&root, &task.id, TaskStatus::Active, None).expect("activate");
-        record_evidence(&root, &task.id, "AC-001", EvidenceOutcome::Pass,
-            "Build succeeded", "cargo build").expect("record pass");
-        record_evidence(&root, &task.id, "AC-001", EvidenceOutcome::Fail,
-            "A subsequent build failed", "cargo build").expect("record failure");
+        record_evidence(
+            &root,
+            &task.id,
+            "AC-001",
+            EvidenceOutcome::Pass,
+            "Build succeeded",
+            "cargo build",
+        )
+        .expect("record pass");
+        record_evidence(
+            &root,
+            &task.id,
+            "AC-001",
+            EvidenceOutcome::Fail,
+            "A subsequent build failed",
+            "cargo build",
+        )
+        .expect("record failure");
         assert!(transition_task(&root, &task.id, TaskStatus::Completed, None).is_err());
         fs::remove_dir_all(root).expect("remove fixture");
     }
@@ -509,12 +560,23 @@ mod tests {
     #[test]
     fn blocked_transition_requires_reason_and_can_resume() {
         let root = fixture();
-        let task = create_task(&root, "Resolve a dependency", &["Cargo resolves".to_string()], &[], RiskLevel::Low)
-            .expect("create task");
+        let task = create_task(
+            &root,
+            "Resolve a dependency",
+            &["Cargo resolves".to_string()],
+            &[],
+            RiskLevel::Low,
+        )
+        .expect("create task");
         transition_task(&root, &task.id, TaskStatus::Active, None).expect("activate");
         assert!(transition_task(&root, &task.id, TaskStatus::Blocked, None).is_err());
-        let blocked = transition_task(&root, &task.id, TaskStatus::Blocked, Some("Registry unavailable"))
-            .expect("block with reason");
+        let blocked = transition_task(
+            &root,
+            &task.id,
+            TaskStatus::Blocked,
+            Some("Registry unavailable"),
+        )
+        .expect("block with reason");
         assert_eq!(blocked.status, TaskStatus::Blocked);
         let resumed = transition_task(&root, &task.id, TaskStatus::Active, None).expect("resume");
         assert_eq!(resumed.status, TaskStatus::Active);
@@ -534,9 +596,17 @@ mod tests {
         let root = fixture();
         let outside = fixture();
         fs::create_dir(root.join(".rcoder")).expect("create rcoder dir");
-        std::os::unix::fs::symlink(&outside, root.join(".rcoder/runtime"))
-            .expect("create symlink");
-        assert!(create_task(&root, "Reject symlink", &["A".to_string()], &[], RiskLevel::Low).is_err());
+        std::os::unix::fs::symlink(&outside, root.join(".rcoder/runtime")).expect("create symlink");
+        assert!(
+            create_task(
+                &root,
+                "Reject symlink",
+                &["A".to_string()],
+                &[],
+                RiskLevel::Low
+            )
+            .is_err()
+        );
         fs::remove_dir_all(root).expect("remove root");
         fs::remove_dir_all(outside).expect("remove outside");
     }
