@@ -242,7 +242,7 @@ def build_parser():
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--path", default="/mcp")
-    parser.add_argument("--root", default=".")
+    parser.add_argument("--root", default=os.environ.get("RCODER_WORKSPACE_ROOT", "."))
     parser.add_argument("--profile", choices=("full", "minimal"), default="full")
     parser.add_argument("--tools", default="")
     parser.add_argument("--token-env", default="RCODER_MCP_TOKEN")
