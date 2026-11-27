@@ -143,7 +143,7 @@ fn contains_rcoder_entrypoint(value: &Value, depth: usize) -> bool {
         Value::String(text) => {
             let normalized = text.to_ascii_lowercase().replace('\\', "/");
             normalized.split_whitespace().any(|raw_token| {
-                let token = raw_token.trim_matches(|character| character == '"' || character == '\\'' || character == ',');
+                let token = raw_token.trim_matches(|character| character == '"' || character == '\'' || character == ',');
                 let basename = token.rsplit('/').next().unwrap_or(token);
                 matches!(
                     basename,
