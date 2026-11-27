@@ -12,7 +12,19 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Callable, Optional, Sequence
+from typing import Callable, Mapping, Optional, Sequence
+
+
+_RUNTIME_ENV_KEYS = {
+    "PATH", "HOME", "USERPROFILE", "SYSTEMROOT", "WINDIR",
+    "TEMP", "TMP", "TMPDIR", "LOCALAPPDATA", "APPDATA", "LANG", "LC_ALL",
+}
+
+
+def runtime_environment(source: Optional[Mapping[str, str]] = None) -> dict[str, str]:
+    """Pass only operating-system basics; never copy host API keys into the sidecar."""
+    environment = os.environ if source is None else source
+    return {key: value for key, value in environment.items() if key.upper() in _RUNTIME_ENV_KEYS}
 
 
 def start_runtime_companion(
@@ -54,6 +66,7 @@ def start_runtime_companion(
         "stdout": subprocess.DEVNULL,
         "stderr": subprocess.DEVNULL,
         "close_fds": True,
+        "env": runtime_environment(),
     }
     if actual_platform == "win32":
         options["creationflags"] = 0x00000008 | 0x08000000  # DETACHED_PROCESS | CREATE_NO_WINDOW
