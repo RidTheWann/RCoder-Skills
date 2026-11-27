@@ -326,5 +326,9 @@ check('context_fabric_host.py" user-prompt-submit' in bundle_hooks["UserPromptSu
       and 'context_fabric_host.py" stop' in bundle_hooks["Stop"][0]["hooks"][0]["command"]
       and 'context_fabric_host.py" session-end' in bundle_hooks["SessionEnd"][0]["hooks"][0]["command"],
       "the Claude plugin routes prompt injection, response capture, and session cleanup to the RFC host adapter")
+check(len(bundle_hooks["UserPromptSubmit"]) == 2
+      and 'runtime_task_host.py' in bundle_hooks["UserPromptSubmit"][1]["hooks"][0]["command"]
+      and bundle_hooks["UserPromptSubmit"][1]["hooks"][0]["timeout"] == 6,
+      "the Claude plugin runs the fail-open Runtime task packet adapter beside RFC injection")
 
 print(f"rcoder_hooks: {CHECKS} checks passed")
