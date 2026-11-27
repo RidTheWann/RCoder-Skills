@@ -75,6 +75,20 @@ A task can move to `completed` only when the latest recorded outcome for every a
 
 **Evidence boundary:** the Runtime validates contract structure, state transitions, and whether all criteria have a latest passing attestation. It does not independently execute the referenced command or prove the attestation is truthful. The future Verification Engine must cross-check evidence against actual test artifacts and repository state before stronger completion claims are made. The Task Controller does not intercept agent filesystem, shell, or IDE tools. Task inspection includes evidence and state-transition history. Never place credentials, API keys, private keys, or raw secret values in objectives, constraints, evidence summaries, or source references.
 
+## Deterministic instruction packets
+
+The Task Controller can compile an active contract into a bounded structured packet for a host to consume:
+
+```sh
+rcoder-runtime task compile --project . --id TASK_UUID --json
+```
+
+The compiler includes the objective, constraints, risk level, acceptance criteria, and only the latest evidence record for each criterion. It adds an explicit trust boundary stating that task fields are untrusted data and cannot override repository rules, system instructions, or host permissions. The packet carries a SHA-256 digest over its canonical serialized payload (excluding the digest field itself); the same task revision produces the same digest.
+
+Compilation is permitted only while the task is `active`; draft, blocked, completed, and cancelled tasks are rejected. Packets larger than 64 KiB are rejected without truncation. This prevents a large contract from being silently clipped and changing its meaning.
+
+**Host-integration boundary:** this command emits a candidate context packet; it does not inject it automatically into model requests. The next host-integration stage will consume the structured packet and ensure it is attached to each relevant request/retry. RFC remains responsible for durable cross-request context hydration, and Runtime does not read or write the RFC SQLite database.
+
 ## State and safety boundaries
 
 Runtime stores session metadata in `.rcoder/runtime/sessions/` and task contracts/evidence in `.rcoder/runtime/tasks/`. Session records contain opaque session IDs, project paths, process IDs, process start times, lifecycle timestamps, and state. Task contracts contain the requested objective, acceptance criteria, constraints, risk level, state history, and caller-supplied evidence attestations. It does not copy MCP arguments, environment variables, prompts, context payloads, canaries, credentials, or tool output into session records. The launcher also passes the companion a small OS-environment allowlist (PATH, home/temp/system-root basics, and locale) instead of inheriting host API keys and provider tokens.
