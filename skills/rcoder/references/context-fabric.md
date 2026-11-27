@@ -63,7 +63,7 @@ The local API is skills/rcoder/scripts/context_fabric.py and the repository wrap
 - Exporting raw model transcripts or logging canary-bearing build output.
 - Treating byte counts as exact model tokens or silently clipping evidence to meet a budget.
 - Running GC against implicit wall-clock values in a deterministic boundary test.
-- Claiming encryption, MCP exposure, synchronization, or automatic injection when these are not implemented.
+- Claiming encryption, MCP write access, synchronization, or cross-host automatic injection when these are not implemented.
 
 ## Verification
 Run python scripts/test-context-fabric.py, python scripts/test-context-fabric-host.py, and python -m py_compile for the store, host adapter, wrapper, and tests. Exercise a CLI stats smoke test. Confirm B-5(a), B-7(b), A36, session/prompt replay resistance, secret masking, whole-item budget selection, and the inclusive expires_at <= now boundary. Run scripts/validate-all and the repository CI matrix; mark unrun checks NOT VERIFIED.

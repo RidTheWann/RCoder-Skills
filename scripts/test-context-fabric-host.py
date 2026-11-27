@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import ast
 import hashlib
-import importlib.util
 import json
 import os
 import sqlite3
@@ -92,6 +91,22 @@ class ContextFabricHostTests(unittest.TestCase):
         self.assertNotIn(token, serialized)
         self.assertIn("Task result is ready", serialized)
         self.assertIn("<!-- RFC-ACK:  -->", serialized)
+
+    def test_successive_prompts_receive_distinct_single_use_canaries(self):
+        first = host.handle_user_prompt_submit(self.event)
+        first_token = self.token_path().read_text(encoding="utf-8").strip()
+        second_event = {**self.event, "prompt_id": "claude-prompt-002"}
+        second = host.handle_user_prompt_submit(second_event)
+        second_path = host._canary_path(self.root, self.session_id, "claude-prompt-002", create=False)
+        second_token = second_path.read_text(encoding="utf-8").strip()
+        self.assertIn(first_token, first["hookSpecificOutput"]["additionalContext"])
+        self.assertIn(second_token, second["hookSpecificOutput"]["additionalContext"])
+        self.assertNotEqual(first_token, second_token)
+        with sqlite3.connect(self.fabric.db_path) as conn:
+            count = conn.execute(
+                "SELECT COUNT(*) FROM prompt_deliveries WHERE session_id=?", (self.session_id,)
+            ).fetchone()[0]
+        self.assertEqual(count, 2)
 
     def test_response_without_canary_is_recorded_as_unacknowledged(self):
         host.handle_user_prompt_submit(self.event)

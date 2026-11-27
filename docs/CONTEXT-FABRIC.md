@@ -58,7 +58,7 @@ The first prompt then receives the session and prompt identifiers in its context
 python scripts/context-fabric.py --root . put --session SESSION_ID --kind objective --title "Active objective" --source README.md --file objective.md
 ~~~
 
-The next prompt in that same Claude session will receive the selected item. The adapter creates one fresh canary per prompt in .rcoder/private/rfc-canaries, with restrictive directory/file permissions where supported. The raw token is not stored in SQLite; only its SHA-256 digest is stored there. The token file is removed after the matching Stop event is captured.
+The next prompt in that same Claude session will receive the selected item. The adapter creates one fresh canary per prompt in .rcoder/private/rfc-canaries, with restrictive directory/file permissions where supported. The raw token is not stored in SQLite; only its SHA-256 digest is stored there. The payload asks the model to append the marker as an HTML comment so it is not presented as ordinary prose. The token file is removed after the matching Stop event is captured.
 
 The host hook is fail-open: malformed events, unavailable state, duplicate prompt identities, and internal errors do not block the prompt or stop event. Set RCODER_RFC_DISABLE=1 to disable RFC injection while leaving other RCoder hooks active; RCODER_HOOKS_DISABLE=1 disables all RCoder hooks. The default budget is 16,000 UTF-8 bytes. Use RSaver for token estimation and safe reduction.
 
