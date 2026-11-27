@@ -52,7 +52,7 @@ def main():
         unix_launch = Mock()
         with patch.dict(os.environ, {"PATH": "/usr/bin", "RCODER_TEST_API_KEY": "do-not-inherit"}):
             assert runtime_bootstrap.start_runtime_companion(
-            project, runtime_binary="/opt/rcoder-runtime", parent_pid=1234,
+                project, runtime_binary="/opt/rcoder-runtime", parent_pid=1234,
                 platform="linux", popen=unix_launch
             )
         command = unix_launch.call_args.args[0]
