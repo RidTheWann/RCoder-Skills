@@ -464,7 +464,10 @@ mod cli_tests {
 
         match cli.command {
             Command::Task {
-                command: TaskCommand::Compile { id, active, json, .. },
+                command:
+                    TaskCommand::Compile {
+                        id, active, json, ..
+                    },
             } => {
                 assert_eq!(id.as_deref(), Some("00000000-0000-4000-8000-000000000001"));
                 assert!(!active);
@@ -476,14 +479,8 @@ mod cli_tests {
 
     #[test]
     fn task_compile_command_parses_unique_active_selector() {
-        let cli = Cli::try_parse_from([
-            "rcoder-runtime",
-            "task",
-            "compile",
-            "--active",
-            "--json",
-        ])
-        .expect("parse active task compile command");
+        let cli = Cli::try_parse_from(["rcoder-runtime", "task", "compile", "--active", "--json"])
+            .expect("parse active task compile command");
 
         match cli.command {
             Command::Task {
