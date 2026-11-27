@@ -86,8 +86,10 @@ enum TaskCommand {
     Compile {
         #[arg(long, default_value = ".")]
         project: PathBuf,
-        #[arg(long)]
-        id: String,
+        #[arg(long, required_unless_present = "active", conflicts_with = "active")]
+        id: Option<String>,
+        #[arg(long, conflicts_with = "id")]
+        active: bool,
         #[arg(long)]
         json: bool,
     },
@@ -345,8 +347,30 @@ async fn main() -> Result<()> {
                 let task = get_task(&project, &id)?;
                 print_task(&task, json)?;
             }
-            TaskCommand::Compile { project, id, json } => {
-                let task = get_task(&project, &id)?;
+            TaskCommand::Compile {
+                project,
+                id,
+                active,
+                json,
+            } => {
+                let task = if active {
+                    let mut active_tasks = list_tasks(&project)?
+                        .into_iter()
+                        .filter(|task| task.status == TaskStatus::Active)
+                        .collect::<Vec<_>>();
+                    match active_tasks.len() {
+                        0 => anyhow::bail!("no active Runtime task is available to compile"),
+                        1 => active_tasks.remove(0),
+                        count => anyhow::bail!(
+                            "{count} active Runtime tasks found; compile a specific --id or leave one active"
+                        ),
+                    }
+                } else {
+                    let task_id = id
+                        .as_deref()
+                        .ok_or_else(|| anyhow::anyhow!("--id or --active is required"))?;
+                    get_task(&project, task_id)?
+                };
                 let packet = compile_task(&task)?;
                 print_instruction_packet(&packet, json)?;
             }
@@ -440,9 +464,33 @@ mod cli_tests {
 
         match cli.command {
             Command::Task {
-                command: TaskCommand::Compile { id, json, .. },
+                command: TaskCommand::Compile { id, active, json, .. },
             } => {
-                assert_eq!(id, "00000000-0000-4000-8000-000000000001");
+                assert_eq!(id.as_deref(), Some("00000000-0000-4000-8000-000000000001"));
+                assert!(!active);
+                assert!(json);
+            }
+            other => panic!("unexpected command: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn task_compile_command_parses_unique_active_selector() {
+        let cli = Cli::try_parse_from([
+            "rcoder-runtime",
+            "task",
+            "compile",
+            "--active",
+            "--json",
+        ])
+        .expect("parse active task compile command");
+
+        match cli.command {
+            Command::Task {
+                command: TaskCommand::Compile { id, active, json, .. },
+            } => {
+                assert!(id.is_none());
+                assert!(active);
                 assert!(json);
             }
             other => panic!("unexpected command: {other:?}"),
