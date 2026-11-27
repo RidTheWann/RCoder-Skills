@@ -179,9 +179,20 @@ pub fn list_sessions(project_root: &Path) -> Result<Vec<SessionSnapshot>> {
     let root = project_root
         .canonicalize()
         .with_context(|| format!("cannot resolve project root: {}", project_root.display()))?;
-    let sessions_dir = root.join(".rcoder/runtime/sessions");
-    if !sessions_dir.is_dir() {
-        return Ok(Vec::new());
+    let rcoder_dir = root.join(".rcoder");
+    let runtime_dir = rcoder_dir.join("runtime");
+    let sessions_dir = runtime_dir.join("sessions");
+    for directory in [&rcoder_dir, &runtime_dir, &sessions_dir] {
+        let metadata = match fs::symlink_metadata(directory) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return Ok(Vec::new());
+            }
+            Err(error) => return Err(error.into()),
+        };
+        if metadata.file_type().is_symlink() || !metadata.is_dir() {
+            anyhow::bail!("refusing to inspect non-directory or symlink at {}", directory.display());
+        }
     }
 
     let mut sessions = Vec::new();
