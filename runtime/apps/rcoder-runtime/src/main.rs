@@ -51,7 +51,10 @@ async fn main() -> Result<()> {
                 println!("{}", serde_json::to_string_pretty(&report)?);
             } else if report.servers.is_empty() {
                 println!("No project-local RCoder MCP server was detected.");
-                println!("Inspected {} configuration file(s).", report.inspected_files.len());
+                println!(
+                    "Inspected {} configuration file(s).",
+                    report.inspected_files.len()
+                );
             } else {
                 println!("Project: {}", report.project_root);
                 for server in &report.servers {
@@ -84,7 +87,10 @@ async fn main() -> Result<()> {
                 }
             }
         }
-        Command::Attach { project, parent_pid } => {
+        Command::Attach {
+            project,
+            parent_pid,
+        } => {
             attach_until_parent_exits(&project, parent_pid).await?;
         }
     }
