@@ -574,9 +574,11 @@ def main():
     }
     for event, phase in expected_rfc_hooks.items():
         entries = hook_events.get(event, [])
-        handlers = entries[0].get("hooks", []) if len(entries) == 1 else []
+        expected_entry_count = 2 if event == "UserPromptSubmit" else 1
+        handlers = entries[0].get("hooks", []) if entries else []
         command = handlers[0].get("command", "") if handlers else ""
-        check(len(handlers) == 1 and handlers[0].get("type") == "command"
+        check(len(entries) == expected_entry_count and len(handlers) == 1
+              and handlers[0].get("type") == "command"
               and handlers[0].get("timeout") == 10 and phase in command
               and "skills/rcoder/scripts/context_fabric_host.py" in command,
               f"G8: {event} must invoke the bundled RFC host adapter with a bounded timeout")
@@ -646,7 +648,7 @@ def main():
           "G8: Runtime's Rust compiler digest must match the Claude hook's Python verifier")
     runtime_task_host = read(SKILL / "scripts" / "runtime_task_host.py")
     claude_hooks = json.loads(read(ROOT / "hooks" / "hooks.json"))["hooks"]
-    check('subprocess.run(' in runtime_task_host and '"--active"' in runtime_task_host
+    check("subprocess.run" in runtime_task_host and '"--active"' in runtime_task_host
           and "runtime_bootstrap.runtime_environment" in runtime_task_host
           and "RCODER_RUNTIME_DISABLE" in runtime_task_host
           and "additionalContext" in runtime_task_host,
