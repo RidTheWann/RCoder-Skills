@@ -73,7 +73,7 @@ rcoder-runtime task evidence --project . --id TASK_UUID \
 
 A task can move to `completed` only when the latest recorded outcome for every acceptance criterion is `pass`. A later `fail` or `not-run` record reopens that criterion as a completion blocker. Invalid state transitions are rejected; blocking requires a reason.
 
-**Evidence boundary:** the Runtime validates contract structure, state transitions, and whether all criteria have a latest passing attestation. It does not independently execute the referenced command or prove the attestation is truthful. The future Verification Engine must cross-check evidence against actual test artifacts and repository state before stronger completion claims are made. The Task Controller does not intercept agent filesystem, shell, or IDE tools.
+**Evidence boundary:** the Runtime validates contract structure, state transitions, and whether all criteria have a latest passing attestation. It does not independently execute the referenced command or prove the attestation is truthful. The future Verification Engine must cross-check evidence against actual test artifacts and repository state before stronger completion claims are made. The Task Controller does not intercept agent filesystem, shell, or IDE tools. Never place credentials, API keys, private keys, or raw secret values in objectives, constraints, evidence summaries, or source references.
 
 ## State and safety boundaries
 
@@ -109,4 +109,4 @@ RSaver: context measurement, reduction, packing, and recovery
 Runtime: local lifecycle/control-plane foundation
 ```
 
-Next stages are the execution contract and instruction compiler, RFC/RSaver context bridge, policy-aware tool gateway, evidence verifier, and finally the desktop console. The Rust workspace is intentionally headless first; a Tauri UI is deferred until the Runtime APIs are stable.
+Next stages are the instruction compiler and host request integration, RFC/RSaver context bridge, policy-aware tool gateway, independent evidence verifier, and finally the desktop console. The Rust workspace is intentionally headless first; a Tauri UI is deferred until the Runtime APIs are stable.
