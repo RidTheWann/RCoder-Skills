@@ -26,6 +26,19 @@ MAX_PACKET_OUTPUT_BYTES = 128 * 1024
 HOOK_TIMEOUT_SECONDS = 5
 _DISABLED = {"1", "true", "yes", "on"}
 _DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")
+_SENSITIVE_PATTERNS = tuple(
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----",
+        r"\\bsk-[A-Za-z0-9_-]{20,}\\b",
+        r"\\bgh[pousr]_[A-Za-z0-9]{20,}\\b",
+        r"\\bgithub_pat_[A-Za-z0-9_]{20,}\\b",
+        r"\\bAKIA[0-9A-Z]{16}\\b",
+        r"\\bBearer\\s+[A-Za-z0-9._~+/-]{16,}={0,2}\\b",
+        r"\\beyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\b",
+        r"\\b(?:api[_-]?key|access[_-]?token|client[_-]?secret|password)\\s*[:=]\\s*\\S+",
+    )
+)
 
 
 def _is_disabled(environment: Mapping[str, str]) -> bool:
@@ -135,6 +148,15 @@ def _valid_task_shape(task: object) -> bool:
     return True
 
 
+def _contains_secret_like_value(packet: Mapping[str, object]) -> bool:
+    """Best-effort guard; this is not a complete credential detector."""
+    try:
+        serialized = json.dumps(packet, ensure_ascii=False)
+    except (TypeError, ValueError):
+        return True
+    return any(pattern.search(serialized) for pattern in _SENSITIVE_PATTERNS)
+
+
 def _valid_packet(packet: object, root: Path) -> bool:
     if not isinstance(packet, dict):
         return False
@@ -152,6 +174,8 @@ def _valid_packet(packet: object, root: Path) -> bool:
         return False
     expected_digest = _packet_digest(packet)
     if expected_digest is None or not hmac.compare_digest(digest, expected_digest):
+        return False
+    if _contains_secret_like_value(packet):
         return False
     task = packet.get("task")
     policy = packet.get("policy")
