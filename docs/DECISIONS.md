@@ -99,7 +99,7 @@
 
 
 ## D-025 — Runtime attaches to the actual local RCoder MCP process
-- Decision: the optional Rust Runtime companion is started by the bundled local Python RCoder MCP server, not by scanning for arbitrary MCP processes or by keeping a global always-on daemon. It watches the exact MCP parent process and records a project-local session.
+- Decision: the optional Rust Runtime companion is started by the bundled local Python RCoder MCP stdio server or loopback HTTP service, not by scanning for arbitrary MCP processes or by keeping a global always-on daemon. It watches the exact long-lived MCP parent process and records a project-local session; one-request HTTP workers explicitly disable companion startup.
 - Rationale: an MCP server process is a stronger activation signal than a project name or the presence of an unrelated MCP manifest. This avoids activating Runtime for Serena or other independent servers and scopes Runtime lifetime to a real RCoder MCP session.
 - Safety and scope: Runtime is optional and fail-open; unavailable or failed startup never blocks MCP. It does not alter host permissions, intercept agent tool calls, execute arbitrary commands, or read/write RFC storage. Session metadata excludes MCP arguments, environment values, prompts, and tool output. Unix runtime-state directories are owner-only and symlinked state directories are rejected.
 - Verification: Rust unit tests cover manifest detection, unrelated-server exclusion, orphan session classification, and state-directory symlink rejection; the Python bootstrap regression covers disabled, missing, successful, and failed startup paths. Native host activation remains NOT VERIFIED until exercised in supported agent hosts.
