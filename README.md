@@ -362,6 +362,7 @@ rcoder-runtime status --project .
 # Create a task contract with explicit acceptance criteria
 rcoder-runtime task create --project . --objective "Implement a feature" \
   --acceptance "Focused tests pass" --acceptance "No unrelated files changed" --risk high --json
+rcoder-runtime task transition --project . --id TASK_UUID --to active
 
 # Compile the active task into a bounded context packet
 rcoder-runtime task compile --project . --id TASK_UUID --json
