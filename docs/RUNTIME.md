@@ -71,9 +71,9 @@ rcoder-runtime task evidence --project . --id TASK_UUID \
   --source "cargo test -p runtime-core"
 ```
 
-A task can move to `completed` only when the latest recorded outcome for every acceptance criterion is `pass`. A later `fail` or `not-run` record reopens that criterion as a completion blocker. Invalid state transitions are rejected; blocking requires a reason.
+A task can move to `completed` only when the latest recorded outcome for every acceptance criterion is `pass`. While a task is active, a later `fail` or `not-run` supersedes an earlier pass and blocks completion. A completed task can be reopened to `active` only with an explicit reason; new evidence can then be recorded and the task must pass the completion gate again. Invalid state transitions are rejected; blocking and reopening require a reason. Evidence and transition histories are bounded to prevent unbounded ledger growth.
 
-**Evidence boundary:** the Runtime validates contract structure, state transitions, and whether all criteria have a latest passing attestation. It does not independently execute the referenced command or prove the attestation is truthful. The future Verification Engine must cross-check evidence against actual test artifacts and repository state before stronger completion claims are made. The Task Controller does not intercept agent filesystem, shell, or IDE tools. Never place credentials, API keys, private keys, or raw secret values in objectives, constraints, evidence summaries, or source references.
+**Evidence boundary:** the Runtime validates contract structure, state transitions, and whether all criteria have a latest passing attestation. It does not independently execute the referenced command or prove the attestation is truthful. The future Verification Engine must cross-check evidence against actual test artifacts and repository state before stronger completion claims are made. The Task Controller does not intercept agent filesystem, shell, or IDE tools. Task inspection includes evidence and state-transition history. Never place credentials, API keys, private keys, or raw secret values in objectives, constraints, evidence summaries, or source references.
 
 ## State and safety boundaries
 
