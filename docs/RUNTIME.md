@@ -44,7 +44,7 @@ Detection inspects the configured command, executable, module, and argument fiel
 
 ## State and safety boundaries
 
-Runtime stores only session metadata in `.rcoder/runtime/sessions/`: opaque session ID, project path, process IDs, process start time, lifecycle timestamps, and state. It does not copy MCP arguments, environment variables, prompts, context payloads, canaries, credentials, or tool output into session records.
+Runtime stores only session metadata in `.rcoder/runtime/sessions/`: opaque session ID, project path, process IDs, process start time, lifecycle timestamps, and state. It does not copy MCP arguments, environment variables, prompts, context payloads, canaries, credentials, or tool output into session records. The launcher also passes the companion a small OS-environment allowlist (PATH, home/temp/system-root basics, and locale) instead of inheriting host API keys and provider tokens.
 
 The runtime and sessions directories are restricted to the current user on Unix-like systems. Runtime refuses symlinked state directories and uses OS file locks to distinguish active sessions from abandoned records after a crash. Session records are local operational metadata, not proof that an agent completed work.
 
