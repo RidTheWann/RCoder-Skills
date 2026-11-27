@@ -583,7 +583,8 @@ def main():
     check("start_runtime_companion(State.root)" in runtime_mcp,
           "G8: local stdio MCP must activate the optional Runtime companion")
     check("start_runtime_companion(root)" in runtime_http
-          and 'worker_env["RCODER_RUNTIME_DISABLE"] = "1"' in runtime_http
+          and 'environment["RCODER_RUNTIME_DISABLE"] = "1"' in runtime_http
+          and "worker_env = worker_environment(" in runtime_http
           and "def worker_environment(" in runtime_http,
           "G8: loopback HTTP MCP must own one Runtime session and suppress per-request worker sidecars")
     check("RCODER_RUNTIME_DISABLE" in runtime_bootstrap
