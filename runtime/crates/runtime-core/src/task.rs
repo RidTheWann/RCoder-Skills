@@ -5,7 +5,7 @@
 
 use std::fs::{self, File, OpenOptions};
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
@@ -465,6 +465,7 @@ pub fn transition_task(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
     use uuid::Uuid;
 
     fn fixture() -> PathBuf {
