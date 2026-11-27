@@ -700,12 +700,12 @@ mod tests {
     #[test]
     fn listing_and_reading_tasks_do_not_create_runtime_state() {
         let root = fixture();
-        assert!(list_tasks(&root).expect("list absent task store").is_empty());
-        assert!(get_task(
-            &root,
-            "00000000-0000-4000-8000-000000000001"
-        )
-        .is_err());
+        assert!(
+            list_tasks(&root)
+                .expect("list absent task store")
+                .is_empty()
+        );
+        assert!(get_task(&root, "00000000-0000-4000-8000-000000000001").is_err());
         assert!(!root.join(".rcoder").exists());
         fs::remove_dir_all(root).expect("remove fixture");
     }
