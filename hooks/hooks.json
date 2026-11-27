@@ -57,6 +57,15 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/rcoder/scripts/runtime_task_host.py\" || python \"${CLAUDE_PLUGIN_ROOT}/skills/rcoder/scripts/runtime_task_host.py\"",
+            "timeout": 6
+          }
+        ]
       }
     ],
     "Stop": [
