@@ -66,9 +66,9 @@ def _has_safe_task_store(root: Path) -> bool:
 
 def _resolve_runtime_binary(environment: Mapping[str, str]) -> Optional[str]:
     explicit = environment.get("RCODER_RUNTIME_PATH")
-    candidate = explicit or shutil.which("rcoder-runtime")
+    candidate = explicit or shutil.which("rcoder-runtime", path=environment.get("PATH"))
     if not candidate and os.name == "nt":
-        candidate = shutil.which("rcoder-runtime.exe")
+        candidate = shutil.which("rcoder-runtime.exe", path=environment.get("PATH"))
     if not candidate:
         return None
     try:
