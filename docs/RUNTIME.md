@@ -4,7 +4,7 @@ RCoder Runtime is the optional local control-plane companion for RCoder Skills. 
 
 ## Activation model
 
-The local Python RCoder MCP server is the activation point:
+The local Python RCoder MCP stdio server and loopback Streamable HTTP service are activation points:
 
 1. The host starts the configured local RCoder MCP process.
 2. The MCP process looks for `rcoder-runtime` on `PATH`, or at the explicit `RCODER_RUNTIME_PATH`.
@@ -12,7 +12,7 @@ The local Python RCoder MCP server is the activation point:
 4. The companion records a session under `.rcoder/runtime/sessions/` and watches the MCP process identity, including its process start time.
 5. When that exact MCP process exits, the companion records a stopped session and releases its lock.
 
-This makes Runtime active for the lifetime of an actual local RCoder MCP process. It does not activate merely because a repository contains an MCP configuration, and it does not start for unrelated MCP servers such as Serena. A remote RCoder MCP endpoint cannot launch a local companion.
+This makes Runtime active for the lifetime of an actual local RCoder MCP process. The HTTP service owns one companion for its whole lifetime; its one-request worker subprocesses explicitly disable attachment. It does not activate merely because a repository contains an MCP configuration, and it does not start for unrelated MCP servers such as Serena. A remote RCoder MCP endpoint cannot launch a local companion.
 
 If Runtime is not installed, cannot start, or is explicitly disabled, the MCP server continues normally. Runtime startup never writes to MCP stdout and is deliberately fail-open.
 
