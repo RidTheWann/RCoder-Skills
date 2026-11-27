@@ -6,6 +6,8 @@ unless exactly one active Runtime task can be compiled into a valid packet.
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import os
 import re
@@ -78,6 +80,19 @@ def _resolve_runtime_binary(environment: Mapping[str, str]) -> Optional[str]:
         return None
 
 
+def _packet_digest(packet: Mapping[str, object]) -> Optional[str]:
+    """Recompute the compiler's canonical SHA-256 over the digest-free payload."""
+    keys = ("schema_version", "compiler_version", "trust_boundary", "policy", "task")
+    try:
+        payload = {key: packet[key] for key in keys}
+        canonical = json.dumps(
+            payload, ensure_ascii=False, separators=(",", ":"), allow_nan=False
+        ).encode("utf-8")
+    except (KeyError, TypeError, ValueError):
+        return None
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def _valid_packet(packet: object, root: Path) -> bool:
     if not isinstance(packet, dict):
         return False
@@ -85,7 +100,11 @@ def _valid_packet(packet: object, root: Path) -> bool:
         return False
     if not isinstance(packet.get("compiler_version"), str):
         return False
-    if not _DIGEST_RE.fullmatch(str(packet.get("digest_sha256", ""))):
+    digest = packet.get("digest_sha256")
+    if not isinstance(digest, str) or not _DIGEST_RE.fullmatch(digest):
+        return False
+    expected_digest = _packet_digest(packet)
+    if expected_digest is None or not hmac.compare_digest(digest, expected_digest):
         return False
     task = packet.get("task")
     policy = packet.get("policy")
