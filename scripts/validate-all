@@ -323,7 +323,8 @@ def main():
         "runtime/crates/runtime-core/src/instruction.rs",
         "runtime/apps/rcoder-runtime/Cargo.toml",
         "runtime/apps/rcoder-runtime/src/main.rs", "skills/rcoder/scripts/runtime_bootstrap.py",
-        "skills/rcoder/references/rcoder-runtime.md", "scripts/test-runtime-bootstrap.py", "docs/RUNTIME.md",
+        "skills/rcoder/scripts/runtime_task_host.py", "skills/rcoder/references/rcoder-runtime.md",
+        "scripts/test-runtime-bootstrap.py", "scripts/test-runtime-task-host.py", "docs/RUNTIME.md",
         "skills/rcoder/scripts/rsaver.py", "scripts/test-rsaver.py",
         "skills/rcoder/scripts/rsaver_guard.py",
         "scripts/rscan.py", "skills/rcoder/scripts/rscan.py", "scripts/test-rscan.py",
@@ -640,6 +641,19 @@ def main():
           and "compiler_rejects_oversized_packets_without_truncation" in runtime_instruction
           and "only_latest_evidence_per_criterion_is_compiled" in runtime_instruction,
           "G8: instruction compiler must test digest stability, size bounds, and latest evidence selection")
+    runtime_task_host = read(SKILL / "scripts" / "runtime_task_host.py")
+    claude_hooks = json.loads(read(ROOT / "hooks" / "hooks.json"))["hooks"]
+    check('subprocess.run(' in runtime_task_host and '"--active"' in runtime_task_host
+          and "runtime_bootstrap.runtime_environment" in runtime_task_host
+          and "RCODER_RUNTIME_DISABLE" in runtime_task_host
+          and "additionalContext" in runtime_task_host,
+          "G8: Claude Runtime hook must compile the active task with a sanitized, fail-open CLI bridge")
+    check(len(claude_hooks.get("UserPromptSubmit", [])) == 2
+          and "runtime_task_host.py" in claude_hooks["UserPromptSubmit"][1]["hooks"][0]["command"]
+          and claude_hooks["UserPromptSubmit"][1]["hooks"][0]["timeout"] == 6,
+          "G8: Claude UserPromptSubmit must run RFC and Runtime context adapters independently")
+    check("test-runtime-task-host.py" in read(ROOT / ".github" / "workflows" / "quality.yml"),
+          "G8: Runtime task host regression suite must run in CI")
     runtime_discovery = read(ROOT / "runtime" / "crates" / "runtime-core" / "src" / "discovery.rs")
     workflow = read(ROOT / ".github" / "workflows" / "quality.yml")
     check("rcoder_mcp.py" in runtime_discovery and "rcoder-mcp.mjs" in runtime_discovery
