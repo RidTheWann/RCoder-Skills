@@ -223,7 +223,7 @@ mod tests {
         let packet = compile_task(&task).expect("compile packet");
         assert_eq!(
             packet.digest_sha256,
-            "73c0d6cc36c60ff0a64b6790d4f8bf52f47c09f52ae27ab1f3a963c982d9c92d"
+            "963a1b21c621b5af39571e008d9993188287a264b4abc8333ee664f9d073ec31"
         );
     }
 
