@@ -217,6 +217,7 @@ fn print_task(task: &rcoder_runtime_core::TaskContract, json: bool) -> Result<()
             let outcome = task
                 .evidence
                 .iter()
+                .skip(task.completion_evidence_start_index)
                 .rev()
                 .find(|evidence| evidence.criterion_id == criterion.id)
                 .map(|evidence| format!("{:?}", evidence.outcome).to_ascii_lowercase())
