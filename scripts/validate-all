@@ -580,6 +580,9 @@ def main():
     runtime_mcp = read(SKILL / "scripts" / "rcoder_mcp.py")
     runtime_http = read(SKILL / "scripts" / "rcoder_mcp_http.py")
     runtime_bootstrap = read(SKILL / "scripts" / "runtime_bootstrap.py")
+    check('default=os.environ.get("RCODER_WORKSPACE_ROOT", ".")' in runtime_mcp
+          and 'default=os.environ.get("RCODER_WORKSPACE_ROOT", ".")' in runtime_http,
+          "G8: both MCP transports must honor the host-supplied workspace root")
     check("start_runtime_companion(State.root)" in runtime_mcp,
           "G8: local stdio MCP must activate the optional Runtime companion")
     check("start_runtime_companion(root)" in runtime_http
