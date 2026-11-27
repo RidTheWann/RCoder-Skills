@@ -117,3 +117,10 @@
 - Rationale: hosts need a stable machine-readable contract representation before the next stage can inject it into each model request and retry. Deterministic serialization makes a task revision auditable and deduplicable.
 - Safety and scope: task fields are explicitly untrusted data and cannot override system, repository, or host policy. Blocked/draft/completed/cancelled tasks cannot compile. The 64 KiB packet limit rejects oversized content without truncation. Compilation is on-demand and does not itself inject context or intercept host tools; RFC remains the owner of durable per-request context hydration.
 - Verification: Rust unit tests cover deterministic digests, active-state gating, latest-evidence selection, and oversized-packet rejection.
+
+
+## D-028 — Fail-open Claude Runtime task packet injection
+- Decision: The Claude Code plugin registers a dedicated `UserPromptSubmit` command beside RFC's existing context adapter. The Runtime adapter invokes `rcoder-runtime task compile --active --json` and emits `hookSpecificOutput.additionalContext` only when exactly one valid active task exists.
+- Rationale: the deterministic instruction packet must be attached on each eligible request/retry without conflating Runtime task state with RFC's durable context store.
+- Safety and scope: the adapter is opt-in through the packaged Claude plugin hook manifest, does not create a task store, and fails open on missing/multiple active tasks, missing binary, invalid packet, or timeout. It launches a fixed argument vector using an OS-environment allowlist and disables recursive companion startup. Task fields remain untrusted data; host permissions remain authoritative. Other hosts are not covered by this adapter.
+- Verification: Python regression tests cover injection output, absent/disabled state, missing binary, ambiguous/no active tasks, malformed packet, timeout, secret-free child environment, and symlinked task store. Native Claude Code invocation remains NOT VERIFIED.
