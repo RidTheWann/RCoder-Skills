@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -13,37 +13,42 @@ const workspace = mkdtempSync(path.join(os.tmpdir(), 'rcoder-host-state-'));
 const logDir = path.join(workspace, 'bridge-log');
 mkdirSync(logDir);
 
-const fakePython = path.join(workspace, 'fake-python.sh');
+// A Node-based fake bridge works on every platform. Only the host-script
+// constant is redirected in the test copy; all host-state logic is unchanged.
+const fakeBridge = path.join(workspace, 'fake-bridge.mjs');
+const bridgeLog = path.join(logDir, 'calls.jsonl');
 writeFileSync(
-  fakePython,
+  fakeBridge,
   [
-    '#!/bin/sh',
-    `printf '%s\\n' "$*" > "${logDir}/args-$$.txt"`,
-    `cat > "${logDir}/stdin-$$.txt"`,
-    "printf '{}\\n'",
+    "import { appendFileSync } from 'node:fs';",
+    'const args = process.argv.slice(2);',
+    "let input = '';",
+    'for await (const chunk of process.stdin) input += chunk;',
+    "appendFileSync(process.env.RCODER_HOST_LOG, JSON.stringify({ args, input }) + '\\n');",
+    "process.stdout.write('{}\\n');",
     '',
   ].join('\n'),
-  { mode: 0o755 },
 );
-chmodSync(fakePython, 0o755);
 
 const savedEnv = {
   RCODER_PYTHON: process.env.RCODER_PYTHON,
+  RCODER_HOST_LOG: process.env.RCODER_HOST_LOG,
   RCODER_RUNTIME_DISABLE: process.env.RCODER_RUNTIME_DISABLE,
   RCODER_RFC_DISABLE: process.env.RCODER_RFC_DISABLE,
 };
-process.env.RCODER_PYTHON = fakePython;
+process.env.RCODER_PYTHON = process.execPath;
+process.env.RCODER_HOST_LOG = bridgeLog;
 delete process.env.RCODER_RUNTIME_DISABLE;
 delete process.env.RCODER_RFC_DISABLE;
+writeFileSync(bridgeLog, '', 'utf8');
 
 function payloadsFor(command) {
   const result = [];
-  for (const name of readdirSync(logDir).filter((item) => item.startsWith('args-'))) {
-    const args = readFileSync(path.join(logDir, name), 'utf8').trim();
-    if (!args.includes(command)) continue;
-    const stdinPath = path.join(logDir, name.replace(/^args-/, 'stdin-'));
+  for (const line of readFileSync(bridgeLog, 'utf8').split(/\r?\n/)) {
+    if (!line.trim()) continue;
     try {
-      result.push(JSON.parse(readFileSync(stdinPath, 'utf8')));
+      const record = JSON.parse(line);
+      if (record.args && record.args.includes(command)) result.push(JSON.parse(record.input));
     } catch {
       // A non-JSON call is not a host payload.
     }
@@ -52,9 +57,7 @@ function payloadsFor(command) {
 }
 
 function clearLog() {
-  for (const name of readdirSync(logDir)) {
-    rmSync(path.join(logDir, name), { force: true });
-  }
+  writeFileSync(bridgeLog, '', 'utf8');
 }
 
 function makeCtx(options, directory) {
@@ -79,7 +82,14 @@ function makeCtx(options, directory) {
 
 let plugin;
 try {
-  writeFileSync(moduleCopy, readFileSync(source, 'utf8'), 'utf8');
+  const sourceText = readFileSync(source, 'utf8');
+  const hostLine = "const opencodeHost = path.join(scriptDirectory, 'opencode_host.py');";
+  assert.ok(sourceText.includes(hostLine), 'canonical host script constant must exist');
+  writeFileSync(
+    moduleCopy,
+    sourceText.replace(hostLine, `const opencodeHost = ${JSON.stringify(fakeBridge)};`),
+    'utf8',
+  );
   plugin = await import(pathToFileURL(moduleCopy).href);
 } finally {
   rmSync(moduleCopy, { force: true });
