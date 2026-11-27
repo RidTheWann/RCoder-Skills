@@ -316,8 +316,8 @@ for node in ast.walk(tree):
 check(not imported & {"subprocess", "socket", "ssl", "urllib", "http", "requests", "asyncio", "ctypes", "pickle"},
       f"rcoder_hooks.py imports a forbidden module: {sorted(imported)}")
 bundle_hooks = json.loads((ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
-check(set(bundle_hooks) == {"SessionStart", "PreToolUse", "PostToolUse", "PreCompact"},
-      "the bundled hook manifest enables the reviewed SessionStart and lifecycle handlers")
+check(set(bundle_hooks) == {"SessionStart", "PreToolUse", "PostToolUse", "PreCompact", "UserPromptSubmit", "Stop"},
+      "the bundled hook manifest enables tool lifecycle and RFC host-injection handlers")
 check("rcoder_hooks.py\" guard" in bundle_hooks["PreToolUse"][0]["hooks"][0]["command"]
       and "rcoder_hooks.py\" post-tool" in bundle_hooks["PostToolUse"][0]["hooks"][0]["command"]
       and "rcoder_hooks.py\" pre-compact" in bundle_hooks["PreCompact"][0]["hooks"][0]["command"],

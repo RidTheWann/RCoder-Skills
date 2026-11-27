@@ -29,7 +29,7 @@ Use MCP only when its process-level --root contains the target; tool arguments c
 
 Use references/specialist-routing.md for ambiguous work. Route architecture to architecture.md; defects to debugging-advanced.md; security to application-security.md plus llm-agent-security.md; MCP/hooks to mcp-transport-engineering.md plus agent-extensions-engineering.md; reverse engineering to reverse-engineering.md; persistent cross-request context to context-fabric.md; context reduction to token-efficiency.md and, when needed, the capsule template.
 
-RFC Context Fabric is opt-in. Stored data is not model memory until a fresh payload is built and injected into each request. Use a new prompt ID for every request and retry. Canary validation uses the session/prompt pair; exported transcripts omit the token. GC requires an explicit timestamp. See docs/CONTEXT-FABRIC.md.
+RFC Context Fabric is opt-in. In Claude Code, an initialized .rcoder/context-fabric.sqlite3 enables per-prompt injection and Stop response capture. Every request/retry needs a new prompt ID; exported transcripts omit canaries. GC requires an explicit timestamp. See docs/CONTEXT-FABRIC.md.
 
 Helpers (verification, rsaver, rsaver-gate, token-efficiency, model-adaptation) are supporting runtime modules, not primary domain specialists.
 

@@ -47,6 +47,28 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/rcoder/scripts/context_fabric_host.py\" user-prompt-submit || python \"${CLAUDE_PLUGIN_ROOT}/skills/rcoder/scripts/context_fabric_host.py\" user-prompt-submit",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/skills/rcoder/scripts/context_fabric_host.py\" stop || python \"${CLAUDE_PLUGIN_ROOT}/skills/rcoder/scripts/context_fabric_host.py\" stop",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

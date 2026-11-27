@@ -5,7 +5,7 @@ RCoder follows Semantic Versioning.
 ## [Unreleased]
 
 ### Added
-- RFC Context Fabric foundation: local SQLite/content-addressed context storage, explicit per-request hydration, session/prompt-scoped canaries, token-free transcript export, credential-pattern redaction, and deterministic timestamp-injected garbage collection. Adds a dedicated API/CLI, regression tests, documentation, and CI registration; host-level automatic injection and MCP exposure remain out of scope for this slice.
+- RFC Context Fabric foundation and Claude Code host injection: local SQLite/content-addressed context storage, explicit per-request hydration through UserPromptSubmit, session/prompt-scoped canaries, Stop response capture, token-free transcript export, credential-pattern redaction, and deterministic timestamp-injected garbage collection. Host injection remains opt-in until the workspace store exists; the adapter fails open and does not block the host.
 - RSaver `optimize`: opt-in, content-aware prose phrase tightening via CLI and read-only MCP, with token-estimate gating, SHA-256 receipts, and preservation of code, structured data, logs, Markdown structures, and normative constraints.
 - Deterministic SSOT command and manifest synchronization with byte-exact LF checks; one unified parity gate validates generated Markdown/TOML, TOML syntax, manifest versions, contract JSON, SKILL references, and cross-platform path/line-ending rules.
 - Release hygiene checks for required runtime files, sensitive-file/test-artifact exclusions, token-shaped secrets, archive completeness, and package checksums.

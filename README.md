@@ -344,7 +344,7 @@ RFC is the Context Fabric development track. It stores typed, source-aware conte
 
 The first slice includes SHA-256-addressed artifact storage, provenance and confidence fields, whole-item budget selection, session-plus-prompt canary validation, token-free transcript export, secret-pattern redaction, pinned context, and deterministic expiry collection. Its budget is measured in UTF-8 bytes, not provider tokens; use RSaver for token estimates and safe reduction.
 
-The current slice is a local Python API/CLI. Automatic host interception, MCP integration, encrypted storage, distributed synchronization, and vector retrieval are not yet implemented. See [RFC Context Fabric design and usage](docs/CONTEXT-FABRIC.md) and its [agent reference](skills/rcoder/references/context-fabric.md).
+The local Python API/CLI now has a native **Claude Code host adapter**: UserPromptSubmit builds and injects a fresh payload through the host's additionalContext channel, and Stop captures the final assistant response for canary verification and token-free RFC transcript storage. The adapter is opt-in: it remains inactive until .rcoder/context-fabric.sqlite3 exists, and it never blocks the host. Other host adapters, MCP write tools, encrypted storage, distributed synchronization, and vector retrieval are not implemented. See [RFC Context Fabric design and usage](docs/CONTEXT-FABRIC.md) and its [agent reference](skills/rcoder/references/context-fabric.md).
 
 ### MCP server — optional native tools
 

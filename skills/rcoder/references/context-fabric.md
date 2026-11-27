@@ -30,10 +30,11 @@ A model request has only the context actually supplied to that request. A databa
 - Need to reduce an oversized prompt or estimate provider-token cost -> use RSaver; do not treat RFC's byte budget as a tokenizer.
 - Need proof that the model received a context payload -> inject it into the actual request and verify the response canary; a stored payload alone is insufficient.
 - Need to share or publish logs -> redact with RSaver first and inspect the redacted copy.
-- Need automatic host interception, MCP exposure, encryption, sync, or vector retrieval -> treat it as a separate implementation milestone; those capabilities are not present in this slice.
+- Running the Claude Code plugin with an initialized workspace store -> the bundled UserPromptSubmit adapter injects a fresh payload and the Stop adapter records the raw response for canary verification.
+- Need another host adapter, MCP write tools, encryption, sync, or vector retrieval -> those capabilities are not present in this slice.
 
 ## Tool strategy
-The local API is skills/rcoder/scripts/context_fabric.py and the repository wrapper is scripts/context-fabric.py. Store canary tokens in a private local file and pass a file path to the CLI; avoid command-line literals and shell history. The SQLite store is local and unencrypted. Keep .rcoder private, and do not rely on best-effort redaction as a complete secret detector.
+The local API is skills/rcoder/scripts/context_fabric.py and the repository wrapper is scripts/context-fabric.py. The Claude Code adapter is skills/rcoder/scripts/context_fabric_host.py and is registered in hooks/hooks.json. It activates only when .rcoder/context-fabric.sqlite3 already exists; run the stats command once to initialize it. The adapter stores a per-delivery canary in .rcoder/private/rfc-canaries with restrictive permissions and removes it after Stop capture. The SQLite store is local and unencrypted. Keep .rcoder private, and do not rely on best-effort redaction as a complete secret detector.
 
 ## Advanced techniques
 - Use content SHA-256 as a deduplication key for identical sanitized artifacts, not as proof that source evidence is true.
@@ -54,7 +55,7 @@ The local API is skills/rcoder/scripts/context_fabric.py and the repository wrap
 - [ ] Source, confidence, and kind remain visible for every selected context item.
 - [ ] Canary acceptance is checked against the raw response; exported transcript contains zero token occurrences.
 - [ ] GC uses an explicit clock and preserves pinned items.
-- [ ] Unencrypted local storage and incomplete host integration are disclosed.
+- [ ] Unencrypted local storage and the Claude-only, fail-open host integration limits are disclosed.
 
 ## Anti-patterns
 - Treating a vector store, SQLite database, content hash, or summary as autonomous model memory.
@@ -65,7 +66,7 @@ The local API is skills/rcoder/scripts/context_fabric.py and the repository wrap
 - Claiming encryption, MCP exposure, synchronization, or automatic injection when these are not implemented.
 
 ## Verification
-Run python scripts/test-context-fabric.py and python -m py_compile for the module, wrapper, and test. Exercise a CLI stats smoke test. Confirm B-5(a), B-7(b), A36, session/prompt replay resistance, secret masking, whole-item budget selection, and the inclusive expires_at <= now boundary. Run scripts/validate-all and the repository CI matrix; mark unrun checks NOT VERIFIED.
+Run python scripts/test-context-fabric.py, python scripts/test-context-fabric-host.py, and python -m py_compile for the store, host adapter, wrapper, and tests. Exercise a CLI stats smoke test. Confirm B-5(a), B-7(b), A36, session/prompt replay resistance, secret masking, whole-item budget selection, and the inclusive expires_at <= now boundary. Run scripts/validate-all and the repository CI matrix; mark unrun checks NOT VERIFIED.
 
 ## Output format
 Report the session/prompt identity, selected item IDs, payload hash and byte count, observed injection evidence, canary result, transcript-export result, GC timestamp and result, exact commands, and all remaining host or storage limitations.

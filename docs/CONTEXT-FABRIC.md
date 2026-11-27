@@ -1,88 +1,86 @@
 # RFC — Context Fabric
 
-RFC is the Context Fabric development track for RCoder. Its purpose is to make durable project context available to an agent on every new request through an explicit, auditable handoff. It does **not** make a model stateful and does not treat a content-addressed store as memory by itself.
+RFC is RCoder's explicit, provenance-aware context persistence and request-hydration layer. It does **not** make a model stateful: every request receives only the context actually supplied to that request.
 
-## Relationship to the existing projects
+## Responsibilities
 
-- **RCoder** owns the engineering workflow and orchestration: identify the active objective, decide what belongs in context, assemble a request, inject the payload, verify the response, and checkpoint the result.
-- **RSaver** remains responsible for context measurement, safe reduction, redaction, lossless packing, recovery, and evidence cross-checking. RFC does not replace those functions or claim byte counts are model-token counts.
-- **Context Fabric** persists provenance-aware context items and creates an explicit request payload for a specific (session_id, prompt_id) pair.
-- **REPS2** can consume RFC through its RCoder workflow later. This first implementation does not change the REPS2 repository or introduce a project dependency on REPS2.
+- **RCoder** owns engineering workflow, task orchestration, and deciding which durable facts should be recorded.
+- **RSaver** measures context, performs safe reduction and redaction, and supports packing, recovery, and evidence cross-checking. RFC byte budgets are not provider-token counts.
+- **RFC Context Fabric** persists typed context with provenance and assembles a new bounded payload for a specific session/prompt pair.
+- **Host adapter** transports that payload into a model request and captures the corresponding response. It is the delivery boundary, not another source of model memory.
+- **REPS2** may consume RFC through RCoder later. This implementation does not modify REPS2.
 
-## The key model correction
+## Request lifecycle
 
-A database, vector index, content hash, or retrieval result does not give the model persistent memory. Each model request starts with only the context actually supplied to that request. Therefore every request must perform this sequence:
+1. Store sanitized context items with a stable session identity.
+2. Receive a fresh host prompt event with a session ID and prompt ID.
+3. Call build_context(session_id, prompt_id); every request and retry must have a new prompt ID.
+4. Inject the returned payload into that exact request.
+5. Capture the host's final assistant response and verify the canary against the same composite identity.
+6. Export only through export_transcript(); the exported record contains no acknowledgement token.
 
-1. Store or update verified context items in the local fabric.
-2. Call build_context() with a unique session_id and a new prompt_id.
-3. Inject the returned text into the actual model request. Merely storing or building it is not enough.
-4. When a canary is enabled, verify the raw assistant response with record_response().
-5. Use export_transcript() for the token-free exported record.
+A database, content hash, retrieval result, or payload receipt without step 4 is not evidence that the model received context.
 
-Reusing a (session_id, prompt_id) pair is rejected. A retry or subsequent model call must use a new prompt identity.
+## Local implementation
 
-## First implementation slice
-
-The implementation in skills/rcoder/scripts/context_fabric.py is a standard-library Python module with a local CLI wrapper at scripts/context-fabric.py.
+The standard-library implementation is skills/rcoder/scripts/context_fabric.py, with the repository CLI wrapper at scripts/context-fabric.py.
 
 It provides:
 
-- SQLite storage under .rcoder/context-fabric.sqlite3.
-- Content-addressed artifacts keyed by SHA-256, with deduplication across context items.
-- Typed context records: objective, constraint, decision, fact, evidence, unresolved, and next_action.
-- Deterministic priority/recency selection within a UTF-8 byte budget. Items are either included whole or excluded; they are never silently truncated.
-- Explicit request hydration and a SHA-256 receipt for the assembled payload.
-- Session-and-prompt-scoped canary verification, with globally unique canary tokens.
-- Transcript storage and export that remove the exact canary before persistence. The raw canary is not stored; only its SHA-256 digest is retained for validation.
-- Best-effort credential redaction before context and transcript persistence.
-- Pinned records and deterministic expiry collection driven by an explicit timestamp.
+- SQLite storage at .rcoder/context-fabric.sqlite3.
+- SHA-256 content-addressed artifacts and deduplication.
+- Typed records: objective, constraint, decision, fact, evidence, unresolved, and next_action.
+- Source references, confidence, priority, pinning, and expiry metadata.
+- Whole-item selection under a UTF-8 byte budget; records are included whole or excluded, never silently truncated.
+- Payload receipts, session/prompt-bound unique canaries, token-free response export, best-effort credential-pattern redaction, and explicit-clock garbage collection.
+- ensure_session(), so a host can register a session before any context item has been stored.
 
-### Canary acceptance errata
+## Claude Code host injection
 
-The final v0.2.3.5 review errata distinguish response verification from transcript export:
+The first native host adapter is Claude Code: skills/rcoder/scripts/context_fabric_host.py.
 
-- **B-5(a):** the raw model response must contain the exact acknowledgement token for the delivery to be acknowledged.
-- **B-7(b) and A36:** the exported transcript must contain zero occurrences of that acknowledgement token.
+The plugin manifest at hooks/hooks.json registers two events:
 
-RFC checks the raw response before storage, strips every occurrence of the expected token, and exports only the token-free transcript plus an acknowledgement boolean. Canary identity is the composite (session_id, prompt_id), not either field alone. A token cannot be reused for another delivery.
+| Event | Adapter behavior |
+|---|---|
+| UserPromptSubmit | Reads session_id, prompt_id, and cwd; builds the fresh RFC payload; returns it through hookSpecificOutput.additionalContext. |
+| Stop | Reads the same identity and last_assistant_message; verifies the per-delivery canary and stores a token-free transcript record. |
 
-### Deterministic GC boundary
-
-A record with expires_at == now is eligible for collection (expires_at <= now). The caller must pass now explicitly to gc(), or --now to the CLI. GC never reads SQLite's implicit current clock. Tests construct expiry and comparison timestamps from the same fixed value, so test eligibility cannot drift with wall-clock seconds.
-
-## Local usage
-
-Store a verified item:
+The adapter is deliberately opt-in. It does nothing unless .rcoder/context-fabric.sqlite3 already exists. Initialize the store once:
 
 ~~~sh
-python scripts/context-fabric.py --root . put --session demo --kind objective --title "Project objective" --source README.md --file objective.md
+python scripts/context-fabric.py --root . stats
 ~~~
 
-Build a request payload. The canary token is read from a local file so it does not need to appear in shell arguments:
+The first prompt then receives the session and prompt identifiers in its context header. Session-scoped items can be stored against that session:
 
 ~~~sh
-python scripts/context-fabric.py --root . build --session demo --prompt request-0001 --budget-bytes 12000 --ack-token-file .rcoder/private/canary.txt
+python scripts/context-fabric.py --root . put --session SESSION_ID --kind objective --title "Active objective" --source README.md --file objective.md
 ~~~
 
-The caller must inject the returned text into that exact model request. After receiving the response:
+The next prompt in that same Claude session will receive the selected item. The adapter creates one fresh canary per prompt in .rcoder/private/rfc-canaries, with restrictive directory/file permissions where supported. The raw token is not stored in SQLite; only its SHA-256 digest is stored there. The token file is removed after the matching Stop event is captured.
 
-~~~sh
-python scripts/context-fabric.py --root . ack --session demo --prompt request-0001 --token-file .rcoder/private/canary.txt --response-file response.txt
-python scripts/context-fabric.py --root . export --session demo --prompt request-0001
-~~~
+The host hook is fail-open: malformed events, unavailable state, duplicate prompt identities, and internal errors do not block the prompt or stop event. Set RCODER_RFC_DISABLE=1 to disable RFC injection while leaving other RCoder hooks active; RCODER_HOOKS_DISABLE=1 disables all RCoder hooks. The default budget is 16,000 UTF-8 bytes. Use RSaver for token estimation and safe reduction.
 
-Collect expired unpinned items using an explicit timestamp:
+## Canary acceptance and export
 
-~~~sh
-python scripts/context-fabric.py --root . gc --now 1795776000
-~~~
+- **B-5(a):** the raw assistant response must contain the exact acknowledgement token for the matching (session_id, prompt_id).
+- **B-7(b) and A36:** exported RFC transcripts must contain zero occurrences of that token.
+- A canary is unique to one delivery. The adapter keeps the raw token only in a private local file until the corresponding Stop event.
+- If the assistant response omits the marker, the response is still recorded but the delivery remains unacknowledged. The hook does not force the model to repeat or block the user's turn.
 
-stats reports local counters without exposing stored content. Context is stored locally and is not encrypted by RFC. The redactor is best-effort, not a guarantee that arbitrary sensitive data will be detected. Keep .rcoder private and never deliberately store credentials. Protect canary files and avoid logging the build output, because it contains the token intended for the model.
+The canary is a delivery signal, not proof that every selected fact was understood or followed.
 
-## Explicit limits of this slice
+## Deterministic retention
 
-This is the first RFC implementation, not completion of the entire Context Fabric roadmap. It does not yet provide MCP tools, automatic host interception/injection, cross-device synchronization, encryption at rest, vector retrieval, or background GC. The caller is responsible for invoking the API/CLI and injecting each returned payload. The budget is in UTF-8 bytes, not provider tokens. RSaver remains the tool for estimating model-token cost and reducing context safely.
+A record with expires_at == now is eligible for collection (expires_at <= now). The caller must pass an explicit timestamp to gc(); test fixture creation and evaluation must use the same value. Pinned records are preserved.
 
-## Verification
+## Usage and safety notes
 
-scripts/test-context-fabric.py covers request hydration, composite canary identity, token-free transcript export (B-7(b)/A36), response-side canary acceptance (B-5(a)), unique canary use, secret redaction, no silent content truncation, and deterministic GC at the inclusive expiry boundary.
+- Run python scripts/test-context-fabric.py and python scripts/test-context-fabric-host.py for store and host-adapter regression coverage.
+- stats reports local counters without exposing stored content.
+- The SQLite database is unencrypted. The redactor is best-effort and does not guarantee detection of arbitrary sensitive data.
+- Keep .rcoder/ private and do not deliberately store credentials.
+- Native loading and invocation in a live Claude Code process remain **NOT VERIFIED** by the local simulator and CI.
+- The current adapter is Claude Code-specific. OpenCode, Gemini CLI, Codex, and other host integrations are not implemented by this slice.
+- MCP write tools, cross-device synchronization, encryption at rest, vector retrieval, and background GC are not implemented.
