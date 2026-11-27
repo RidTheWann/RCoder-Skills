@@ -7,10 +7,11 @@ RCoder Runtime is the optional local control-plane companion for RCoder Skills. 
 The local Python RCoder MCP stdio server and loopback Streamable HTTP service are activation points:
 
 1. The host starts the configured local RCoder MCP process.
-2. The MCP process looks for `rcoder-runtime` on `PATH`, or at the explicit `RCODER_RUNTIME_PATH`.
-3. When the executable is available, the MCP process starts a detached companion with its own process group.
-4. The companion records a session under `.rcoder/runtime/sessions/` and watches the MCP process identity, including its process start time.
-5. When that exact MCP process exits, the companion records a stopped session and releases its lock.
+2. The Node launcher forwards `RCODER_WORKSPACE_ROOT`; the MCP server uses it as the default `--root` (an explicit `--root` argument still takes precedence).
+3. The MCP process looks for `rcoder-runtime` on `PATH`, or at the explicit `RCODER_RUNTIME_PATH`.
+4. When the executable is available, the MCP process starts a detached companion with its own process group.
+5. The companion records a session under `.rcoder/runtime/sessions/` and watches the MCP process identity, including its process start time.
+6. When that exact MCP process exits, the companion records a stopped session and releases its lock.
 
 This makes Runtime active for the lifetime of an actual local RCoder MCP process. The HTTP service owns one companion for its whole lifetime; its one-request worker subprocesses explicitly disable attachment. It does not activate merely because a repository contains an MCP configuration, and it does not start for unrelated MCP servers such as Serena. A remote RCoder MCP endpoint cannot launch a local companion.
 
