@@ -40,7 +40,7 @@ Use `rcoder-runtime task create`, `list`, `show`, `evidence`, and `transition`. 
 
 ## Advanced techniques
 
-Split unrelated deliverables into separate contracts. Keep acceptance criteria small, observable, and independently checkable. A newer fail or not-run attestation intentionally supersedes an older pass, so repeat evidence capture after fixes and rerun the relevant check.
+Split unrelated deliverables into separate contracts. Keep acceptance criteria small, observable, and independently checkable. A newer fail or not-run attestation intentionally supersedes an older pass. A completed task must first be reopened to active with a reason before new evidence can be recorded; repeat evidence capture after fixes and rerun the relevant check.
 
 ## Failure modes
 
@@ -73,5 +73,6 @@ Report the task UUID, final state, acceptance criteria outcomes, evidence source
 - **Anti-Patterns**: Never invent evidence, execute a command merely to populate a record without inspecting its result, or confuse a passing attestation with independent proof.
 - **Failure Diagnostics**:
   - Transition rejected -> a prior state or completion prerequisite is unsatisfied -> inspect the task and record missing criterion evidence.
+  - Reopen rejected -> no reason was supplied or the state is not completed -> provide a reason and confirm the current task state.
   - Task ID rejected -> the identifier is malformed or unavailable -> copy the UUID from `task create` or `task list`.
   - Task storage rejected -> a state path is unsafe or unwritable -> inspect `.rcoder/runtime/tasks` permissions and symlinks without bypassing the guard.
