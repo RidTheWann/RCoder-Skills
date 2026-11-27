@@ -40,7 +40,7 @@ rcoder hooks uninstall --scope project
 
 The bundled Claude Code plugin calls `context_fabric_host.py user-prompt-submit` on every submitted prompt and `context_fabric_host.py stop` when a turn stops. The adapter is inert until `.rcoder/context-fabric.sqlite3` exists; initialize it with `python scripts/context-fabric.py --root . stats`. Each prompt gets a unique canary file under `.rcoder/private/rfc-canaries`; the Stop hook checks the host's `last_assistant_message`, stores the token-free RFC transcript, and removes the file. A missing canary marks the delivery unacknowledged but never blocks the turn. Set `RCODER_RFC_DISABLE=1` to disable only RFC host injection.
 
-This host path is Claude Code-specific. Local tests validate hook payloads and lifecycle pairing; native loading and invocation inside a live Claude Code process remain NOT VERIFIED.
+This host path is Claude Code-specific (D-024). Local tests and static validation check the event wiring, hook payload, and lifecycle pairing; native loading and invocation inside a live Claude Code process remain NOT VERIFIED.
 
 ## Guard rules
 

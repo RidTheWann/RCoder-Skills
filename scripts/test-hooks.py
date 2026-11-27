@@ -322,8 +322,8 @@ check("rcoder_hooks.py\" guard" in bundle_hooks["PreToolUse"][0]["hooks"][0]["co
       and "rcoder_hooks.py\" post-tool" in bundle_hooks["PostToolUse"][0]["hooks"][0]["command"]
       and "rcoder_hooks.py\" pre-compact" in bundle_hooks["PreCompact"][0]["hooks"][0]["command"],
       "all bundled lifecycle entries call the full canonical skill handler")
-check("context_fabric_host.py\\\" user-prompt-submit" in bundle_hooks["UserPromptSubmit"][0]["hooks"][0]["command"]
-      and "context_fabric_host.py\\\" stop" in bundle_hooks["Stop"][0]["hooks"][0]["command"],
+check('context_fabric_host.py" user-prompt-submit' in bundle_hooks["UserPromptSubmit"][0]["hooks"][0]["command"]
+      and 'context_fabric_host.py" stop' in bundle_hooks["Stop"][0]["hooks"][0]["command"],
       "the Claude plugin routes prompt injection and response capture to the RFC host adapter")
 
 print(f"rcoder_hooks: {CHECKS} checks passed")
