@@ -97,6 +97,11 @@ pub struct TaskContract {
     pub risk_level: RiskLevel,
     pub status: TaskStatus,
     pub evidence: Vec<EvidenceRecord>,
+    /// Index of the first evidence record belonging to the current completion cycle.
+    /// Evidence before this boundary remains in the audit history but cannot satisfy
+    /// acceptance criteria after a completed task has been reopened.
+    #[serde(default)]
+    pub completion_evidence_start_index: usize,
     pub history: Vec<StatusTransition>,
     pub created_at_unix: u64,
     pub updated_at_unix: u64,
@@ -247,6 +252,9 @@ fn read_task_locked(directory: &Path, id: &str) -> Result<TaskContract> {
     if task.id != id {
         anyhow::bail!("task contract ID does not match its storage filename");
     }
+    if task.completion_evidence_start_index > task.evidence.len() {
+        anyhow::bail!("task completion evidence boundary exceeds its evidence history");
+    }
     Ok(task)
 }
 
@@ -290,6 +298,7 @@ fn write_task_locked(directory: &Path, task: &TaskContract) -> Result<()> {
 fn latest_outcome(task: &TaskContract, criterion_id: &str) -> Option<EvidenceOutcome> {
     task.evidence
         .iter()
+        .skip(task.completion_evidence_start_index)
         .rev()
         .find(|record| record.criterion_id == criterion_id)
         .map(|record| record.outcome)
@@ -343,6 +352,7 @@ pub fn create_task(
         risk_level,
         status: TaskStatus::Draft,
         evidence: Vec::new(),
+        completion_evidence_start_index: 0,
         history: Vec::new(),
         created_at_unix: now,
         updated_at_unix: now,
@@ -500,6 +510,11 @@ pub fn transition_task(
     }
 
     let now = unix_now();
+    if from == TaskStatus::Completed && to == TaskStatus::Active {
+        // Preserve historical evidence for audit, but require a fresh verification
+        // cycle before the reopened task can be completed again.
+        task.completion_evidence_start_index = task.evidence.len();
+    }
     task.history.push(StatusTransition {
         from,
         to,
