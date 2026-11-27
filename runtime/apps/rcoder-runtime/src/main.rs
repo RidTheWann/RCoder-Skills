@@ -484,7 +484,10 @@ mod cli_tests {
 
         match cli.command {
             Command::Task {
-                command: TaskCommand::Compile { id, active, json, .. },
+                command:
+                    TaskCommand::Compile {
+                        id, active, json, ..
+                    },
             } => {
                 assert!(id.is_none());
                 assert!(active);
