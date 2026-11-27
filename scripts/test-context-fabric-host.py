@@ -66,11 +66,14 @@ class ContextFabricHostTests(unittest.TestCase):
         self.assertGreaterEqual(len(token), 24)
         self.assertIn(token, payload)
 
-        with sqlite3.connect(self.fabric.db_path) as conn:
+        conn = sqlite3.connect(self.fabric.db_path)
+        try:
             stored_digest = conn.execute(
                 "SELECT ack_token_sha256 FROM prompt_deliveries WHERE session_id=? AND prompt_id=?",
                 (self.session_id, self.prompt_id),
             ).fetchone()[0]
+        finally:
+            conn.close()
         self.assertEqual(stored_digest, hashlib.sha256(token.encode("utf-8")).hexdigest())
         self.assertNotEqual(stored_digest, token)
 
@@ -134,10 +137,13 @@ class ContextFabricHostTests(unittest.TestCase):
         self.assertIn(first_token, first["hookSpecificOutput"]["additionalContext"])
         self.assertIn(second_token, second["hookSpecificOutput"]["additionalContext"])
         self.assertNotEqual(first_token, second_token)
-        with sqlite3.connect(self.fabric.db_path) as conn:
+        conn = sqlite3.connect(self.fabric.db_path)
+        try:
             count = conn.execute(
                 "SELECT COUNT(*) FROM prompt_deliveries WHERE session_id=?", (self.session_id,)
             ).fetchone()[0]
+        finally:
+            conn.close()
         self.assertEqual(count, 2)
 
     def test_first_prompt_without_host_prompt_id_uses_private_runtime_identity(self):
