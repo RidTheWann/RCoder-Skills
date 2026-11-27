@@ -88,7 +88,7 @@ The compiler includes the objective, constraints, risk level, acceptance criteri
 
 Compilation is permitted only while the task is `active`; draft, blocked, completed, and cancelled tasks are rejected. Packets larger than 64 KiB are rejected without truncation. This prevents a large contract from being silently clipped and changing its meaning.
 
-**Host-integration boundary:** this command emits a candidate context packet; it does not inject it automatically into model requests. The next host-integration stage will consume the structured packet and ensure it is attached to each relevant request/retry. RFC remains responsible for durable cross-request context hydration, and Runtime does not read or write the RFC SQLite database.
+**CLI boundary:** this command emits a candidate packet but does not itself inject it. The separate Claude Code `UserPromptSubmit` adapter described below consumes the packet and supplies it to eligible prompt requests. Other hosts require their own adapter. RFC remains responsible for durable cross-request context hydration, and Runtime does not read or write the RFC SQLite database.
 
 ## Claude Code per-request task injection
 
@@ -139,4 +139,4 @@ RSaver: context measurement, reduction, packing, and recovery
 Runtime: local lifecycle/control-plane foundation
 ```
 
-Next stages are the instruction compiler and host request integration, RFC/RSaver context bridge, policy-aware tool gateway, independent evidence verifier, and finally the desktop console. The Rust workspace is intentionally headless first; a Tauri UI is deferred until the Runtime APIs are stable.
+Next stages are adapters for additional hosts (including OpenCode and Codex), a fuller RFC/RSaver context bridge, a policy-aware Tool Gateway for operations actually routed through it, an independent evidence verifier, and finally the desktop console. The Rust workspace is intentionally headless first; a Tauri UI is deferred until the Runtime APIs are stable.
