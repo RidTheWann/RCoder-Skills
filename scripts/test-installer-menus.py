@@ -58,16 +58,19 @@ def run_powershell(temp):
     home = temp / "ps-home"
     project.mkdir()
     home.mkdir()
-    answers = f"1\n3\n1\n1\n2\n{project}\n0\n"  # install, Cursor, project, both tools, auto MCP
-    env = dict(os.environ, HOME=str(home), USERPROFILE=str(home))
+    answers = f"1\n3\n1\n1\n2\n1\n{project}\n0\n"  # install, Cursor, project, both tools, auto MCP, both builtins
+    env = dict(os.environ, HOME=str(home), USERPROFILE=str(home), RCODER_RUNTIME_DISABLE="1")
     done = subprocess.run([pwsh, "-NoLogo", "-NoProfile", "-File", str(ROOT / "launcher" / "RCoder.ps1")],
                           input=answers, capture_output=True, text=True, encoding="utf-8",
                           errors="replace", timeout=180, env=env, check=False)
     assert done.returncode == 0, done.stdout + done.stderr
     check_blocks("PowerShell launcher", done.stdout)
+    assert "Clean install" in done.stdout, "PowerShell menu has no clean install option"
+    assert "Built-in RFC / Runtime" in done.stdout, "PowerShell menu has no RFC/Runtime prompt"
     assert (project / ".cursor" / "mcp.json").is_file(), done.stdout
     assert (project / ".cursor" / "skills" / "rcoder" / "scripts" / "rcoder_mcp_setup.py").is_file()
-    print("PASS PowerShell launcher menus")
+    assert (project / ".rcoder" / "context-fabric.sqlite3").is_file(), done.stdout
+    print("PASS PowerShell launcher menus with RFC/Runtime options")
 
 
 def run_node(temp):
@@ -132,6 +135,7 @@ def run_node(temp):
     respond("Choose installation scope: ", "1")
     respond("Enable optional tools: ", "1")
     respond("MCP server: ", "2")
+    respond("Built-in RFC / Runtime: ", "1")
     respond("Project directory [", str(project))
     respond("Choose an action: ", "0")
     drain(1.0)
@@ -142,6 +146,7 @@ def run_node(temp):
     text = re.sub(rb"\x1b\[[0-9;?]*[A-Za-z]", b"", output).decode("utf-8", "replace")
     check_blocks("Node manager", text)
     assert "Clean install" in text, "clean install option missing from the menu"
+    assert "Built-in RFC / Runtime" in text, "built-in RFC/Runtime prompt missing from the menu"
     assert (project / ".cursor" / "mcp.json").is_file(), text
     if os.name != "nt":
         assert (home / ".local" / "bin" / "rcoder").is_file(), "interactive install did not install the global launcher"
