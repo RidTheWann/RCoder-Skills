@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Optional helpers require Python 3.9+. MCP hosts launch the configured server."
 metadata:
   author: RidTheWann
-  version: "1.17.0"
+  version: "1.17.1"
 contract: contracts/rcoder-v2.json
 ---
 

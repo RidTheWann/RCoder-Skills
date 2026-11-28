@@ -19,7 +19,7 @@ If Runtime is not installed, cannot start, or is explicitly disabled, the MCP se
 
 ## Install
 
-The standard installer installs a prebuilt, checksum-verified `rcoder-runtime` binary into `~/.rcoder/bin/` (or `%USERPROFILE%\.rcoder\bin\` on Windows). It first uses the asset committed in `runtime/bin/`, then falls back to the project's published release assets (`v1.17.0` ships linux-x64, linux-arm64, macos-arm64, and windows-x64). No Rust toolchain is needed. The MCP bootstrap also searches these directories, so no `PATH` edit is required; `RCODER_RUNTIME_PATH` still overrides detection. macOS/x64 (Intel) currently has no published asset and stays fail-open.
+The standard installer installs a prebuilt, checksum-verified `rcoder-runtime` binary into `~/.rcoder/bin/` (or `%USERPROFILE%\.rcoder\bin\` on Windows). It first uses the asset committed in `runtime/bin/`, then falls back to the project's published release assets (`v1.17.1` ships linux-x64, linux-arm64, macos-arm64, and windows-x64). No Rust toolchain is needed. The MCP bootstrap also searches these directories, so no `PATH` edit is required; `RCODER_RUNTIME_PATH` still overrides detection. macOS/x64 (Intel) currently has no published asset and stays fail-open.
 
 Contributors who want to build from source can install Rust 1.85 or newer and run:
 

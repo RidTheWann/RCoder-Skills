@@ -1,4 +1,4 @@
-# RCoder project handoff — v1.15.0 (historical snapshot; current product version is 1.17.0)
+# RCoder project handoff — v1.15.0 (historical snapshot; current product version is 1.17.1)
 
 ## Delivered
 

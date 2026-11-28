@@ -4,6 +4,8 @@ RCoder follows Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.17.1] - 2026-11-28
+
 ### Added
 - PowerShell and Node interactive managers now expose a built-in RFC/Runtime selection step and the clean-install option, matching the CLI switches. Previously the PowerShell launcher had no RFC/Runtime prompt and never invoked the built-in helper.
 

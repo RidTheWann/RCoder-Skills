@@ -7,7 +7,7 @@
 **Recon → focus → memory → evidence → clean handoff.** No new model, no new editor, no permission bypass.
 
 [![Quality CI](https://github.com/RidTheWann/RCoder-Skills/actions/workflows/quality.yml/badge.svg)](https://github.com/RidTheWann/RCoder-Skills/actions/workflows/quality.yml)
-[![Version: 1.17.0](https://img.shields.io/badge/version-1.17.0-7c3aed.svg)](CHANGELOG.md)
+[![Version: 1.17.1](https://img.shields.io/badge/version-1.17.1-7c3aed.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Hosts: 20 catalogued](https://img.shields.io/badge/hosts-20%20catalogued-informational.svg)](#compatibility)
 [![OS: Windows | Linux | macOS | Termux](https://img.shields.io/badge/OS-Windows%20%7C%20Linux%20%7C%20macOS%20%7C%20Termux-informational.svg)](#cross-platform-support)
@@ -163,7 +163,7 @@ The claim is narrow: **same model, same host, same prompts, same tools, same per
 
 **Workload:** 42 trigger prompts and 19 behavioral scenarios, both arms. **Configuration:** OpenCode 1.19.6 with `openrouter/tencent/hy4-flash`; WITH arm used RCoder v1.11.0.
 
-**Limits:** one pinned model/host/version/dataset; not a claim about v1.17.0; same-model rubric scoring; specialist exact-match 4/24 (16.7%). See [summary](evals/runs/hy4-flash-openrouter-2026-11-19/SUMMARY.md), [scores](evals/runs/hy4-flash-openrouter-2026-11-19/score-final.json), [evidence](evals/runs/hy4-flash-openrouter-2026-11-19/evidence.json), and [protocol](docs/LIVE-BENCHMARK.md).
+**Limits:** one pinned model/host/version/dataset; not a claim about v1.17.1; same-model rubric scoring; specialist exact-match 4/24 (16.7%). See [summary](evals/runs/hy4-flash-openrouter-2026-11-19/SUMMARY.md), [scores](evals/runs/hy4-flash-openrouter-2026-11-19/score-final.json), [evidence](evals/runs/hy4-flash-openrouter-2026-11-19/evidence.json), and [protocol](docs/LIVE-BENCHMARK.md).
 
 </details>
 
