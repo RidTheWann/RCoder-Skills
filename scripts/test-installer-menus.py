@@ -66,7 +66,7 @@ def run_powershell(temp):
     assert done.returncode == 0, done.stdout + done.stderr
     check_blocks("PowerShell launcher", done.stdout)
     assert "Clean install" in done.stdout, "PowerShell menu has no clean install option"
-    assert "Built-in RFC / Runtime" in done.stdout, "PowerShell menu has no RFC/Runtime prompt"
+    assert "Built-in subsystems" in done.stdout, done.stdout
     assert (project / ".cursor" / "mcp.json").is_file(), done.stdout
     assert (project / ".cursor" / "skills" / "rcoder" / "scripts" / "rcoder_mcp_setup.py").is_file()
     assert (project / ".rcoder" / "context-fabric.sqlite3").is_file(), done.stdout
