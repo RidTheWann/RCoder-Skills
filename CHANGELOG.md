@@ -4,6 +4,8 @@ RCoder follows Semantic Versioning.
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-11-28
+
 ### Added
 - Built-in RFC and Runtime setup in every installer. `scripts/rcoder_builtins.py` initializes `.rcoder/context-fabric.sqlite3` and installs a checksum-verified prebuilt `rcoder-runtime` binary from `runtime/bin/` into `~/.rcoder/bin/`; no Rust toolchain or `PATH` edit is required. `runtime_bootstrap.py` also searches the installed binary directory. The npm package and plugin ZIPs now include `runtime/bin/**`.
 - Clean install option (`--clean` / `-Clean`, menu item 5, recommended) that replaces an existing bundle even when it appears current, regenerates managed state, and keeps a timestamped backup. `--no-rfc` and `--no-runtime` are available as opt-outs.

@@ -1,6 +1,6 @@
 {
   "name": "rcoder",
-  "version": "1.16.0",
+  "version": "1.17.0",
   "description": "Evidence-led engineering workflow with focused specialists, read-only repository context, and optional MCP tools.",
   "contextFileName": "GEMINI.md",
   "mcpServers": {

@@ -1,6 +1,6 @@
 # RCoder plugin and extension integration matrix
 
-Updated: 2026-11-27. Product version is 1.16.0.
+Updated: 2026-11-27. Product version is 1.17.0.
 
 ## Integration principles
 

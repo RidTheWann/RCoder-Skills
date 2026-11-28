@@ -4,7 +4,7 @@ This document describes the common contract that binds the portable skill, MCP c
 
 ## Compatibility policy
 
-- The current product version remains the manifest/package version (1.16.0 in this development branch). The 2.0 contract is a forward-compatible architecture contract, not a claim that the 2.0 release is complete.
+- The current product version remains the manifest/package version (1.17.0 in this development branch). The 2.0 contract is a forward-compatible architecture contract, not a claim that the 2.0 release is complete.
 - stdio remains the default transport. Existing host configurations are not rewritten to HTTP automatically.
 - Legacy MCP clients continue through the existing legacy core. The modern stateless protocol is 2026-07-28.
 - The Skills-over-MCP manifest remains inline in `skills/list`: every eligible resource has its exact URI, SHA-256 digest, and byte size. `resources/read` serves the exact bytes represented by that manifest.

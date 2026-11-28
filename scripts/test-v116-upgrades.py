@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline regression tests for RCoder v1.16.0 runtime, parity, resources, and skill prompts."""
+"""Offline regression tests for RCoder v1.17.0 runtime, parity, resources, and skill prompts."""
 from __future__ import annotations
 
 import json
@@ -78,7 +78,7 @@ class TestV116Upgrades(unittest.TestCase):
 
     def test_version_and_default_eval_data_are_packaged(self) -> None:
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
-        self.assertEqual(package["version"], "1.16.0")
+        self.assertEqual(package["version"], "1.17.0")
         self.assertIn("evals/**", package.get("files", []))
         for manifest in (
             ROOT / "plugin.json",
@@ -86,7 +86,7 @@ class TestV116Upgrades(unittest.TestCase):
             ROOT / ".claude-plugin" / "plugin.json",
             ROOT / ".codex-plugin" / "plugin.json",
         ):
-            self.assertEqual(json.loads(manifest.read_text(encoding="utf-8"))["version"], "1.16.0")
+            self.assertEqual(json.loads(manifest.read_text(encoding="utf-8"))["version"], "1.17.0")
 
 
 if __name__ == "__main__":
