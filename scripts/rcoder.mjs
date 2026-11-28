@@ -91,6 +91,9 @@ Options:
   --dry-run           Preview without writing files
   --uninstall         Remove selected skill and restore the latest backup
   --no-launcher       Do not install/update the global rcoder command
+  --clean             Clean reinstall: replace the bundle and regenerate managed state (recommended)
+  --no-rfc            Skip built-in RFC store initialization
+  --no-runtime        Skip installation of the bundled Runtime binary
   --features <csv>    Optional tools to enable: rsaver,rscan (default: both)
   --list-features     Show optional tools with short descriptions
   --mcp <mode>        MCP server setup after install: none (default) | show (print config) | install (set up automatically)
@@ -206,6 +209,7 @@ function parseArgs(args) {
     target: 'agents', scope: 'project', projectDir: process.cwd(),
     homeDir: HOME, dryRun: false, uninstall: false, interactive: false,
     listTargets: false, noLauncher: false, listFeatures: false,
+    clean: false, noRfc: false, noRuntime: false,
     features: 'rsaver,rscan', mcp: 'none'
   };
   for (let i = 0; i < args.length; i += 1) {
@@ -217,6 +221,9 @@ function parseArgs(args) {
     if (arg === '--interactive' || arg === '-i') { options.interactive = true; continue; }
     if (arg === '--list-targets') { options.listTargets = true; continue; }
     if (arg === '--no-launcher') { options.noLauncher = true; continue; }
+    if (arg === '--clean') { options.clean = true; continue; }
+    if (arg === '--no-rfc') { options.noRfc = true; continue; }
+    if (arg === '--no-runtime') { options.noRuntime = true; continue; }
     if (arg === '--list-features') { options.listFeatures = true; continue; }
     if (arg === '--mcp') {
       if (!args[i + 1] || args[i + 1].startsWith('--')) throw new Error('Missing value for --mcp');
@@ -241,6 +248,7 @@ function parseArgs(args) {
   }
   if (!TARGET_BY_ID.has(options.target)) throw new Error(`Unsupported target: ${options.target}. Use --list-targets.`);
   if (!SCOPES.has(options.scope)) throw new Error(`Unsupported scope: ${options.scope}`);
+  if (options.clean && options.uninstall) throw new Error('--clean cannot be combined with --uninstall');
   parseFeatureSelection(options.features);
   if (!['none', 'show', 'install'].includes(options.mcp)) throw new Error('--mcp must be none, show, or install');
   return options;
@@ -999,6 +1007,7 @@ function writeFeatureManifest(options, target) {
     if (!options.dryRun && existsSync(manifest)) rmSync(manifest, { force: true });
     return;
   }
+  if (options.clean && !options.dryRun && existsSync(manifest)) rmSync(manifest, { force: true });
   const state = JSON.stringify(featureState(options.features), null, 2) + '\n';
   if (options.dryRun) {
     console.log(`DRY RUN: write optional tool manifest to ${manifest}`);
@@ -1009,6 +1018,34 @@ function writeFeatureManifest(options, target) {
   mkdirSync(targetRoot, { recursive: true });
   writeFileSync(manifest, state, 'utf8');
   console.log(`Enabled optional tools for ${target.label}: ${options.features}`);
+}
+
+function runBuiltins(options, target) {
+  if (options.uninstall) return;
+  const helper = path.join(SOURCE, 'scripts', 'rcoder_builtins.py');
+  if (!existsSync(helper)) {
+    console.log('Warning: bundled built-in setup helper is missing; RFC/Runtime setup skipped.');
+    return;
+  }
+  const python = findPython();
+  if (!python) {
+    console.log('Warning: Python 3 was not found; RFC/Runtime setup skipped.');
+    return;
+  }
+  const root = options.scope === 'project' ? path.resolve(options.projectDir) : path.resolve(options.homeDir);
+  const args = ['setup', '--root', root, '--source', PACKAGE_ROOT, '--home', path.resolve(options.homeDir)];
+  if (options.noRfc) args.push('--no-rfc');
+  if (options.noRuntime) args.push('--no-runtime');
+  if (options.dryRun) args.push('--dry-run');
+  const result = spawnSync(python.exe, [...python.pre, helper, ...args], {
+    cwd: PACKAGE_ROOT, encoding: 'utf8', timeout: 60000,
+    env: { ...process.env, HOME: options.homeDir, USERPROFILE: options.homeDir }
+  });
+  if (result.error || result.status !== 0) {
+    console.log(`Warning: built-in setup reported a problem: ${result.error?.message || (result.stderr || '').trim()}`);
+  } else if (result.stdout) {
+    process.stdout.write(result.stdout);
+  }
 }
 
 function assertSafePath(base, targetPath) {
@@ -1128,11 +1165,12 @@ function installTarget(options, target) {
     return;
   }
 
-  if (sameTree(SOURCE, destination)) {
+  if (!options.clean && sameTree(SOURCE, destination)) {
     console.log(`RCoder ${VERSION} is already current for ${target.label} at ${destination}`);
     return;
   }
   console.log(`Install target: ${target.label} (${options.scope}) -> ${destination}`);
+  if (options.clean) console.log('Clean install: replacing the bundle and regenerating managed state.');
   if (options.dryRun) {
     if (existsSync(destination)) console.log(`DRY RUN: back up the existing folder under ${backupRoot}`);
     console.log(`DRY RUN: copy the bundled skill into ${destination}`);
@@ -1332,11 +1370,12 @@ async function runInteractive(options) {
       console.log('  2. Uninstall RCoder');
       console.log('  3. Show supported agents');
       console.log('  4. Set up MCP server (no reinstall needed)');
+      console.log('  5. Clean install (recommended for broken or stale installs)');
       console.log('  0. Exit');
       const action = await ask(rl, '\nChoose an action: ', '0');
       if (action === '0') return;
       if (action === '3') { showTargets(); continue; }
-      if (!['1', '2', '4'].includes(action)) throw new Error('Invalid action selection.');
+      if (!['1', '2', '4', '5'].includes(action)) throw new Error('Invalid action selection.');
 
       showTargets();
       const selection = await ask(rl, '\nSelect one or more targets (for example 1,7,10; A = all): ');
@@ -1354,7 +1393,8 @@ async function runInteractive(options) {
       const scopeChoice = await ask(rl, '\nChoose installation scope: ', '1');
       if (!['1', '2'].includes(scopeChoice)) throw new Error('Invalid scope selection.');
       const scope = scopeChoice === '1' ? 'project' : 'user';
-      if (action === '1') {
+      if (action === '1' || action === '5') {
+        options.clean = action === '5';
         showFeatures();
         console.log('\nChoose which to enable:');
         console.log('  1. Both tools (default)');
@@ -1397,9 +1437,10 @@ async function runInteractive(options) {
         const targetOptions = { ...options, scope, projectDir: base, uninstall: action === '2', dryRun: false };
         installTarget(targetOptions, target);
         writeFeatureManifest(targetOptions, target);
-        if (action === '1') runMcpSetup(options.mcp, target, scope, base);
+        runBuiltins(targetOptions, target);
+        if (action === '1' || action === '5') runMcpSetup(options.mcp, target, scope, base);
       }
-      if (action === '1' && !options.noLauncher) installLauncher(options.homeDir);
+      if ((action === '1' || action === '5') && !options.noLauncher) installLauncher(options.homeDir);
       console.log('\nOperation completed. Start a new agent session to refresh its skills.');
     }
   } finally {
@@ -1435,6 +1476,7 @@ try {
     const target = TARGET_BY_ID.get(options.target);
     installTarget(options, target);
     writeFeatureManifest(options, target);
+    runBuiltins(options, target);
     if (!options.noLauncher && !options.dryRun && !options.uninstall) installLauncher(options.homeDir);
     const mcpBase = options.scope === 'project' ? path.resolve(options.projectDir) : path.resolve(options.homeDir);
     if (options.dryRun && options.mcp !== 'none') console.log(`DRY RUN: MCP mode '${options.mcp}' would run after the skill is installed.`);

@@ -1,0 +1,74 @@
+name: RCoder Runtime release assets
+
+# Builds prebuilt Runtime binaries when a GitHub Release is published so installer
+# users never need a Rust toolchain. The linux-arm64 asset is also committed in
+# runtime/bin/ for the development host.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x64
+            binary: rcoder-runtime
+          - os: ubuntu-24.04-arm
+            target: linux-arm64
+            binary: rcoder-runtime
+          - os: macos-latest
+            target: macos-arm64
+            binary: rcoder-runtime
+          - os: macos-13
+            target: macos-x64
+            binary: rcoder-runtime
+          - os: windows-latest
+            target: windows-x64
+            binary: rcoder-runtime.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - name: Build Runtime
+        run: cargo build --release --manifest-path runtime/Cargo.toml -p rcoder-runtime
+      - name: Stage asset and checksum
+        shell: bash
+        run: |
+          mkdir -p stage
+          name="rcoder-runtime-${{ matrix.target }}"
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then name="${name}.exe"; fi
+          cp "runtime/target/release/${{ matrix.binary }}" "stage/${name}"
+          (cd stage && sha256sum "${name}" > "${name}.sha256")
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtime-asset-${{ matrix.target }}
+          path: stage/*
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+      - name: Build combined SHA256SUMS and upload release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd assets
+          cat *.sha256 > SHA256SUMS
+          rm -f *.sha256
+          tag="${{ github.event.release.tag_name }}"
+          if [ -z "$tag" ]; then tag="v$(node -p "require('./package.json').version")"; fi
+          gh release upload "$tag" * --clobber --repo "${{ github.repository }}"

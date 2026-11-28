@@ -1,4 +1,5 @@
 $ErrorActionPreference = 'Stop'
+$env:RCODER_RUNTIME_DISABLE = '1'
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $filesToParse = @(
     (Join-Path $repoRoot 'install.ps1'),
@@ -74,6 +75,13 @@ try {
     $featureState = Get-Content -LiteralPath $featureManifest -Raw -Encoding UTF8 | ConvertFrom-Json
     if (-not $featureState.rscan -or $featureState.rsaver) { throw 'Optional tool manifest is incorrect' }
     Write-Output 'PASS PowerShell optional tool selection'
+    $cleanProject = Join-Path $temp 'clean-project'
+    $cleanHome = Join-Path $temp 'clean-home'
+    New-Item -ItemType Directory -Force -Path $cleanProject,$cleanHome | Out-Null
+    $cleanOutput = & $installer -Target agents -Scope project -ProjectDir $cleanProject -HomeDir $cleanHome -Clean
+    if ("$cleanOutput" -notmatch 'Clean install') { throw 'Clean install output missing' }
+    if (-not (Test-Path -LiteralPath (Join-Path $cleanProject '.rcoder/context-fabric.sqlite3'))) { throw 'RFC store was not initialized by clean install' }
+    Write-Output 'PASS PowerShell clean install and RFC store'
     $manifestBytes = [IO.File]::ReadAllBytes($featureManifest)
     if ($manifestBytes.Length -ge 3 -and $manifestBytes[0] -eq 0xEF -and $manifestBytes[1] -eq 0xBB -and $manifestBytes[2] -eq 0xBF) { throw 'Feature manifest has a UTF-8 BOM' }
     $mcpProject = Join-Path $temp 'mcp-project'

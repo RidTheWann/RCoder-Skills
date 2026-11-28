@@ -13,7 +13,8 @@ param(
     [ValidateSet('none','show','install')]
     [string]$Mcp = 'none',
     [string]$SourceDir = '',
-    [switch]$ListFeatures
+    [switch]$ListFeatures,
+    [switch]$Clean,[switch]$NoRfc,[switch]$NoRuntime
 )
 $ErrorActionPreference = 'Stop'
 if ($ListFeatures) {
@@ -21,6 +22,7 @@ if ($ListFeatures) {
     Write-Host 'RScan: Read-only project scan with ranked development options at session start'
     return
 }
+if ($Clean -and $Uninstall) { throw 'Clean cannot be combined with uninstall.' }
 $selectedFeatures = @()
 if ($Features -and $Features -ne 'none') {
     foreach ($part in ($Features -split ',')) {
@@ -59,6 +61,20 @@ function Write-FeatureManifest([string]$TargetRoot) {
     $state = ([ordered]@{schema_version=1;version=$version;rsaver=($selectedFeatures -contains 'rsaver');rscan=($selectedFeatures -contains 'rscan')})|ConvertTo-Json
     Write-Utf8NoBom -Path $featureManifest -Text ($state+"`n")
     Write-Host "Enabled optional tools: $Features"
+}
+
+function Invoke-Builtins([string]$Repo,[string]$Base,[string]$UserHome,[string]$SkillSource) {
+    if ($Uninstall) { return }
+    . (Join-Path (Join-Path $Repo 'launcher') 'McpSetup.ps1')
+    $python = Find-RCoderPython
+    if ($null -eq $python) { Write-Host 'Warning: Python 3 not found; RFC/Runtime setup skipped.'; return }
+    $helper = Join-Path (Join-Path $SkillSource 'scripts') 'rcoder_builtins.py'
+    if (-not (Test-Path -LiteralPath $helper -PathType Leaf)) { Write-Host 'Warning: built-in setup helper is missing; RFC/Runtime setup skipped.'; return }
+    $arguments = @($python.PreArgs) + @($helper, 'setup', '--root', $Base, '--source', $Repo, '--home', $UserHome)
+    if ($NoRfc) { $arguments += @('--no-rfc') }
+    if ($NoRuntime) { $arguments += @('--no-runtime') }
+    if ($DryRun) { $arguments += @('--dry-run') }
+    try { & $python.Exe @arguments } catch { Write-Host "Warning: built-in setup reported a problem: $($_.Exception.Message)" }
 }
 
 function Test-SameDirectory([string]$Left,[string]$Right) {
@@ -206,8 +222,9 @@ try {
     }
     $source=Join-Path (Join-Path $repo 'skills') 'rcoder'
     if(-not(Test-Path -LiteralPath (Join-Path $source 'SKILL.md') -PathType Leaf)){throw 'Downloaded skill bundle is incomplete.'}
-    if(-not(Test-SameDirectory -Left $source -Right $destination)){
-        if($DryRun){Write-Host 'DRY RUN: no files will be changed.';if($Mcp -ne 'none'){Write-Host "DRY RUN: MCP mode '$Mcp' would run after the skill is installed."};return}
+    if($Clean){Write-Host 'Clean install: replacing the bundle and regenerating managed state.';$cleanManifest=Join-Path $targetRoot '.rcoder-features.json';if(Test-Path -LiteralPath $cleanManifest){Remove-Item -LiteralPath $cleanManifest -Force}}
+    if($Clean -or -not(Test-SameDirectory -Left $source -Right $destination)){
+        if($DryRun){Write-Host 'DRY RUN: no files will be changed.';Invoke-Builtins -Repo $repo -Base $base -UserHome $userHome -SkillSource $source;if($Mcp -ne 'none'){Write-Host "DRY RUN: MCP mode '$Mcp' would run after the skill is installed."};return}
         New-Item -ItemType Directory -Path $skillsRoot,$backupRoot -Force | Out-Null
         $stamp=[DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ')+'-'+[guid]::NewGuid().ToString('N').Substring(0,8)
         $stage=Join-Path $skillsRoot ".rcoder-stage-$stamp"
@@ -222,6 +239,7 @@ try {
         Write-Host "Installed RCoder skill: $destination"
     } else {Write-Host 'The selected RCoder skill installation is already current.'}
     if(-not $DryRun){Write-FeatureManifest -TargetRoot $targetRoot}else{Write-Host "DRY RUN: refresh optional tool manifest with $Features"}
+    Invoke-Builtins -Repo $repo -Base $base -UserHome $userHome -SkillSource $source
     if(-not $NoLauncher -and -not $DryRun){Install-GlobalLauncher -Repo $repo -UserHome $userHome}
     if($Mcp -ne 'none' -and -not $DryRun){
         . (Join-Path (Join-Path $repo 'launcher') 'McpSetup.ps1')

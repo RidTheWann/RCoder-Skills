@@ -321,8 +321,14 @@ def main():
           "G8: SKILL.md must define the multilingual activation contract")
     check(package.get("bin", {}).get("rcoder") == "./scripts/rcoder.mjs", "G1: npm rcoder binary missing")
     package_files = set(package.get("files", []))
-    for required in ("skills/rcoder/**", "scripts/rcoder.mjs", "targets.json", "launcher/RCoder.ps1"):
+    for required in ("skills/rcoder/**", "runtime/bin/**", "scripts/rcoder.mjs", "targets.json", "launcher/RCoder.ps1"):
         check(required in package_files, f"G1: npm package missing runtime file pattern {required}")
+    for relative in ("scripts/install.sh", "scripts/install.ps1", "install.ps1", "scripts/rcoder.mjs"):
+        installer = read(ROOT / relative).lower().replace("-", "")
+        for flag in ("clean", "norfc", "noruntime"):
+            check(flag in installer, f"G8: {relative} is missing the {flag} option")
+    check("rcoder_builtins.py" in read(ROOT / "scripts" / "rcoder.mjs"),
+          "G8: Node installer must invoke the built-in RFC/Runtime setup helper")
     for required in (
         "scripts/rcoder.mjs", "scripts/install.ps1", "scripts/install.sh",
         "scripts/test-node-installer.mjs", "scripts/test-installers.sh",
@@ -332,7 +338,8 @@ def main():
         "runtime/crates/runtime-core/src/session.rs", "runtime/crates/runtime-core/src/task.rs",
         "runtime/crates/runtime-core/src/instruction.rs",
         "runtime/apps/rcoder-runtime/Cargo.toml",
-        "runtime/apps/rcoder-runtime/src/main.rs", "skills/rcoder/scripts/runtime_bootstrap.py",
+        "runtime/apps/rcoder-runtime/src/main.rs", "runtime/bin/SHA256SUMS",
+        "skills/rcoder/scripts/runtime_bootstrap.py", "skills/rcoder/scripts/rcoder_builtins.py",
         "skills/rcoder/scripts/runtime_task_host.py", "skills/rcoder/references/rcoder-runtime.md",
         "scripts/test-runtime-bootstrap.py", "scripts/test-runtime-task-host.py", "docs/RUNTIME.md",
         "skills/rcoder/scripts/rsaver.py", "scripts/test-rsaver.py",

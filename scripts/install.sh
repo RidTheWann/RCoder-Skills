@@ -23,6 +23,9 @@ Actions:
 Optional integrations:
   --features CSV           rsaver,rscan (default) or none.
   --mcp none|show|install  Skip, print, or apply MCP host configuration.
+  --clean                  Clean reinstall: replace the bundle and regenerate managed state (recommended).
+  --no-rfc                 Skip built-in RFC store initialization.
+  --no-runtime             Skip installation of the bundled Runtime binary.
 EOF
 }
 TARGET=agents
@@ -34,6 +37,9 @@ REMOVE=0
 DOCTOR=0
 FEATURES=rsaver,rscan
 MCP=none
+CLEAN=0
+RFC_SETUP=1
+RUNTIME_SETUP=1
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -74,6 +80,9 @@ while [ "$#" -gt 0 ]; do
       ;;
     --dry-run) DRY=1; shift ;;
     --uninstall) REMOVE=1; shift ;;
+    --clean) CLEAN=1; shift ;;
+    --no-rfc) RFC_SETUP=0; shift ;;
+    --no-runtime) RUNTIME_SETUP=0; shift ;;
     --doctor) DOCTOR=1; shift ;;
     --yes|-y) shift ;; # No prompt is used; accept the flag for automation compatibility.
     -h|--help) usage; exit 0 ;;
@@ -101,6 +110,11 @@ case "$TARGET" in
     exit 2
     ;;
 esac
+
+if [ "$CLEAN" -eq 1 ] && [ "$REMOVE" -eq 1 ]; then
+  echo "[RCoder] ERROR: --clean cannot be combined with --uninstall." >&2
+  exit 2
+fi
 
 if [ "$DOCTOR" -eq 1 ]; then
   if [ "$REMOVE" -eq 1 ] || [ "$DRY" -eq 1 ]; then
@@ -233,6 +247,30 @@ write_feature_manifest(){
   echo "Enabled optional tools: $FEATURES"
 }
 
+run_builtins(){
+  HELPER="$SOURCE/scripts/rcoder_builtins.py"
+  if [ ! -f "$HELPER" ]; then
+    echo 'Warning: bundled built-in setup helper is missing; RFC/Runtime setup skipped.'
+    return 0
+  fi
+  PY=''
+  for candidate in python3 python; do
+    if command -v "$candidate" >/dev/null 2>&1 && [ "$("$candidate" -c 'import sys; print(sys.version_info[0])' 2>/dev/null)" = 3 ]; then
+      PY=$candidate
+      break
+    fi
+  done
+  if [ -z "$PY" ]; then
+    echo 'Warning: Python 3 was not found; RFC/Runtime setup skipped.'
+    return 0
+  fi
+  set -- setup --root "$BASE" --source "$SCRIPT_DIR/.." --home "$HOME_DIR"
+  [ "$RFC_SETUP" -eq 1 ] || set -- "$@" --no-rfc
+  [ "$RUNTIME_SETUP" -eq 1 ] || set -- "$@" --no-runtime
+  [ "$DRY" -eq 1 ] && set -- "$@" --dry-run
+  "$PY" "$HELPER" "$@" || echo 'Warning: built-in setup reported a problem.'
+}
+
 mcp_step(){
   [ "$MCP" != none ] || return 0
   PY=''
@@ -251,24 +289,31 @@ mcp_step(){
   "$PY" "$DEST/scripts/rcoder_mcp_setup.py" "$ACTION" --host "$TARGET" --scope "$SCOPE" --base "$BASE" --server "$DEST/scripts/rcoder_mcp_modern.py" || echo 'Warning: MCP setup reported a problem.'
 }
 
-if [ -d "$DEST" ] && diff -qr "$SOURCE" "$DEST" >/dev/null 2>&1; then
+if [ "$CLEAN" -eq 0 ] && [ -d "$DEST" ] && diff -qr "$SOURCE" "$DEST" >/dev/null 2>&1; then
   echo "RCoder is already current at $DEST"
   if [ "$DRY" -eq 1 ]; then
     echo "DRY RUN: refresh optional tool manifest with $FEATURES"
+    run_builtins
   else
     write_feature_manifest
+    run_builtins
     mcp_step
   fi
   exit 0
 fi
 
 echo "Install target: $TARGET ($SCOPE) -> $DEST"
+[ "$CLEAN" -eq 0 ] || echo 'Clean install: replacing the bundle and regenerating managed state.'
 if [ "$DRY" -eq 1 ]; then
   [ ! -d "$DEST" ] || echo "DRY RUN: backup existing folder to $BACKUP/install-$STAMP"
   echo "DRY RUN: copy skill bundle to $DEST"
+  run_builtins
   exit 0
 fi
 
+if [ "$CLEAN" -eq 1 ] && [ -f "$TARGET_ROOT/.rcoder-features.json" ]; then
+  rm -f "$TARGET_ROOT/.rcoder-features.json"
+fi
 mkdir -p "$(dirname "$DEST")" "$BACKUP"
 STAGE="$(dirname "$DEST")/.rcoder-stage-$STAMP"
 SAVED=''
@@ -287,4 +332,5 @@ trap - EXIT HUP INT TERM
 
 echo "Installed RCoder for $TARGET: $DEST"
 write_feature_manifest
+run_builtins
 mcp_step

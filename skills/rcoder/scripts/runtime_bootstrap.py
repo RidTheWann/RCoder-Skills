@@ -42,6 +42,16 @@ def start_runtime_companion(
     explicit_binary = runtime_binary or os.environ.get("RCODER_RUNTIME_PATH")
     binary = explicit_binary or shutil.which("rcoder-runtime")
     if not binary:
+        name = "rcoder-runtime.exe" if os.name == "nt" else "rcoder-runtime"
+        for directory in (".rcoder/bin", ".local/bin"):
+            home = os.environ.get("HOME") or os.environ.get("USERPROFILE")
+            if not home:
+                break
+            candidate = Path(home) / directory / name
+            if candidate.is_file():
+                binary = str(candidate)
+                break
+    if not binary:
         return False
 
     try:

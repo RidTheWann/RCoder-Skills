@@ -2,6 +2,7 @@
 set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 INSTALLER="$ROOT/install.sh"
+export RCODER_RUNTIME_DISABLE=1
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT HUP INT TERM
 for target in claude-code codex cursor gemini-cli copilot agents qoder opencode antigravity amp zed pi openclaw autohand warp kilocode cline roo-code trae factory; do
@@ -81,7 +82,12 @@ PY
 sh "$INSTALLER" --target agents --scope project --project-dir "$FEATURE_PROJECT" --home-dir "$FEATURE_HOME" --features rscan >/dev/null
 grep -q '"rsaver": false' "$FEATURE_MANIFEST"
 grep -q '"rscan": true' "$FEATURE_MANIFEST"
-echo 'PASS POSIX optional tool selection, atomic JSON manifest, and feature refresh on an already-current install'
+test -f "$FEATURE_PROJECT/.rcoder/context-fabric.sqlite3"
+CLEAN_OUT=$(sh "$INSTALLER" --target agents --scope project --project-dir "$FEATURE_PROJECT" --home-dir "$FEATURE_HOME" --features rscan --clean 2>&1)
+printf '%s\n' "$CLEAN_OUT" | grep -q 'Clean install:'
+printf '%s\n' "$CLEAN_OUT" | grep -q 'Install target:'
+grep -q '"rscan": true' "$FEATURE_MANIFEST"
+echo 'PASS POSIX optional tools, RFC store, and clean reinstall of an already-current install'
 
 if command -v python3 >/dev/null 2>&1 || command -v python >/dev/null 2>&1; then
   MCP_PROJECT="$TMP/mcp-project"

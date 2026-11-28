@@ -86,8 +86,9 @@ def run_node(temp):
     home.mkdir()
     pid, fd = pty.fork()
     if pid == 0:
-        os.execvp("node", ["node", str(ROOT / "scripts" / "rcoder.mjs"), "--interactive",
-                           "--home-dir", str(home)])
+        env = dict(os.environ, RCODER_RUNTIME_DISABLE="1")
+        os.execvpe("node", ["node", str(ROOT / "scripts" / "rcoder.mjs"), "--interactive",
+                            "--home-dir", str(home)], env)
     output = b""
 
     def drain(seconds):
@@ -140,6 +141,7 @@ def run_node(temp):
         pass
     text = re.sub(rb"\x1b\[[0-9;?]*[A-Za-z]", b"", output).decode("utf-8", "replace")
     check_blocks("Node manager", text)
+    assert "Clean install" in text, "clean install option missing from the menu"
     assert (project / ".cursor" / "mcp.json").is_file(), text
     if os.name != "nt":
         assert (home / ".local" / "bin" / "rcoder").is_file(), "interactive install did not install the global launcher"

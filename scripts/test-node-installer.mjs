@@ -12,8 +12,9 @@ const catalog = JSON.parse(readFileSync(path.join(root, 'targets.json'), 'utf8')
 const targets = catalog.targets;
 const temp = mkdtempSync(path.join(os.tmpdir(), 'rcoder-node-installer-'));
 
+const TEST_ENV = { ...process.env, RCODER_RUNTIME_DISABLE: '1' };
 function run(args) {
-  return execFileSync(process.execPath, [cli, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  return execFileSync(process.execPath, [cli, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: TEST_ENV });
 }
 function destinationFor(target, scope, projectDir, homeDir) {
   const base = scope === 'project' ? projectDir : homeDir;
@@ -162,7 +163,12 @@ try {
   const refreshedFeatureState = JSON.parse(readFileSync(featureManifest, 'utf8'));
   assert.equal(refreshedFeatureState.rscan, false);
   assert.equal(refreshedFeatureState.rsaver, true);
-  console.log('PASS optional tool selection: RSaver and RScan manifests with refresh on re-install');
+  assert.ok(existsSync(path.join(featureProject, '.rcoder', 'context-fabric.sqlite3')));
+  const cleanOutput = run([...featureArgs, '--features', 'rscan', '--clean']);
+  assert.match(cleanOutput, /Clean install:/);
+  assert.match(cleanOutput, /Install target:/);
+  assert.equal(JSON.parse(readFileSync(featureManifest, 'utf8')).rscan, true);
+  console.log('PASS optional tools, RFC store, and clean reinstall on an already-current install');
 
   // MCP option: show prints a snippet and writes nothing; install merges safely; bad values are rejected.
   const pythonProbe = spawnSync(process.platform === 'win32' ? 'python' : 'python3', ['--version'], { encoding: 'utf8' });

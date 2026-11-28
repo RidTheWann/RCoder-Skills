@@ -47,7 +47,7 @@ The plugin manifest at hooks/hooks.json registers three events:
 | Stop | Reads the same identity and last_assistant_message; verifies the per-delivery canary and stores a token-free transcript record. |
 | SessionEnd | Removes private pending-delivery state for sessions that ended without a matching Stop event. |
 
-The adapter is deliberately opt-in. It does nothing unless .rcoder/context-fabric.sqlite3 already exists. Initialize the store once:
+The adapter is deliberately opt-in. It does nothing unless .rcoder/context-fabric.sqlite3 already exists. Installers now create that store automatically; for an existing installation, initialize it once with:
 
 ~~~sh
 python scripts/context-fabric.py --root . stats
