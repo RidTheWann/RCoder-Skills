@@ -2,7 +2,9 @@ name: RCoder Runtime release assets
 
 # Builds prebuilt Runtime binaries when a GitHub Release is published so installer
 # users never need a Rust toolchain. The linux-arm64 asset is also committed in
-# runtime/bin/ for the development host.
+# runtime/bin/ for the development host. The macOS/x64 (macos-13) job was removed
+# because GitHub repeatedly left it queued indefinitely; Intel Mac hosts stay
+# fail-open until that runner is available again.
 
 on:
   release:
@@ -26,9 +28,6 @@ jobs:
             binary: rcoder-runtime
           - os: macos-latest
             target: macos-arm64
-            binary: rcoder-runtime
-          - os: macos-13
-            target: macos-x64
             binary: rcoder-runtime
           - os: windows-latest
             target: windows-x64
