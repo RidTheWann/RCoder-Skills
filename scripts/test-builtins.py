@@ -15,6 +15,15 @@ HELPER = ROOT / "skills" / "rcoder" / "scripts" / "rcoder_builtins.py"
 ASSET = ROOT / "runtime" / "bin" / "rcoder-runtime-linux-arm64"
 
 
+def host_key() -> str | None:
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("rcoder_builtins_key", HELPER)
+    module = importlib.util.module_from_spec(spec)
+    assert spec and spec.loader
+    spec.loader.exec_module(module)
+    return module.platform_key()
+
+
 def bundled_for_host() -> Path | None:
     import platform
     system = platform.system().lower()
@@ -104,15 +113,18 @@ def main() -> int:
         # A tampered checksum is refused before any binary is copied.
         bad_source = temp / "bad-source"
         (bad_source / "runtime" / "bin").mkdir(parents=True)
-        shutil.copyfile(ASSET, bad_source / "runtime" / "bin" / ASSET.name)
+        bad_key = host_key() or "linux-arm64"
+        bad_name = f"rcoder-runtime-{bad_key}.exe" if os.name == "nt" else f"rcoder-runtime-{bad_key}"
+        shutil.copyfile(ASSET, bad_source / "runtime" / "bin" / bad_name)
         (bad_source / "runtime" / "bin" / "SHA256SUMS").write_text(
-            "0000000000000000000000000000000000000000000000000000000000000000  " + ASSET.name + "\n",
+            "0000000000000000000000000000000000000000000000000000000000000000  " + bad_name + "\n",
             encoding="utf-8",
         )
         bad_home = temp / "bad-home"
         bad_home.mkdir()
+        bad_base = bad_source / "runtime" / "bin"
         bad = run("setup", "--root", str(project), "--source", str(bad_source),
-                  "--home", str(bad_home), "--no-rfc", home=bad_home)
+                  "--home", str(bad_home), "--no-rfc", "--release-base", str(bad_base), home=bad_home)
         assert bad.returncode == 0, bad.stderr
         assert "checksum mismatch" in bad.stderr, bad.stderr
         assert not (bad_home / ".rcoder" / "bin" / "rcoder-runtime").exists()
