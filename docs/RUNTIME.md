@@ -19,7 +19,9 @@ If Runtime is not installed, cannot start, or is explicitly disabled, the MCP se
 
 ## Install
 
-Install Rust 1.85 or newer, then build and install the executable from the repository root:
+The standard installer ships a prebuilt, checksum-verified `rcoder-runtime` binary in `runtime/bin/` and copies it to `~/.rcoder/bin/` (or `%USERPROFILE%\.rcoder\bin\` on Windows). No Rust toolchain is needed. The MCP bootstrap also searches these directories, so no `PATH` edit is required; `RCODER_RUNTIME_PATH` still overrides detection.
+
+Contributors who want to build from source can install Rust 1.85 or newer and run:
 
 ```sh
 cargo install --path runtime/apps/rcoder-runtime

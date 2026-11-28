@@ -61,11 +61,11 @@ def main():
         raise SystemExit("Missing skills/rcoder/SKILL.md")
     DIST.mkdir(exist_ok=True)
     packages = [
-        (f"rcoder-v{VERSION}.skill.zip", [(SKILL, "rcoder")]),
-        (f"rcoder-v{VERSION}.claude-plugin.zip", [(ROOT / ".claude-plugin", ".claude-plugin"), (ROOT / ".mcp.json", ".mcp.json"), (ROOT / "launcher" / "rcoder-mcp.mjs", "launcher/rcoder-mcp.mjs"), (ROOT / "commands", "commands"), (ROOT / "agents", "agents"), (ROOT / 'hooks', 'hooks'), (SKILL.parent, "skills"), (ROOT / "LICENSE", "LICENSE"), (ROOT / "README.md", "README.md")]),
-        (f"rcoder-v{VERSION}.agent-plugin.zip", [(ROOT / "plugin.json", "plugin.json"), (ROOT / "mcp.json", "mcp.json"), (ROOT / "launcher" / "rcoder-mcp.mjs", "launcher/rcoder-mcp.mjs"), (SKILL.parent, "skills"), (ROOT / "LICENSE", "LICENSE"), (ROOT / "README.md", "README.md")]),
-        (f"rcoder-v{VERSION}.codex-plugin.zip", [(ROOT / "plugin.json", "plugin.json"), (ROOT / ".codex-plugin", ".codex-plugin"), (ROOT / ".mcp.json", ".mcp.json"), (ROOT / "launcher" / "rcoder-mcp.mjs", "launcher/rcoder-mcp.mjs"), (SKILL.parent, "skills"), (ROOT / "LICENSE", "LICENSE"), (ROOT / "README.md", "README.md")]),
-        (f"rcoder-v{VERSION}.gemini-extension.zip", [(ROOT / "gemini-extension.json", "gemini-extension.json"), (ROOT / "GEMINI.md", "GEMINI.md"), (ROOT / "commands" / "rcoder", "commands/rcoder"), (ROOT / "launcher" / "rcoder-mcp.mjs", "launcher/rcoder-mcp.mjs"), (SKILL.parent, "skills")]),
+        (f"rcoder-v{VERSION}.skill.zip", [(SKILL, "rcoder"), (ROOT / "runtime" / "bin", "runtime/bin")]),
+        (f"rcoder-v{VERSION}.claude-plugin.zip", [(ROOT / ".claude-plugin", ".claude-plugin"), (ROOT / ".mcp.json", ".mcp.json"), (ROOT / "launcher" / "rcoder-mcp.mjs", "launcher/rcoder-mcp.mjs"), (ROOT / "commands", "commands"), (ROOT / "agents", "agents"), (ROOT / 'hooks', 'hooks'), (SKILL.parent, "skills"), (ROOT / "runtime" / "bin", "runtime/bin"), (ROOT / "LICENSE", "LICENSE"), (ROOT / "README.md", "README.md")]),
+        (f"rcoder-v{VERSION}.agent-plugin.zip", [(ROOT / "plugin.json", "plugin.json"), (ROOT / "mcp.json", "mcp.json"), (ROOT / "launcher" / "rcoder-mcp.mjs", "launcher/rcoder-mcp.mjs"), (SKILL.parent, "skills"), (ROOT / "runtime" / "bin", "runtime/bin"), (ROOT / "LICENSE", "LICENSE"), (ROOT / "README.md", "README.md")]),
+        (f"rcoder-v{VERSION}.codex-plugin.zip", [(ROOT / "plugin.json", "plugin.json"), (ROOT / ".codex-plugin", ".codex-plugin"), (ROOT / ".mcp.json", ".mcp.json"), (ROOT / "launcher" / "rcoder-mcp.mjs", "launcher/rcoder-mcp.mjs"), (SKILL.parent, "skills"), (ROOT / "runtime" / "bin", "runtime/bin"), (ROOT / "LICENSE", "LICENSE"), (ROOT / "README.md", "README.md")]),
+        (f"rcoder-v{VERSION}.gemini-extension.zip", [(ROOT / "gemini-extension.json", "gemini-extension.json"), (ROOT / "GEMINI.md", "GEMINI.md"), (ROOT / "commands" / "rcoder", "commands/rcoder"), (ROOT / "launcher" / "rcoder-mcp.mjs", "launcher/rcoder-mcp.mjs"), (SKILL.parent, "skills"), (ROOT / "runtime" / "bin", "runtime/bin")]),
     ]
     checksums = []
     for filename, items in packages:

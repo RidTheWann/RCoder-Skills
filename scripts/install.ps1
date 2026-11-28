@@ -5,6 +5,7 @@ param(
  [string]$ProjectDir=(Get-Location).Path,[string]$HomeDir=$HOME,
   [switch]$DryRun,[switch]$Uninstall,
   [string]$Features='rsaver,rscan',[switch]$ListFeatures,
+  [switch]$Clean,[switch]$NoRfc,[switch]$NoRuntime,
   [ValidateSet('none','show','install')][string]$Mcp='none'
 )
 $ErrorActionPreference='Stop'
@@ -13,6 +14,7 @@ if($ListFeatures){
  Write-Output 'RScan: Read-only project scan with ranked development options at session start'
  exit 0
 }
+if($Clean -and $Uninstall){throw 'Clean cannot be combined with uninstall.'}
 $selectedFeatures=@()
 if($Features -and $Features -ne 'none'){
  foreach($part in ($Features -split ',')){
@@ -65,6 +67,19 @@ function Write-FeatureManifest{
  [IO.File]::WriteAllText($featureManifest,$state+"`n",(New-Object System.Text.UTF8Encoding($false)))
  Write-Output "Enabled optional tools: $Features"
 }
+function Invoke-Builtins{
+ if($Uninstall){return}
+ . (Join-Path (Join-Path $repoDir 'launcher') 'McpSetup.ps1')
+ $python=Find-RCoderPython
+ if($null -eq $python){Write-Output 'Warning: Python 3 not found; RFC/Runtime setup skipped.';return}
+ $helper=Join-Path (Join-Path $sourceDir 'scripts') 'rcoder_builtins.py'
+ if(-not(Test-Path -LiteralPath $helper -PathType Leaf)){Write-Output 'Warning: built-in setup helper is missing; RFC/Runtime setup skipped.';return}
+ $arguments=@($python.PreArgs)+@($helper,'setup','--root',$base,'--source',$repoDir,'--home',$HomeDir)
+ if($NoRfc){$arguments+=@('--no-rfc')}
+ if($NoRuntime){$arguments+=@('--no-runtime')}
+ if($DryRun){$arguments+=@('--dry-run')}
+ try{& $python.Exe @arguments}catch{Write-Output "Warning: built-in setup reported a problem: $($_.Exception.Message)"}
+}
 function Invoke-McpStep{
  if($Mcp -eq 'none'){return}
  . (Join-Path (Join-Path $repoDir 'launcher') 'McpSetup.ps1')
@@ -83,9 +98,10 @@ if($Uninstall){
   exit 0
 }
 if(-not(Test-Path -LiteralPath (Join-Path $sourceDir 'SKILL.md') -PathType Leaf)){throw "Skill source missing: $(Join-Path $sourceDir 'SKILL.md')"}
-if(Same-Tree -A $sourceDir -B $dest){Write-Output "RCoder is already current at $dest";if(-not $DryRun){Write-FeatureManifest;Invoke-McpStep}else{Write-Output "DRY RUN: refresh optional tool manifest with $Features"};exit 0}
+if(-not $Clean -and (Same-Tree -A $sourceDir -B $dest)){Write-Output "RCoder is already current at $dest";if(-not $DryRun){Write-FeatureManifest;Invoke-Builtins;Invoke-McpStep}else{Write-Output "DRY RUN: refresh optional tool manifest with $Features";Invoke-Builtins};exit 0}
 Write-Output "Install target: $Target ($Scope) -> $dest"
-if($DryRun){Write-Output 'DRY RUN: no files will be changed.';if($Mcp -ne 'none'){Write-Output "DRY RUN: MCP mode '$Mcp' would run after install."};exit 0}
+if($Clean){Write-Output 'Clean install: replacing the bundle and regenerating managed state.';$cleanManifest=Join-Path $targetRoot '.rcoder-features.json';if(Test-Path -LiteralPath $cleanManifest){Remove-Item -LiteralPath $cleanManifest -Force}}
+if($DryRun){Write-Output 'DRY RUN: no files will be changed.';Invoke-Builtins;if($Mcp -ne 'none'){Write-Output "DRY RUN: MCP mode '$Mcp' would run after install."};exit 0}
 New-Item -ItemType Directory -Force -Path $parent,$backup|Out-Null
 $stage=Join-Path $parent ".rcoder-stage-$stamp";$saved=$null
 try{
@@ -94,6 +110,7 @@ try{
  Move-Item -LiteralPath $stage -Destination $dest
   Write-Output "Installed RCoder for $Target ($Scope): $dest"
   Write-FeatureManifest
+  Invoke-Builtins
   Invoke-McpStep
  }catch{
  if(Test-Path -LiteralPath $stage){Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue}

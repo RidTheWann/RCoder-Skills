@@ -13,6 +13,7 @@
   },
   "files": [
     "skills/rcoder/**",
+    "runtime/bin/**",
     "scripts/rcoder.mjs",
     "scripts/package",
     "evals/**",

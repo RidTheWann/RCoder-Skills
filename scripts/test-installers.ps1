@@ -1,4 +1,5 @@
 $ErrorActionPreference = 'Stop'
+$env:RCODER_RUNTIME_DISABLE = '1'
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $filesToParse = @(
     (Join-Path $repoRoot 'install.ps1'),
@@ -55,6 +56,10 @@ try {
             $featureManifest = Join-Path $discovery '.rcoder-features.json'
             $featureState = Get-Content -LiteralPath $featureManifest -Raw -Encoding UTF8 | ConvertFrom-Json
             if ($featureState.rscan -ne $true -or $featureState.rsaver -ne $false) { throw "Feature refresh on an already-current install failed for $($target.id)/$scope" }
+
+            if (-not (Test-Path -LiteralPath (Join-Path $base '.rcoder/context-fabric.sqlite3'))) { throw "RFC store was not initialized for $($target.id)/$scope" }
+            $cleanOutput = & $installer -Target $target.id -Scope $scope -ProjectDir $project -HomeDir $homeDir -Features rscan -Clean
+            if ("$cleanOutput" -notmatch 'Clean install') { throw "Clean install output missing for $($target.id)/$scope" }
 
             & $installer -Target $target.id -Scope $scope -ProjectDir $project -HomeDir $homeDir -Uninstall
             if (-not (Test-Path -LiteralPath (Join-Path $dest 'original.txt'))) { throw "Backup restore failed: $($target.id)/$scope" }

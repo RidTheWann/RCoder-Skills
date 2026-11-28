@@ -37,6 +37,8 @@ jobs:
         run: python scripts/test-context-fabric.py
       - name: RFC Claude host injection regression
         run: python scripts/test-context-fabric-host.py
+      - name: Built-in RFC/Runtime installer helper regression
+        run: python scripts/test-builtins.py
       - name: Evaluation scorer self-test
         run: python scripts/test-score-eval.py
       - name: Deterministic objective verifier self-test

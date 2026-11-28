@@ -244,8 +244,11 @@ Native Windows/POSIX installers do **not** require Node.js; the npm route requir
 sh ./install.sh --host claude --scope user
 sh ./install.sh --host gemini --scope project
 sh ./install.sh --dry-run
+sh ./install.sh --clean          # recommended for stale or broken installs
 sh ./install.sh --uninstall
 ```
+
+Every install initializes the local RFC store and installs the prebuilt Runtime binary from this project — **Rust is not required**. Use `--no-rfc` or `--no-runtime` to opt out; `--clean` forces a fresh bundle and regenerates managed state while keeping a timestamped backup.
 
 **Claude Code plugin (marketplace)**
 
@@ -316,7 +319,7 @@ See [SECURITY.md](SECURITY.md), [MCP security](docs/MCP.md), and [hooks limits](
 
 ## Common questions
 
-**Do I need Rust?** No. Runtime is optional.
+**Do I need Rust?** No. The installer ships a prebuilt Runtime binary for the host platform and initializes the RFC store automatically. Manual Rust builds remain available for contributors; both subsystems are fail-open and can be skipped with `--no-runtime` / `--no-rfc`.
 
 **Do I need a paid model?** No. The E2E regression uses a local mock provider.
 
