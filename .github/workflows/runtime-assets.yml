@@ -65,9 +65,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          tag="${{ github.event.release.tag_name }}"
+          if [ -z "$tag" ]; then tag="v$(node -p "require('./package.json').version")"; fi
           cd assets
           cat *.sha256 > SHA256SUMS
           rm -f *.sha256
-          tag="${{ github.event.release.tag_name }}"
-          if [ -z "$tag" ]; then tag="v$(node -p "require('./package.json').version")"; fi
           gh release upload "$tag" * --clobber --repo "${{ github.repository }}"
