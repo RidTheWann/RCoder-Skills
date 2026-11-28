@@ -323,12 +323,16 @@ def main():
     package_files = set(package.get("files", []))
     for required in ("skills/rcoder/**", "runtime/bin/**", "scripts/rcoder.mjs", "targets.json", "launcher/RCoder.ps1"):
         check(required in package_files, f"G1: npm package missing runtime file pattern {required}")
-    for relative in ("scripts/install.sh", "scripts/install.ps1", "install.ps1", "scripts/rcoder.mjs"):
+    for relative in ("scripts/install.sh", "scripts/install.ps1", "install.ps1",
+                     "launcher/RCoder.ps1", "scripts/rcoder.mjs"):
         installer = read(ROOT / relative).lower().replace("-", "")
         for flag in ("clean", "norfc", "noruntime"):
             check(flag in installer, f"G8: {relative} is missing the {flag} option")
     check("rcoder_builtins.py" in read(ROOT / "scripts" / "rcoder.mjs"),
           "G8: Node installer must invoke the built-in RFC/Runtime setup helper")
+    for relative in ("launcher/RCoder.ps1", "scripts/rcoder.mjs"):
+        check("Built-in RFC / Runtime" in read(ROOT / relative),
+              f"G8: {relative} must offer the built-in RFC/Runtime menu")
     for required in (
         "scripts/rcoder.mjs", "scripts/install.ps1", "scripts/install.sh",
         "scripts/test-node-installer.mjs", "scripts/test-installers.sh",

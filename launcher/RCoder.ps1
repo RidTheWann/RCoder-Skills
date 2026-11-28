@@ -151,13 +151,42 @@ function Assert-NoReparsePoint {
     }
 }
 
+function Invoke-RCoderBuiltins {
+    param(
+        [Parameter(Mandatory = $true)][string]$Base,
+        [switch]$NoRfc,[switch]$NoRuntime
+    )
+    $python = Get-RcoderPython
+    if ($null -eq $python) { Write-Host 'Warning: Python 3 not found; RFC/Runtime setup skipped.'; return }
+    $helper = Join-Path (Join-Path $SkillSource 'scripts') 'rcoder_builtins.py'
+    if (-not (Test-Path -LiteralPath $helper -PathType Leaf)) { Write-Host 'Warning: built-in setup helper is missing; RFC/Runtime setup skipped.'; return }
+    $arguments = @($python.Prefix) + @($helper, 'setup', '--root', $Base, '--source', $AppRoot, '--home', $HomeRoot)
+    if ($NoRfc) { $arguments += @('--no-rfc') }
+    if ($NoRuntime) { $arguments += @('--no-runtime') }
+    try { & $python.Source @arguments } catch { Write-Host "Warning: built-in setup reported a problem: $($_.Exception.Message)" }
+}
+
+function Read-BuiltinSelection {
+    Write-Host ''
+    Write-Host 'Built-in subsystems (bundled with this project):'
+    Write-Host '  1. RFC store and Runtime binary (default)'
+    Write-Host '  2. RFC store only'
+    Write-Host '  3. Runtime binary only'
+    Write-Host '  4. Neither'
+    $choice = (Read-Host 'Built-in RFC / Runtime').Trim()
+    if ([string]::IsNullOrWhiteSpace($choice)) { $choice = '1' }
+    if ($choice -notin @('1', '2', '3', '4')) { Write-Host 'Invalid selection; using default.'; $choice = '1' }
+    return @{ NoRfc = ($choice -in @('3', '4')); NoRuntime = ($choice -in @('2', '4')) }
+}
+
 function Invoke-RCoderTarget {
     param(
         [Parameter(Mandatory = $true)][object]$Target,
         [Parameter(Mandatory = $true)][ValidateSet('project', 'user')][string]$Scope,
         [Parameter(Mandatory = $true)][string]$Base,
         [Parameter(Mandatory = $true)][ValidateSet('install', 'uninstall')][string]$Action,
-        [string]$Features = 'rsaver,rscan'
+        [string]$Features = 'rsaver,rscan',
+        [switch]$Clean,[switch]$NoRfc,[switch]$NoRuntime
     )
     $selectedFeatures = @()
     foreach ($part in ($Features -split ',')) {
@@ -201,12 +230,18 @@ function Invoke-RCoderTarget {
         return
     }
 
-    if (Test-SameDirectory -Left $SkillSource -Right $destination) {
+    if (-not $Clean -and (Test-SameDirectory -Left $SkillSource -Right $destination)) {
         Write-Host "Already current: $($Target.label) ($destination)"
+        Invoke-RCoderBuiltins -Base $Base -NoRfc:$NoRfc -NoRuntime:$NoRuntime
         return
     }
 
     Write-Host "Install target: $($Target.label) ($Scope) -> $destination"
+    if ($Clean) {
+        Write-Host 'Clean install: replacing the bundle and regenerating managed state.'
+        $cleanManifest = Join-Path $targetRoot '.rcoder-features.json'
+        if (Test-Path -LiteralPath $cleanManifest) { Remove-Item -LiteralPath $cleanManifest -Force }
+    }
     New-Item -ItemType Directory -Path $skillsRoot, $backupRoot -Force | Out-Null
     $stage = Join-Path $skillsRoot ".rcoder-stage-$stamp"
     $savedBackup = $null
@@ -225,6 +260,7 @@ function Invoke-RCoderTarget {
         # Windows PowerShell 5.1 'Set-Content -Encoding UTF8' adds a BOM that breaks strict JSON readers.
         [IO.File]::WriteAllText($featureManifest, $state + "`n", (New-Object System.Text.UTF8Encoding($false)))
         Write-Host "Enabled optional tools: $Features"
+        Invoke-RCoderBuiltins -Base $Base -NoRfc:$NoRfc -NoRuntime:$NoRuntime
     }
     catch {
         if (Test-Path -LiteralPath $stage) {
@@ -292,12 +328,13 @@ try {
         Write-Host '  2. Uninstall RCoder'
         Write-Host '  3. Show supported agents'
         Write-Host '  4. Set up MCP server (no reinstall needed)'
+        Write-Host '  5. Clean install (recommended for broken or stale installs)'
         Write-Host '  0. Exit'
 
         $actionChoice = (Read-Host 'Choose an action').Trim()
         if ($actionChoice -eq '0' -or [string]::IsNullOrWhiteSpace($actionChoice)) { break }
         if ($actionChoice -eq '3') { Show-SupportedTargets; continue }
-        if ($actionChoice -notin @('1', '2', '4')) {
+        if ($actionChoice -notin @('1', '2', '4', '5')) {
             Write-Warning 'Invalid action selection.'
             continue
         }
@@ -320,9 +357,11 @@ try {
 
         $features = 'rsaver,rscan'
         $mcpMode = 'none'
-        if ($actionChoice -eq '1') {
+        $builtins = @{ NoRfc = $false; NoRuntime = $false }
+        if ($actionChoice -eq '1' -or $actionChoice -eq '5') {
             $features = Read-FeatureSelection
             $mcpMode = Read-McpSelection
+            $builtins = Read-BuiltinSelection
         }
         if ($actionChoice -eq '4') {
             Write-Host ''
@@ -375,8 +414,9 @@ try {
                 Invoke-RCoderMcpSetup -Mode $mcpMode -TargetId ([string]$target.id) -Scope $scope -Base $base -SkillDestination $installed
                 continue
             }
-            $action = if ($actionChoice -eq '1') { 'install' } else { 'uninstall' }
-            Invoke-RCoderTarget -Target $target -Scope $scope -Base $base -Action $action -Features $features
+            $action = if ($actionChoice -eq '1' -or $actionChoice -eq '5') { 'install' } else { 'uninstall' }
+            Invoke-RCoderTarget -Target $target -Scope $scope -Base $base -Action $action -Features $features `
+                -Clean:($actionChoice -eq '5') -NoRfc:$builtins.NoRfc -NoRuntime:$builtins.NoRuntime
             if ($action -eq 'install' -and $mcpMode -ne 'none') {
                 $installed = Join-Path (Join-Path $base (Join-Path $rootPath 'skills')) 'rcoder'
                 Invoke-RCoderMcpSetup -Mode $mcpMode -TargetId ([string]$target.id) -Scope $scope -Base $base -SkillDestination $installed

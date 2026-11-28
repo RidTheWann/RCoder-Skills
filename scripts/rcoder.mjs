@@ -999,6 +999,17 @@ async function askMcpMode(rl, allowSkip = true) {
   return choice === '2' ? 'install' : choice === '1' ? 'show' : 'none';
 }
 
+async function askBuiltinSelection(rl) {
+  console.log('\nBuilt-in subsystems (bundled with this project):');
+  console.log('  1. RFC store and Runtime binary (default)');
+  console.log('  2. RFC store only');
+  console.log('  3. Runtime binary only');
+  console.log('  4. Neither');
+  const choice = await ask(rl, '\nBuilt-in RFC / Runtime: ', '1');
+  if (!['1', '2', '3', '4'].includes(choice)) throw new Error('Invalid built-in selection.');
+  return { noRfc: ['3', '4'].includes(choice), noRuntime: ['2', '4'].includes(choice) };
+}
+
 function writeFeatureManifest(options, target) {
   const { targetRoot } = targetPaths(target, options.scope,
     options.scope === 'project' ? options.projectDir : options.homeDir);
@@ -1405,6 +1416,9 @@ async function runInteractive(options) {
         if (!['1', '2', '3', '4'].includes(featureChoice)) throw new Error('Invalid optional tool selection.');
         options.features = { 1: 'rsaver,rscan', 2: 'rsaver', 3: 'rscan', 4: 'none' }[featureChoice];
         options.mcp = await askMcpMode(rl);
+        const builtins = await askBuiltinSelection(rl);
+        options.noRfc = builtins.noRfc;
+        options.noRuntime = builtins.noRuntime;
       }
       if (action === '4') {
         console.log('\nThis configures the MCP server for hosts where RCoder is already installed.');
